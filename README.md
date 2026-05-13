@@ -37,6 +37,64 @@ This repository provides a template to rapidly deploy a modern web application s
 
 Initial setup is intended to take an hour or less.  This depends greatly on intended complexity, features selected/excluded and outside cooperation.
 
+## SDX Widget API OpenAPI Validation
+
+The initial SDX Reference Implementation API contract is defined in `backend/openapi/widgets.openapi.yaml`.
+
+Validate the OpenAPI 3.0.3 contract locally with:
+
+```sh
+cd backend
+npm run lint:openapi
+```
+
+The current Spectral configuration is `backend/.spectral.yaml`. It extends the standard OpenAPI ruleset and contains a TODO for replacing the placeholder with the official SDX Spectral ruleset URL or package reference when that ruleset is available.
+
+## SDX Widget API Local Development
+
+The Widget API is implemented in the NestJS backend and uses the existing PostgreSQL/Flyway/Prisma approach from this template.
+
+Use Node.js 22.13 or newer for backend commands. The repo includes `.nvmrc`, so with nvm you can run:
+
+```sh
+nvm use
+```
+
+Start the local database, migrations, backend, and frontend with:
+
+```sh
+docker compose up database migrations backend frontend
+```
+
+The backend is exposed on `http://localhost:3001`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3001/api/docs`.
+
+For local development and tests, the auth middleware accepts unsigned JWT payloads or mock claim headers when `NODE_ENV` is `development` or `test`, or when `AUTH_ALLOW_MOCK_CLAIMS=true`.
+
+Example mock headers:
+
+```sh
+curl \
+  -H "x-sdx-sub: user-123" \
+  -H "x-sdx-scopes: widgets.read widgets.write" \
+  http://localhost:3001/api/v1/widgets
+```
+
+Run backend tests with Node 22 or newer:
+
+```sh
+cd backend
+npm run test
+```
+
+Future SDX examples intentionally left as TODOs:
+
+- Token exchange
+- Delegation tokens
+- Signed JWT confidential client authentication
+- Event publishing
+- Webhook subscriptions
+- Policy engine and policy enforcement examples
+
 ## ✅ Prerequisites
 
 The following are required for all users:
