@@ -35,8 +35,55 @@ class FakePrismaService {
       this.rows.push(row)
       return row
     },
-    findMany: async ({ where }: { where?: Partial<WidgetRow> }) =>
-      this.rows.filter((row) => !where?.subject || row.subject === where.subject),
+    findMany: async ({
+      where,
+      orderBy,
+      skip = 0,
+      take,
+    }: {
+      where?: {
+        subject?: string
+        status?: string
+        name?: { contains?: string; mode?: string }
+      }
+      orderBy?: Array<Record<string, 'asc' | 'desc'>>
+      skip?: number
+      take?: number
+    }) => {
+      const filtered = this.rows.filter((row) => {
+        if (where?.subject && row.subject !== where.subject) {
+          return false
+        }
+        if (where?.status && row.status !== where.status) {
+          return false
+        }
+        if (where?.name?.contains) {
+          return row.name.toLowerCase().includes(where.name.contains.toLowerCase())
+        }
+        return true
+      })
+
+      const sorted = [...filtered]
+      if (orderBy?.length) {
+        sorted.sort((left, right) => {
+          for (const clause of orderBy) {
+            const [field, direction] = Object.entries(clause)[0]
+            const leftValue = left[field as keyof WidgetRow]
+            const rightValue = right[field as keyof WidgetRow]
+
+            if (leftValue === rightValue) {
+              continue
+            }
+
+            const comparison = leftValue! < rightValue! ? -1 : 1
+            return direction === 'asc' ? comparison : comparison * -1
+          }
+          return 0
+        })
+      }
+
+      return sorted.slice(skip, take !== undefined ? skip + take : undefined)
+    },
     findFirst: async ({ where }: { where: Partial<WidgetRow> }) =>
       this.rows.find(
         (row) =>
@@ -119,8 +166,9 @@ describe('SdxWidgetsController', () => {
       .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
       .expect(200)
 
-    expect(response.body).toHaveLength(1)
-    expect(response.body[0].subject).toBe('alice')
+    expect(response.body.items).toHaveLength(1)
+    expect(response.body.items[0].subject).toBe('alice')
+    expect(response.body.nextCursor).toBeNull()
   })
 
   it('does not expose another subject widget through normal endpoints', async () => {
@@ -148,8 +196,9 @@ describe('SdxWidgetsController', () => {
       .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.sdx-widgets.admin'])}`)
       .expect(200)
 
-    expect(response.body).toHaveLength(1)
-    expect(response.body[0].subject).toBe('bob')
+    expect(response.body.items).toHaveLength(1)
+    expect(response.body.items[0].subject).toBe('bob')
+    expect(response.body.nextCursor).toBeNull()
   })
 
   it('allows admins to access a widget by ID', async () => {
@@ -214,7 +263,62 @@ describe('SdxWidgetsController', () => {
       .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
       .expect(200)
 
-    expect(response.body).toHaveLength(0)
+    expect(response.body.items).toHaveLength(0)
+  })
+
+  it('filters, sorts, and paginates SDX Widget lists', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .send({ name: 'Bravo intake', status: 'active' })
+      .expect(201)
+
+    await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .send({ name: 'Alpha intake', status: 'active' })
+      .expect(201)
+
+    await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .send({ name: 'Archived item', status: 'archived' })
+      .expect(201)
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/v1/sdx-widgets')
+      .query({ status: 'active', name: 'intake', sortBy: 'name', sortOrder: 'asc', limit: 1 })
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .expect(200)
+
+    expect(firstPage.body.items).toHaveLength(1)
+    expect(firstPage.body.items[0].name).toBe('Alpha intake')
+    expect(firstPage.body.nextCursor).toBeTruthy()
+
+    const secondPage = await request(app.getHttpServer())
+      .get('/api/v1/sdx-widgets')
+      .query({
+        status: 'active',
+        name: 'intake',
+        sortBy: 'name',
+        sortOrder: 'asc',
+        limit: 1,
+        cursor: firstPage.body.nextCursor,
+      })
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .expect(200)
+
+    expect(secondPage.body.items).toHaveLength(1)
+    expect(secondPage.body.items[0].name).toBe('Bravo intake')
+    expect(secondPage.body.nextCursor).toBeNull()
+  })
+
+  it('rejects invalid list query parameters', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/sdx-widgets')
+      .query({ limit: 101 })
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .expect(400)
   })
 
   it('rejects update values that exceed database column sizes', async () => {

@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common'
 import {
@@ -20,6 +21,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiSecurity,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -32,6 +34,12 @@ import { ScopesGuard } from '../auth/scopes.guard'
 import type { AuthenticatedUser } from '../auth/auth.types'
 import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
 import {
+  ListSdxWidgetsQueryDto,
+  SdxWidgetListResponseDto,
+  SDX_WIDGET_SORT_DIRECTIONS,
+  SDX_WIDGET_SORT_FIELDS,
+} from './dto/list-sdx-widgets.dto'
+import {
   AdminPatchSdxWidgetDto,
   AdminUpdateSdxWidgetDto,
   PatchSdxWidgetDto,
@@ -41,6 +49,7 @@ import {
   ErrorResponseDto,
   ProblemDetailResponseDto,
   SdxWidgetDto,
+  SDX_WIDGET_STATUSES,
   SDX_WIDGET_EXAMPLE,
 } from './dto/sdx-widget.dto'
 import { SdxWidgetsService } from './sdx-widgets.service'
@@ -137,16 +146,66 @@ export class SdxWidgetsController {
     description:
       'Returns the SDX Widgets owned by the authenticated subject identified by the JWT sub claim.',
   })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SDX_WIDGET_STATUSES,
+    description: 'Filter widgets by lifecycle status.',
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    schema: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 200,
+    },
+    description: 'Case-insensitive partial name match.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 100,
+      default: 25,
+    },
+    description: 'Maximum number of widgets to return.',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    schema: {
+      type: 'string',
+    },
+    description: 'Opaque pagination cursor from the previous response.',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: SDX_WIDGET_SORT_FIELDS,
+    description: 'Field used to sort results.',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SDX_WIDGET_SORT_DIRECTIONS,
+    description: 'Sort direction for the selected sort field.',
+  })
   @ApiOkResponse({
     description: 'The list of SDX Widgets owned by the authenticated subject.',
-    type: SdxWidgetDto,
-    isArray: true,
-    example: [SDX_WIDGET_EXAMPLE],
+    type: SdxWidgetListResponseDto,
+    example: {
+      items: [SDX_WIDGET_EXAMPLE],
+      nextCursor: null,
+    },
   })
+  @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.widgetsService.listForSubject(user.subject)
+  findAll(@CurrentUser() user: AuthenticatedUser, @Query() query: ListSdxWidgetsQueryDto) {
+    return this.widgetsService.listForSubject(user.subject, query)
   }
 
   @Post()
@@ -349,6 +408,53 @@ export class AdminSdxWidgetsController {
     description:
       'Returns the SDX Widgets owned by the subject identified in the path. This operation requires the SDX-RI.sdx-widgets.admin scope.',
   })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SDX_WIDGET_STATUSES,
+    description: 'Filter widgets by lifecycle status.',
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    schema: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 200,
+    },
+    description: 'Case-insensitive partial name match.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 100,
+      default: 25,
+    },
+    description: 'Maximum number of widgets to return.',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    schema: {
+      type: 'string',
+    },
+    description: 'Opaque pagination cursor from the previous response.',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: SDX_WIDGET_SORT_FIELDS,
+    description: 'Field used to sort results.',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SDX_WIDGET_SORT_DIRECTIONS,
+    description: 'Sort direction for the selected sort field.',
+  })
   @ApiParam({
     name: 'subject',
     description: 'The subject identifier for the administrative operation.',
@@ -361,14 +467,17 @@ export class AdminSdxWidgetsController {
   })
   @ApiOkResponse({
     description: 'The list of SDX Widgets owned by the requested subject.',
-    type: SdxWidgetDto,
-    isArray: true,
-    example: [SDX_WIDGET_EXAMPLE],
+    type: SdxWidgetListResponseDto,
+    example: {
+      items: [SDX_WIDGET_EXAMPLE],
+      nextCursor: null,
+    },
   })
+  @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  findForSubject(@Param('subject') subject: string) {
-    return this.widgetsService.adminListForSubject(subject)
+  findForSubject(@Param('subject') subject: string, @Query() query: ListSdxWidgetsQueryDto) {
+    return this.widgetsService.adminListForSubject(subject, query)
   }
 
   @Post('subjects/:subject/sdx-widgets')

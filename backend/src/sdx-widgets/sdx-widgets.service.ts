@@ -9,6 +9,14 @@ import { Prisma } from '../../generated/prisma/client.js'
 import type { InputJsonValue } from '@prisma/client/runtime/client'
 import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
 import {
+  ListSdxWidgetsQueryDto,
+  SdxWidgetListResponseDto,
+  SDX_WIDGET_SORT_DIRECTIONS,
+  SDX_WIDGET_SORT_FIELDS,
+  type SdxWidgetSortDirection,
+  type SdxWidgetSortField,
+} from './dto/list-sdx-widgets.dto'
+import {
   AdminPatchSdxWidgetDto,
   AdminUpdateSdxWidgetDto,
   PatchSdxWidgetDto,
@@ -29,6 +37,15 @@ type WidgetRecord = {
   updatedAt: Date
 }
 
+type ParsedListQuery = {
+  cursorOffset: number
+  limit: number
+  name?: string
+  sortBy: SdxWidgetSortField
+  sortOrder: SdxWidgetSortDirection
+  status?: SdxWidgetStatus
+}
+
 @Injectable()
 export class SdxWidgetsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -39,12 +56,11 @@ export class SdxWidgetsService {
     return this.toDto(widget)
   }
 
-  async listForSubject(subject: string): Promise<SdxWidgetDto[]> {
-    const widgets = await this.prisma.sdxWidget.findMany({
-      where: { subject },
-      orderBy: { createdAt: 'desc' },
-    })
-    return widgets.map((widget) => this.toDto(widget))
+  async listForSubject(
+    subject: string,
+    query: ListSdxWidgetsQueryDto,
+  ): Promise<SdxWidgetListResponseDto> {
+    return this.listWidgets({ subject }, query)
   }
 
   async getForSubject(widgetId: string, subject: string): Promise<SdxWidgetDto> {
@@ -93,8 +109,11 @@ export class SdxWidgetsService {
     return this.createForSubject(subject, dto)
   }
 
-  async adminListForSubject(subject: string): Promise<SdxWidgetDto[]> {
-    return this.listForSubject(subject)
+  async adminListForSubject(
+    subject: string,
+    query: ListSdxWidgetsQueryDto,
+  ): Promise<SdxWidgetListResponseDto> {
+    return this.listWidgets({ subject }, query)
   }
 
   async adminGet(widgetId: string): Promise<SdxWidgetDto> {
@@ -292,5 +311,157 @@ export class SdxWidgetsService {
       createdAt: widget.createdAt,
       updatedAt: widget.updatedAt,
     }
+  }
+
+  private async listWidgets(
+    where: Pick<Prisma.SdxWidgetWhereInput, 'subject'>,
+    query: ListSdxWidgetsQueryDto,
+  ): Promise<SdxWidgetListResponseDto> {
+    const parsed = this.parseListQuery(query)
+    const widgets = await this.prisma.sdxWidget.findMany({
+      where: {
+        ...where,
+        ...(parsed.status ? { status: parsed.status } : {}),
+        ...(parsed.name
+          ? {
+              name: {
+                contains: parsed.name,
+                mode: 'insensitive',
+              },
+            }
+          : {}),
+      },
+      orderBy: [
+        { [parsed.sortBy]: parsed.sortOrder },
+        { id: parsed.sortOrder },
+      ],
+      skip: parsed.cursorOffset,
+      take: parsed.limit + 1,
+    })
+
+    const hasNextPage = widgets.length > parsed.limit
+    const items = widgets.slice(0, parsed.limit).map((widget) => this.toDto(widget))
+
+    return {
+      items,
+      nextCursor: hasNextPage
+        ? this.encodeCursor(parsed.cursorOffset + parsed.limit)
+        : null,
+    }
+  }
+
+  private parseListQuery(query: ListSdxWidgetsQueryDto): ParsedListQuery {
+    const limit = this.parseLimit(query.limit)
+    const cursorOffset = this.parseCursor(query.cursor)
+    const status = this.parseStatusFilter(query.status)
+    const name = this.parseNameFilter(query.name)
+    const sortBy = this.parseSortBy(query.sortBy)
+    const sortOrder = this.parseSortOrder(query.sortOrder)
+
+    return {
+      cursorOffset,
+      limit,
+      ...(name ? { name } : {}),
+      sortBy,
+      sortOrder,
+      ...(status ? { status } : {}),
+    }
+  }
+
+  private parseLimit(limit: string | undefined): number {
+    if (limit === undefined) {
+      return 25
+    }
+
+    if (!/^\d+$/.test(limit)) {
+      throw new BadRequestException('limit must be an integer between 1 and 100')
+    }
+
+    const parsed = Number.parseInt(limit, 10)
+    if (parsed < 1 || parsed > 100) {
+      throw new BadRequestException('limit must be an integer between 1 and 100')
+    }
+
+    return parsed
+  }
+
+  private parseCursor(cursor: string | undefined): number {
+    if (cursor === undefined) {
+      return 0
+    }
+
+    try {
+      const decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as {
+        offset?: unknown
+      }
+
+      if (
+        typeof decoded.offset !== 'number' ||
+        !Number.isInteger(decoded.offset) ||
+        decoded.offset < 0
+      ) {
+        throw new Error('invalid cursor offset')
+      }
+
+      return decoded.offset
+    } catch {
+      throw new BadRequestException('cursor must be a valid pagination cursor')
+    }
+  }
+
+  private parseStatusFilter(status: string | undefined): SdxWidgetStatus | undefined {
+    if (status === undefined) {
+      return undefined
+    }
+
+    if (!SDX_WIDGET_STATUSES.includes(status as SdxWidgetStatus)) {
+      throw new BadRequestException(`status must be one of: ${SDX_WIDGET_STATUSES.join(', ')}`)
+    }
+
+    return status as SdxWidgetStatus
+  }
+
+  private parseNameFilter(name: string | undefined): string | undefined {
+    if (name === undefined) {
+      return undefined
+    }
+
+    if (!name.trim() || name.length > 200) {
+      throw new BadRequestException('name must be a non-empty string up to 200 characters')
+    }
+
+    return name.trim()
+  }
+
+  private parseSortBy(sortBy: string | undefined): SdxWidgetSortField {
+    if (sortBy === undefined) {
+      return 'createdAt'
+    }
+
+    if (!SDX_WIDGET_SORT_FIELDS.includes(sortBy as SdxWidgetSortField)) {
+      throw new BadRequestException(
+        `sortBy must be one of: ${SDX_WIDGET_SORT_FIELDS.join(', ')}`,
+      )
+    }
+
+    return sortBy as SdxWidgetSortField
+  }
+
+  private parseSortOrder(sortOrder: string | undefined): SdxWidgetSortDirection {
+    if (sortOrder === undefined) {
+      return 'desc'
+    }
+
+    if (!SDX_WIDGET_SORT_DIRECTIONS.includes(sortOrder as SdxWidgetSortDirection)) {
+      throw new BadRequestException(
+        `sortOrder must be one of: ${SDX_WIDGET_SORT_DIRECTIONS.join(', ')}`,
+      )
+    }
+
+    return sortOrder as SdxWidgetSortDirection
+  }
+
+  private encodeCursor(offset: number): string {
+    return Buffer.from(JSON.stringify({ offset }), 'utf8').toString('base64url')
   }
 }

@@ -40,6 +40,13 @@ security:
 paths:
   /sdx-widgets:
     summary: Manage SDX Widgets for the authenticated subject.
+    parameters:
+      - $ref: '#/components/parameters/WidgetStatusFilter'
+      - $ref: '#/components/parameters/WidgetNameFilter'
+      - $ref: '#/components/parameters/WidgetLimit'
+      - $ref: '#/components/parameters/WidgetCursor'
+      - $ref: '#/components/parameters/WidgetSortBy'
+      - $ref: '#/components/parameters/WidgetSortOrder'
     get:
       tags:
         - SDX Widgets
@@ -54,9 +61,8 @@ paths:
           description: The list of SDX Widgets owned by the authenticated subject.
           content:
             application/json:
-              schema:
-                type: array
-                example:
+              example:
+                items:
                   - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
                     subject: user-123
                     name: Intake form
@@ -66,8 +72,11 @@ paths:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
-                items:
-                  $ref: '#/components/schemas/SdxWidget'
+                nextCursor: null
+              schema:
+                $ref: '#/components/schemas/SdxWidgetListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -225,6 +234,12 @@ paths:
     summary: Administer SDX Widgets for one subject.
     parameters:
       - $ref: '#/components/parameters/Subject'
+      - $ref: '#/components/parameters/WidgetStatusFilter'
+      - $ref: '#/components/parameters/WidgetNameFilter'
+      - $ref: '#/components/parameters/WidgetLimit'
+      - $ref: '#/components/parameters/WidgetCursor'
+      - $ref: '#/components/parameters/WidgetSortBy'
+      - $ref: '#/components/parameters/WidgetSortOrder'
     get:
       tags:
         - Admin SDX Widgets
@@ -241,9 +256,8 @@ paths:
           description: The list of SDX Widgets owned by the requested subject.
           content:
             application/json:
-              schema:
-                type: array
-                example:
+              example:
+                items:
                   - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
                     subject: user-123
                     name: Intake form
@@ -253,8 +267,11 @@ paths:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
-                items:
-                  $ref: '#/components/schemas/SdxWidget'
+                nextCursor: null
+              schema:
+                $ref: '#/components/schemas/SdxWidgetListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -445,6 +462,68 @@ components:
         minLength: 1
         maxLength: 255
         example: user-123
+    WidgetStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Filter widgets by lifecycle status.
+      schema:
+        $ref: '#/components/schemas/SdxWidgetStatus'
+    WidgetNameFilter:
+      name: name
+      in: query
+      required: false
+      description: Case-insensitive partial name match.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+        example: intake
+    WidgetLimit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of widgets to return.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        example: 25
+    WidgetCursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor from the previous response.
+      schema:
+        type: string
+        example: eyJvZmZzZXQiOjI1fQ
+    WidgetSortBy:
+      name: sortBy
+      in: query
+      required: false
+      description: Field used to sort results.
+      schema:
+        type: string
+        enum:
+          - createdAt
+          - updatedAt
+          - name
+          - status
+        default: createdAt
+        example: createdAt
+    WidgetSortOrder:
+      name: sortOrder
+      in: query
+      required: false
+      description: Sort direction for the selected sort field.
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: desc
+        example: desc
   responses:
     BadRequest:
       description: Malformed request syntax, invalid JSON, or invalid path/query parameter format.
@@ -557,6 +636,32 @@ components:
         updatedAt:
           type: string
           format: date-time
+    SdxWidgetListResponse:
+      description: A paginated list of SDX Widgets with an optional cursor for the next page.
+      type: object
+      example:
+        items:
+          - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+            subject: user-123
+            name: Intake form
+            description: Widget used for intake workflow testing.
+            status: active
+            metadata:
+              source: local-dev
+            createdAt: '2026-05-13T18:00:00Z'
+            updatedAt: '2026-05-13T18:00:00Z'
+        nextCursor: eyJvZmZzZXQiOjI1fQ
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SdxWidget'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Cursor to retrieve the next page, or null when there are no more results.
     CreateSdxWidgetRequest:
       description: Request body for creating a widget. Subject is never accepted here.
       type: object
