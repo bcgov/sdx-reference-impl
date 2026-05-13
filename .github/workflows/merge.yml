@@ -1,0 +1,78 @@
+name: Merge
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '.github/**'
+      - '.github/graphics/**'
+      - '!.github/workflows/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  init:
+    name: Initialize
+    outputs:
+      pr: ${{ steps.pr.outputs.pr }}
+    runs-on: ubuntu-24.04
+    steps:
+      # Get PR number for squash merges to main
+      - id: pr
+        uses: bcgov/action-get-pr@bfa713a9ab410c0f0c13126c35983934fc80d15b # v0.1.1
+
+  deploy-test:
+    name: TEST Deploys (${{ needs.init.outputs.pr }})
+    uses: ./.github/workflows/.deploy.yml
+    secrets:
+      db_password: ${{ secrets.DB_PASSWORD }}
+      oc_namespace: ${{ secrets.oc_namespace }}
+      oc_token: ${{ secrets.oc_token }}
+    with:
+      environment: test
+      target: test
+      tag: ${{ needs.init.outputs.pr }}
+
+  tests:
+    name: Tests
+    needs: [deploy-test]
+    uses: ./.github/workflows/.tests.yml
+    with:
+      target: test
+
+  deploy-prod:
+    name: PROD Deploys (${{ needs.init.outputs.pr }})
+    needs: [tests]
+    uses: ./.github/workflows/.deploy.yml
+    secrets:
+      db_password: ${{ secrets.DB_PASSWORD }}
+      oc_namespace: ${{ secrets.oc_namespace }}
+      oc_token: ${{ secrets.oc_token }}
+    with:
+      environment: prod
+      target: prod
+      tag: ${{ needs.init.outputs.pr }}
+
+  promote:
+    name: Promote Images
+    needs: [deploy-prod]
+    runs-on: ubuntu-slim
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        package: [migrations, backend, frontend]
+    timeout-minutes: 1
+    steps:
+      - uses: shrink/actions-docker-registry-tag@e6aaef25c595b6e0edd18bf4c7dbfea3abd43299 # v5
+        with:
+          registry: ghcr.io
+          repository: ${{ github.repository }}/${{ matrix.package }}
+          target: ${{ needs.init.outputs.pr }}
+          tags: prod
