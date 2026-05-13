@@ -614,8 +614,10 @@ components:
         id:
           type: string
           format: uuid
+          readOnly: true
         subject:
           type: string
+          readOnly: true
           description: Owner subject from the JWT sub claim or admin path.
         name:
           type: string
@@ -633,9 +635,11 @@ components:
         createdAt:
           type: string
           format: date-time
+          readOnly: true
         updatedAt:
           type: string
           format: date-time
+          readOnly: true
     SdxWidgetListResponse:
       description: A paginated list of SDX Widgets with an optional cursor for the next page.
       type: object

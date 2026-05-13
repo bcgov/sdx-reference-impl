@@ -21,12 +21,14 @@ export class SdxWidgetDto {
   @ApiProperty({
     format: 'uuid',
     example: SDX_WIDGET_EXAMPLE.id,
+    readOnly: true,
   })
   id: string
 
   @ApiProperty({
     description: 'Owner subject from the JWT sub claim or admin operation.',
     example: SDX_WIDGET_EXAMPLE.subject,
+    readOnly: true,
   })
   subject: string
 
@@ -60,12 +62,14 @@ export class SdxWidgetDto {
   @ApiProperty({
     format: 'date-time',
     example: SDX_WIDGET_EXAMPLE.createdAt,
+    readOnly: true,
   })
   createdAt: Date
 
   @ApiProperty({
     format: 'date-time',
     example: SDX_WIDGET_EXAMPLE.updatedAt,
+    readOnly: true,
   })
   updatedAt: Date
 }
