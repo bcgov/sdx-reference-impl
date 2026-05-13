@@ -178,17 +178,24 @@ export class SdxWidgetsService {
     this.validateStatus(dto.status)
 
     const data: Prisma.SdxWidgetUpdateInput = {}
-    if (dto.name !== undefined) {
-      data.name = dto.name.trim()
-    }
-    if (dto.description !== undefined) {
-      data.description = dto.description
-    }
-    if (dto.status !== undefined) {
-      data.status = dto.status
-    }
-    if (dto.metadata !== undefined) {
+    if (replace) {
+      data.name = dto.name!.trim()
+      data.description = dto.description ?? null
+      data.status = dto.status ?? 'active'
       data.metadata = this.metadataOrDefault(dto.metadata)
+    } else {
+      if (dto.name !== undefined) {
+        data.name = dto.name.trim()
+      }
+      if (dto.description !== undefined) {
+        data.description = dto.description
+      }
+      if (dto.status !== undefined) {
+        data.status = dto.status
+      }
+      if (dto.metadata !== undefined) {
+        data.metadata = this.metadataOrDefault(dto.metadata)
+      }
     }
 
     if (!Object.keys(data).length && !allowEmpty) {

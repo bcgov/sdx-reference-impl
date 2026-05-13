@@ -667,7 +667,10 @@ components:
           nullable: true
           description: Cursor to retrieve the next page, or null when there are no more results.
     CreateSdxWidgetRequest:
-      description: Request body for creating a widget. Subject is never accepted here.
+      description: >
+        Request body for creating a widget. Subject is never accepted here.
+        If status is omitted, the service creates the widget with status `active`.
+        If metadata is omitted, the service stores an empty metadata object.
       type: object
       example:
         name: Intake form
@@ -693,7 +696,10 @@ components:
           type: object
           additionalProperties: true
     UpdateSdxWidgetRequest:
-      description: Request body for replacing a widget. Subject is never accepted here.
+      description: >
+        Request body for replacing a widget. Subject is never accepted here.
+        This is a full replacement. Omitted optional fields are reset to their default values:
+        description is set to null, status is set to active, and metadata is set to an empty object.
       type: object
       example:
         name: Intake form v2
@@ -719,7 +725,9 @@ components:
           type: object
           additionalProperties: true
     PatchSdxWidgetRequest:
-      description: Request body for partially updating a widget. Subject is never accepted here.
+      description: >
+        Request body for partially updating a widget. Subject is never accepted here.
+        Omitted fields preserve their existing values.
       type: object
       example:
         status: archived
@@ -740,7 +748,11 @@ components:
           type: object
           additionalProperties: true
     AdminUpdateSdxWidgetRequest:
-      description: Request body for replacing a widget through an admin endpoint.
+      description: >
+        Request body for replacing a widget through an admin endpoint.
+        This is a full replacement for widget fields. Omitted optional fields are reset to their
+        default values: description is set to null, status is set to active, and metadata is set
+        to an empty object. If subject is omitted, the existing subject is preserved.
       type: object
       example:
         subject: user-456
@@ -771,7 +783,10 @@ components:
           type: object
           additionalProperties: true
     AdminPatchSdxWidgetRequest:
-      description: Request body for partially updating a widget through an admin endpoint.
+      description: >
+        Request body for partially updating a widget through an admin endpoint.
+        Omitted fields preserve their existing values. If subject is included, the administrative
+        operation may transfer ownership to a different subject.
       type: object
       example:
         subject: user-456

@@ -335,6 +335,30 @@ describe('SdxWidgetsController', () => {
       .expect(422)
   })
 
+  it('resets omitted optional fields during full replacement', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .send({
+        name: 'Original widget',
+        description: 'Original description',
+        status: 'inactive',
+        metadata: { source: 'custom' },
+      })
+      .expect(201)
+
+    const replaced = await request(app.getHttpServer())
+      .put(`/api/v1/sdx-widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.update'])}`)
+      .send({ name: 'Replacement widget' })
+      .expect(200)
+
+    expect(replaced.body.name).toBe('Replacement widget')
+    expect(replaced.body.description).toBeNull()
+    expect(replaced.body.status).toBe('active')
+    expect(replaced.body.metadata).toEqual({})
+  })
+
   it('rejects patch values with invalid status or metadata shape', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/sdx-widgets')
