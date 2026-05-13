@@ -37,9 +37,9 @@ This repository provides a template to rapidly deploy a modern web application s
 
 Initial setup is intended to take an hour or less.  This depends greatly on intended complexity, features selected/excluded and outside cooperation.
 
-## SDX Widget API OpenAPI Validation
+## SDX Widgets API OpenAPI Validation
 
-The initial SDX Reference Implementation API contract is defined in `backend/openapi/widgets.openapi.yaml`.
+The initial SDX Reference Implementation API contract is defined in `backend/openapi/sdx-widgets.openapi.yaml`.
 
 Validate the OpenAPI 3.0.3 contract locally with:
 
@@ -50,9 +50,9 @@ npm run lint:openapi
 
 The current Spectral configuration is `backend/.spectral.yaml`. It extends the standard OpenAPI ruleset and contains a TODO for replacing the placeholder with the official SDX Spectral ruleset URL or package reference when that ruleset is available.
 
-## SDX Widget API Local Development
+## SDX Widgets API Local Development
 
-The Widget API is implemented in the NestJS backend and uses the existing PostgreSQL/Flyway/Prisma approach from this template.
+The SDX Widgets API is implemented in the NestJS backend and uses the existing PostgreSQL/Flyway/Prisma approach from this template.
 
 Use Node.js 22.13 or newer for backend commands. The repo includes `.nvmrc`, so with nvm you can run:
 
@@ -75,8 +75,8 @@ Example mock headers:
 ```sh
 curl \
   -H "x-sdx-sub: user-123" \
-  -H "x-sdx-scopes: widgets.read widgets.write" \
-  http://localhost:3001/api/v1/widgets
+  -H "x-sdx-scopes: SDX-RI.sdx-widgets.read" \
+  http://localhost:3001/api/v1/sdx-widgets
 ```
 
 Run backend tests with Node 22 or newer:

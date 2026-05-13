@@ -6,7 +6,7 @@ import { HTTPLoggerMiddleware } from './middleware/req.res.logger'
 import { PrismaService } from './prisma.service'
 import { ConfigModule } from '@nestjs/config'
 import { UsersModule } from './users/users.module'
-import { WidgetsModule } from './widgets/widgets.module'
+import { SdxWidgetsModule } from './sdx-widgets/sdx-widgets.module'
 import { AppService } from './app.service'
 import { AppController } from './app.controller'
 import { MetricsController } from './metrics.controller'
@@ -15,7 +15,7 @@ import { HealthController } from './health.controller'
 import { HttpExceptionFilter } from './common/http-exception.filter'
 
 @Module({
-  imports: [ConfigModule.forRoot(), TerminusModule, UsersModule, WidgetsModule],
+  imports: [ConfigModule.forRoot(), TerminusModule, UsersModule, SdxWidgetsModule],
   controllers: [AppController, MetricsController, HealthController],
   providers: [
     AppService,

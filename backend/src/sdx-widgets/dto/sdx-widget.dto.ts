@@ -1,9 +1,9 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger'
 
-export const WIDGET_STATUSES = ['active', 'inactive', 'archived'] as const
-export type WidgetStatus = (typeof WIDGET_STATUSES)[number]
+export const SDX_WIDGET_STATUSES = ['active', 'inactive', 'archived'] as const
+export type SdxWidgetStatus = (typeof SDX_WIDGET_STATUSES)[number]
 
-export const WIDGET_EXAMPLE = {
+export const SDX_WIDGET_EXAMPLE = {
   id: '4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f',
   subject: 'user-123',
   name: 'Intake form',
@@ -16,56 +16,56 @@ export const WIDGET_EXAMPLE = {
   updatedAt: '2026-05-13T18:00:00Z',
 }
 
-@ApiSchema({ name: 'Widget' })
-export class WidgetDto {
+@ApiSchema({ name: 'SdxWidget' })
+export class SdxWidgetDto {
   @ApiProperty({
     format: 'uuid',
-    example: WIDGET_EXAMPLE.id,
+    example: SDX_WIDGET_EXAMPLE.id,
   })
   id: string
 
   @ApiProperty({
     description: 'Owner subject from the JWT sub claim or admin operation.',
-    example: WIDGET_EXAMPLE.subject,
+    example: SDX_WIDGET_EXAMPLE.subject,
   })
   subject: string
 
   @ApiProperty({
     minLength: 1,
     maxLength: 200,
-    example: WIDGET_EXAMPLE.name,
+    example: SDX_WIDGET_EXAMPLE.name,
   })
   name: string
 
   @ApiProperty({
     nullable: true,
     maxLength: 1000,
-    example: WIDGET_EXAMPLE.description,
+    example: SDX_WIDGET_EXAMPLE.description,
   })
   description: string | null
 
   @ApiProperty({
-    enum: WIDGET_STATUSES,
-    example: WIDGET_EXAMPLE.status,
+    enum: SDX_WIDGET_STATUSES,
+    example: SDX_WIDGET_EXAMPLE.status,
   })
-  status: WidgetStatus
+  status: SdxWidgetStatus
 
   @ApiProperty({
     type: 'object',
     additionalProperties: true,
-    example: WIDGET_EXAMPLE.metadata,
+    example: SDX_WIDGET_EXAMPLE.metadata,
   })
   metadata: Record<string, unknown>
 
   @ApiProperty({
     format: 'date-time',
-    example: WIDGET_EXAMPLE.createdAt,
+    example: SDX_WIDGET_EXAMPLE.createdAt,
   })
   createdAt: Date
 
   @ApiProperty({
     format: 'date-time',
-    example: WIDGET_EXAMPLE.updatedAt,
+    example: SDX_WIDGET_EXAMPLE.updatedAt,
   })
   updatedAt: Date
 }

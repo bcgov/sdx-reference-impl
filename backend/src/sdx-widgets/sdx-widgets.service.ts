@@ -7,14 +7,14 @@ import {
 import { PrismaService } from '../prisma.service'
 import { Prisma } from '../../generated/prisma/client.js'
 import type { InputJsonValue } from '@prisma/client/runtime/client'
-import { CreateWidgetDto } from './dto/create-widget.dto'
+import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
 import {
-  AdminPatchWidgetDto,
-  AdminUpdateWidgetDto,
-  PatchWidgetDto,
-  UpdateWidgetDto,
-} from './dto/update-widget.dto'
-import { WidgetDto, WidgetStatus, WIDGET_STATUSES } from './dto/widget.dto'
+  AdminPatchSdxWidgetDto,
+  AdminUpdateSdxWidgetDto,
+  PatchSdxWidgetDto,
+  UpdateSdxWidgetDto,
+} from './dto/update-sdx-widget.dto'
+import { SdxWidgetDto, SdxWidgetStatus, SDX_WIDGET_STATUSES } from './dto/sdx-widget.dto'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -30,26 +30,26 @@ type WidgetRecord = {
 }
 
 @Injectable()
-export class WidgetsService {
+export class SdxWidgetsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createForSubject(subject: string, dto: CreateWidgetDto): Promise<WidgetDto> {
+  async createForSubject(subject: string, dto: CreateSdxWidgetDto): Promise<SdxWidgetDto> {
     const data = this.buildCreateData(subject, dto)
-    const widget = await this.prisma.widgets.create({ data })
+    const widget = await this.prisma.sdxWidget.create({ data })
     return this.toDto(widget)
   }
 
-  async listForSubject(subject: string): Promise<WidgetDto[]> {
-    const widgets = await this.prisma.widgets.findMany({
+  async listForSubject(subject: string): Promise<SdxWidgetDto[]> {
+    const widgets = await this.prisma.sdxWidget.findMany({
       where: { subject },
       orderBy: { createdAt: 'desc' },
     })
     return widgets.map((widget) => this.toDto(widget))
   }
 
-  async getForSubject(widgetId: string, subject: string): Promise<WidgetDto> {
+  async getForSubject(widgetId: string, subject: string): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
-    const widget = await this.prisma.widgets.findFirst({
+    const widget = await this.prisma.sdxWidget.findFirst({
       where: { id: widgetId, subject },
     })
     return this.requireWidget(widget)
@@ -58,11 +58,11 @@ export class WidgetsService {
   async replaceForSubject(
     widgetId: string,
     subject: string,
-    dto: UpdateWidgetDto,
-  ): Promise<WidgetDto> {
+    dto: UpdateSdxWidgetDto,
+  ): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
     await this.getForSubject(widgetId, subject)
-    const widget = await this.prisma.widgets.update({
+    const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildUpdateData(dto, true),
     })
@@ -72,11 +72,11 @@ export class WidgetsService {
   async patchForSubject(
     widgetId: string,
     subject: string,
-    dto: PatchWidgetDto,
-  ): Promise<WidgetDto> {
+    dto: PatchSdxWidgetDto,
+  ): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
     await this.getForSubject(widgetId, subject)
-    const widget = await this.prisma.widgets.update({
+    const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildUpdateData(dto, false),
     })
@@ -86,37 +86,37 @@ export class WidgetsService {
   async deleteForSubject(widgetId: string, subject: string): Promise<void> {
     this.validateWidgetId(widgetId)
     await this.getForSubject(widgetId, subject)
-    await this.prisma.widgets.delete({ where: { id: widgetId } })
+    await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
   }
 
-  async adminCreateForSubject(subject: string, dto: CreateWidgetDto): Promise<WidgetDto> {
+  async adminCreateForSubject(subject: string, dto: CreateSdxWidgetDto): Promise<SdxWidgetDto> {
     return this.createForSubject(subject, dto)
   }
 
-  async adminListForSubject(subject: string): Promise<WidgetDto[]> {
+  async adminListForSubject(subject: string): Promise<SdxWidgetDto[]> {
     return this.listForSubject(subject)
   }
 
-  async adminGet(widgetId: string): Promise<WidgetDto> {
+  async adminGet(widgetId: string): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
-    const widget = await this.prisma.widgets.findUnique({ where: { id: widgetId } })
+    const widget = await this.prisma.sdxWidget.findUnique({ where: { id: widgetId } })
     return this.requireWidget(widget)
   }
 
-  async adminReplace(widgetId: string, dto: AdminUpdateWidgetDto): Promise<WidgetDto> {
+  async adminReplace(widgetId: string, dto: AdminUpdateSdxWidgetDto): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
     await this.adminGet(widgetId)
-    const widget = await this.prisma.widgets.update({
+    const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildAdminUpdateData(dto, true),
     })
     return this.toDto(widget)
   }
 
-  async adminPatch(widgetId: string, dto: AdminPatchWidgetDto): Promise<WidgetDto> {
+  async adminPatch(widgetId: string, dto: AdminPatchSdxWidgetDto): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
     await this.adminGet(widgetId)
-    const widget = await this.prisma.widgets.update({
+    const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildAdminUpdateData(dto, false),
     })
@@ -126,10 +126,10 @@ export class WidgetsService {
   async adminDelete(widgetId: string): Promise<void> {
     this.validateWidgetId(widgetId)
     await this.adminGet(widgetId)
-    await this.prisma.widgets.delete({ where: { id: widgetId } })
+    await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
   }
 
-  private buildCreateData(subject: string, dto: CreateWidgetDto): Prisma.widgetsCreateInput {
+  private buildCreateData(subject: string, dto: CreateSdxWidgetDto): Prisma.SdxWidgetCreateInput {
     this.validateSubject(subject)
     this.validateName(dto.name, true)
     this.validateDescription(dto.description)
@@ -145,10 +145,10 @@ export class WidgetsService {
   }
 
   private buildUpdateData(
-    dto: UpdateWidgetDto | PatchWidgetDto,
+    dto: UpdateSdxWidgetDto | PatchSdxWidgetDto,
     replace: boolean,
     allowEmpty = false,
-  ): Prisma.widgetsUpdateInput {
+  ): Prisma.SdxWidgetUpdateInput {
     if (replace) {
       this.validateName(dto.name, true)
     } else if (dto.name !== undefined) {
@@ -158,7 +158,7 @@ export class WidgetsService {
     this.validateDescription(dto.description)
     this.validateStatus(dto.status)
 
-    const data: Prisma.widgetsUpdateInput = {}
+    const data: Prisma.SdxWidgetUpdateInput = {}
     if (dto.name !== undefined) {
       data.name = dto.name.trim()
     }
@@ -179,9 +179,9 @@ export class WidgetsService {
   }
 
   private buildAdminUpdateData(
-    dto: AdminUpdateWidgetDto | AdminPatchWidgetDto,
+    dto: AdminUpdateSdxWidgetDto | AdminPatchSdxWidgetDto,
     replace: boolean,
-  ): Prisma.widgetsUpdateInput {
+  ): Prisma.SdxWidgetUpdateInput {
     const data = this.buildUpdateData(dto, replace, dto.subject !== undefined)
     if (dto.subject !== undefined) {
       this.validateSubject(dto.subject)
@@ -220,9 +220,9 @@ export class WidgetsService {
   private validateStatus(status: unknown): void {
     if (
       status !== undefined &&
-      (typeof status !== 'string' || !WIDGET_STATUSES.includes(status as WidgetStatus))
+      (typeof status !== 'string' || !SDX_WIDGET_STATUSES.includes(status as SdxWidgetStatus))
     ) {
-      throw new UnprocessableEntityException(`status must be one of: ${WIDGET_STATUSES.join(', ')}`)
+      throw new UnprocessableEntityException(`status must be one of: ${SDX_WIDGET_STATUSES.join(', ')}`)
     }
   }
 
@@ -271,20 +271,20 @@ export class WidgetsService {
     throw new BadRequestException(`${path} must be valid JSON`)
   }
 
-  private requireWidget(widget: WidgetRecord | null): WidgetDto {
+  private requireWidget(widget: WidgetRecord | null): SdxWidgetDto {
     if (!widget) {
-      throw new NotFoundException('Widget not found')
+      throw new NotFoundException('SDX Widget not found')
     }
     return this.toDto(widget)
   }
 
-  private toDto(widget: WidgetRecord): WidgetDto {
+  private toDto(widget: WidgetRecord): SdxWidgetDto {
     return {
       id: widget.id,
       subject: widget.subject,
       name: widget.name,
       description: widget.description,
-      status: widget.status as WidgetStatus,
+      status: widget.status as SdxWidgetStatus,
       metadata:
         widget.metadata && typeof widget.metadata === 'object' && !Array.isArray(widget.metadata)
           ? (widget.metadata as Record<string, unknown>)

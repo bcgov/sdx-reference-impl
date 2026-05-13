@@ -1,16 +1,24 @@
 openapi: 3.0.3
 info:
-  title: SDX Reference Implementation Widget API
+  title: SDX Reference Implementation API - SDX Widgets
   version: 0.1.0
   description: >
-    Reference Resource Server API for managing Widgets.
+    Reference Resource Server API for managing SDX Widgets.
 
-    Normal user endpoints derive widget ownership from the authenticated JWT `sub` claim. Callers
-    cannot set or change the subject through user-facing paths or request bodies.
+    Normal user endpoints derive widget ownership from the authenticated subject in the JWT `sub`
+    claim. Callers cannot set or change the subject through user-facing paths or request bodies.
 
     Authorization is layered. OAuth2 scopes authorize the client/token to invoke API operations,
     while the Resource Server separately enforces subject, tenant, resource ownership, delegation,
     role, ACL, or policy-based access rules.
+
+    Scope names use the format `<PrivacyZone>.<resource-type>.<action>`. For this reference
+    implementation, the privacy zone is `SDX-RI`, the resource type is `sdx-widgets`, and standard
+    actions are `read`, `create`, `update`, and `delete`. Administrative operations are consolidated
+    under the `admin` action.
+
+    The SDX Widget scopes are `SDX-RI.sdx-widgets.read`, `SDX-RI.sdx-widgets.create`,
+    `SDX-RI.sdx-widgets.update`, `SDX-RI.sdx-widgets.delete`, and `SDX-RI.sdx-widgets.admin`.
 
     Future implementations may use CSTAR as an authorization facts provider and a policy engine as a
     policy decision point, with the Resource Server remaining the policy enforcement point.
@@ -20,30 +28,30 @@ info:
     name: Apache-2.0
 servers:
   - url: http://localhost:3000/api/v1
-    description: Local development server for the Widget API
+    description: Local development server for the SDX Widgets API
 tags:
-  - name: Admin Widgets
-    description: Administrative widget operations across subjects.
-  - name: Widgets
-    description: Caller-owned widget operations.
+  - name: Admin SDX Widgets
+    description: Administrative SDX Widget operations that can act across subjects.
+  - name: SDX Widgets
+    description: SDX Widget operations that act on resources owned by the authenticated subject.
 security:
   - oidc:
-      - widgets.read
+      - SDX-RI.sdx-widgets.read
 paths:
-  /widgets:
-    summary: Manage caller-owned widgets.
+  /sdx-widgets:
+    summary: Manage SDX Widgets for the authenticated subject.
     get:
       tags:
-        - Widgets
-      operationId: listWidgets
-      summary: List widgets owned by the authenticated subject.
-      description: Returns only widgets where subject matches the JWT sub claim.
+        - SDX Widgets
+      operationId: listSdxWidgets
+      summary: List SDX Widgets owned by the authenticated subject.
+      description: Returns the SDX Widgets owned by the authenticated subject identified by the JWT sub claim.
       security:
         - oidc:
-            - widgets.read
+            - SDX-RI.sdx-widgets.read
       responses:
         '200':
-          description: Widgets owned by the authenticated subject.
+          description: The list of SDX Widgets owned by the authenticated subject.
           content:
             application/json:
               schema:
@@ -59,34 +67,35 @@ paths:
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
                 items:
-                  $ref: '#/components/schemas/Widget'
+                  $ref: '#/components/schemas/SdxWidget'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
     post:
       tags:
-        - Widgets
-      operationId: createWidget
-      summary: Create a widget for the authenticated subject.
+        - SDX Widgets
+      operationId: createSdxWidget
+      summary: Create a SDX Widget for the authenticated subject.
       description:
-        The subject is always taken from the JWT sub claim and cannot be supplied by the caller.
+        Creates a new SDX Widget for the authenticated subject. The service identifies the
+        subject from the JWT `sub` claim rather than from the request body.
       security:
         - oidc:
-            - widgets.write
+            - SDX-RI.sdx-widgets.create
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateWidgetRequest'
+              $ref: '#/components/schemas/CreateSdxWidgetRequest'
       responses:
         '201':
-          description: Widget created for the authenticated subject.
+          description: The created SDX Widget for the authenticated subject.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -95,26 +104,28 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /widgets/{widgetId}:
-    summary: Manage one caller-owned widget.
+  /sdx-widgets/{widgetId}:
+    summary: Manage one SDX Widget for the authenticated subject.
     parameters:
       - $ref: '#/components/parameters/WidgetId'
     get:
       tags:
-        - Widgets
-      operationId: getWidget
-      summary: Get a widget owned by the authenticated subject.
-      description: Responds with 404 when the widget does not exist or belongs to another subject.
+        - SDX Widgets
+      operationId: getSdxWidget
+      summary: Get a SDX Widget owned by the authenticated subject.
+      description:
+        Returns the SDX Widget when it is owned by the authenticated subject. Responds with 404
+        when the widget does not exist or is owned by another subject.
       security:
         - oidc:
-            - widgets.read
+            - SDX-RI.sdx-widgets.read
       responses:
         '200':
-          description: Widget details for the authenticated subject.
+          description: The requested SDX Widget.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -123,26 +134,28 @@ paths:
           $ref: '#/components/responses/NotFound'
     put:
       tags:
-        - Widgets
-      operationId: replaceWidget
-      summary: Replace a caller-owned widget.
-      description: The subject cannot be changed through this endpoint for normal user requests.
+        - SDX Widgets
+      operationId: replaceSdxWidget
+      summary: Replace a SDX Widget for the authenticated subject.
+      description:
+        Replaces the SDX Widget when it is owned by the authenticated subject. The service
+        identifies the subject from the JWT `sub` claim rather than from the request body.
       security:
         - oidc:
-            - widgets.write
+            - SDX-RI.sdx-widgets.update
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateWidgetRequest'
+              $ref: '#/components/schemas/UpdateSdxWidgetRequest'
       responses:
         '200':
-          description: Widget replaced for the authenticated subject.
+          description: The replaced SDX Widget.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -155,26 +168,29 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
-        - Widgets
-      operationId: updateWidget
-      summary: Partially update a caller-owned widget.
-      description: The subject cannot be changed through this endpoint for normal user requests.
+        - SDX Widgets
+      operationId: updateSdxWidget
+      summary: Partially update a SDX Widget for the authenticated subject.
+      description:
+        Applies a partial update to the SDX Widget when it is owned by the authenticated subject.
+        The service identifies the subject from the JWT `sub` claim rather than from the request
+        body.
       security:
         - oidc:
-            - widgets.write
+            - SDX-RI.sdx-widgets.update
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchWidgetRequest'
+              $ref: '#/components/schemas/PatchSdxWidgetRequest'
       responses:
         '200':
-          description: Widget updated for the authenticated subject.
+          description: The updated SDX Widget.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -187,38 +203,42 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       tags:
-        - Widgets
-      operationId: deleteWidget
-      summary: Delete a widget owned by the authenticated subject.
-      description: Responds with 404 when the widget belongs to another subject.
+        - SDX Widgets
+      operationId: deleteSdxWidget
+      summary: Delete a SDX Widget owned by the authenticated subject.
+      description:
+        Deletes the SDX Widget when it is owned by the authenticated subject. Responds with 404
+        when the widget does not exist or is owned by another subject.
       security:
         - oidc:
-            - widgets.write
+            - SDX-RI.sdx-widgets.delete
       responses:
         '204':
-          description: Widget deleted for the authenticated subject.
+          description: The SDX Widget was deleted.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-  /admin/subjects/{subject}/widgets:
-    summary: Administer widgets for one subject.
+  /admin/subjects/{subject}/sdx-widgets:
+    summary: Administer SDX Widgets for one subject.
     parameters:
       - $ref: '#/components/parameters/Subject'
     get:
       tags:
-        - Admin Widgets
-      operationId: adminListSubjectWidgets
-      summary: List widgets for a subject.
-      description: Requires widgets.admin and may operate on another subject.
+        - Admin SDX Widgets
+      operationId: adminListSubjectSdxWidgets
+      summary: List SDX Widgets for a subject.
+      description:
+        Returns the SDX Widgets owned by the subject identified in the path. This operation
+        requires the SDX-RI.sdx-widgets.admin scope.
       security:
         - oidc:
-            - widgets.admin
+            - SDX-RI.sdx-widgets.admin
       responses:
         '200':
-          description: Widgets owned by the requested subject.
+          description: The list of SDX Widgets owned by the requested subject.
           content:
             application/json:
               schema:
@@ -234,34 +254,35 @@ paths:
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
                 items:
-                  $ref: '#/components/schemas/Widget'
+                  $ref: '#/components/schemas/SdxWidget'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
     post:
       tags:
-        - Admin Widgets
-      operationId: adminCreateSubjectWidget
-      summary: Create a widget for a subject.
+        - Admin SDX Widgets
+      operationId: adminCreateSubjectSdxWidget
+      summary: Create a SDX Widget for a subject.
       description:
-        Requires widgets.admin and stores the widget subject from the subject path parameter.
+        Creates a new SDX Widget for the subject identified in the path. This operation requires
+        the SDX-RI.sdx-widgets.admin scope.
       security:
         - oidc:
-            - widgets.admin
+            - SDX-RI.sdx-widgets.admin
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateWidgetRequest'
+              $ref: '#/components/schemas/CreateSdxWidgetRequest'
       responses:
         '201':
-          description: Widget created for the requested subject.
+          description: The created SDX Widget for the requested subject.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -270,26 +291,28 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /admin/widgets/{widgetId}:
-    summary: Administer one widget by ID.
+  /admin/sdx-widgets/{widgetId}:
+    summary: Administer one SDX Widget by ID.
     parameters:
       - $ref: '#/components/parameters/WidgetId'
     get:
       tags:
-        - Admin Widgets
-      operationId: adminGetWidget
-      summary: Get any widget by ID.
-      description: Requires widgets.admin and can access widgets across subjects.
+        - Admin SDX Widgets
+      operationId: adminGetSdxWidget
+      summary: Get any SDX Widget by ID.
+      description:
+        Returns the SDX Widget identified by the path parameter across all subjects. This
+        operation requires the SDX-RI.sdx-widgets.admin scope.
       security:
         - oidc:
-            - widgets.admin
+            - SDX-RI.sdx-widgets.admin
       responses:
         '200':
-          description: Widget details across all subjects.
+          description: The requested SDX Widget.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -298,26 +321,28 @@ paths:
           $ref: '#/components/responses/NotFound'
     put:
       tags:
-        - Admin Widgets
-      operationId: adminReplaceWidget
-      summary: Replace any widget by ID.
-      description: Requires widgets.admin. Subject transfer is allowed only here.
+        - Admin SDX Widgets
+      operationId: adminReplaceSdxWidget
+      summary: Replace any SDX Widget by ID.
+      description:
+        Replaces the SDX Widget identified by the path parameter across all subjects. Subject
+        transfer is allowed only on this administrative operation.
       security:
         - oidc:
-            - widgets.admin
+            - SDX-RI.sdx-widgets.admin
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateWidgetRequest'
+              $ref: '#/components/schemas/AdminUpdateSdxWidgetRequest'
       responses:
         '200':
-          description: Widget replaced by an administrator.
+          description: The replaced SDX Widget.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -330,26 +355,28 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
-        - Admin Widgets
-      operationId: adminUpdateWidget
-      summary: Partially update any widget by ID.
-      description: Requires widgets.admin. Subject transfer is allowed only here.
+        - Admin SDX Widgets
+      operationId: adminUpdateSdxWidget
+      summary: Partially update any SDX Widget by ID.
+      description:
+        Applies a partial update to the SDX Widget identified by the path parameter across all
+        subjects. Subject transfer is allowed only on this administrative operation.
       security:
         - oidc:
-            - widgets.admin
+            - SDX-RI.sdx-widgets.admin
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminPatchWidgetRequest'
+              $ref: '#/components/schemas/AdminPatchSdxWidgetRequest'
       responses:
         '200':
-          description: Widget updated by an administrator.
+          description: The updated SDX Widget.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/SdxWidget'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -362,16 +389,18 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       tags:
-        - Admin Widgets
-      operationId: adminDeleteWidget
-      summary: Delete any widget by ID.
-      description: Requires widgets.admin and can delete widgets across subjects.
+        - Admin SDX Widgets
+      operationId: adminDeleteSdxWidget
+      summary: Delete any SDX Widget by ID.
+      description:
+        Deletes the SDX Widget identified by the path parameter across all subjects. This
+        operation requires the SDX-RI.sdx-widgets.admin scope.
       security:
         - oidc:
-            - widgets.admin
+            - SDX-RI.sdx-widgets.admin
       responses:
         '204':
-          description: Widget deleted by an administrator.
+          description: The SDX Widget was deleted.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -391,9 +420,11 @@ components:
           authorizationUrl: https://oidc.example.gov.bc.ca/oauth2/authorize
           tokenUrl: https://oidc.example.gov.bc.ca/oauth2/token
           scopes:
-            widgets.read: Read widgets owned by the caller.
-            widgets.write: Create, update, and delete widgets owned by the caller.
-            widgets.admin: Administer widgets across subjects.
+            SDX-RI.sdx-widgets.read: Read SDX Widgets for the authenticated subject.
+            SDX-RI.sdx-widgets.create: Create SDX Widgets for the authenticated subject.
+            SDX-RI.sdx-widgets.update: Update SDX Widgets for the authenticated subject.
+            SDX-RI.sdx-widgets.delete: Delete SDX Widgets for the authenticated subject.
+            SDX-RI.sdx-widgets.admin: Administer SDX Widgets across subjects.
   parameters:
     WidgetId:
       name: widgetId
@@ -470,7 +501,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
-    WidgetStatus:
+    SdxWidgetStatus:
       description: Lifecycle status for a widget.
       type: string
       example: active
@@ -478,7 +509,7 @@ components:
         - active
         - inactive
         - archived
-    Widget:
+    SdxWidget:
       description: Widget resource owned by a subject.
       type: object
       example:
@@ -516,7 +547,7 @@ components:
           nullable: true
           maxLength: 1000
         status:
-          $ref: '#/components/schemas/WidgetStatus'
+          $ref: '#/components/schemas/SdxWidgetStatus'
         metadata:
           type: object
           additionalProperties: true
@@ -526,7 +557,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-    CreateWidgetRequest:
+    CreateSdxWidgetRequest:
       description: Request body for creating a widget. Subject is never accepted here.
       type: object
       example:
@@ -548,11 +579,11 @@ components:
           nullable: true
           maxLength: 1000
         status:
-          $ref: '#/components/schemas/WidgetStatus'
+          $ref: '#/components/schemas/SdxWidgetStatus'
         metadata:
           type: object
           additionalProperties: true
-    UpdateWidgetRequest:
+    UpdateSdxWidgetRequest:
       description: Request body for replacing a widget. Subject is never accepted here.
       type: object
       example:
@@ -574,11 +605,11 @@ components:
           nullable: true
           maxLength: 1000
         status:
-          $ref: '#/components/schemas/WidgetStatus'
+          $ref: '#/components/schemas/SdxWidgetStatus'
         metadata:
           type: object
           additionalProperties: true
-    PatchWidgetRequest:
+    PatchSdxWidgetRequest:
       description: Request body for partially updating a widget. Subject is never accepted here.
       type: object
       example:
@@ -595,11 +626,11 @@ components:
           nullable: true
           maxLength: 1000
         status:
-          $ref: '#/components/schemas/WidgetStatus'
+          $ref: '#/components/schemas/SdxWidgetStatus'
         metadata:
           type: object
           additionalProperties: true
-    AdminUpdateWidgetRequest:
+    AdminUpdateSdxWidgetRequest:
       description: Request body for replacing a widget through an admin endpoint.
       type: object
       example:
@@ -626,11 +657,11 @@ components:
           nullable: true
           maxLength: 1000
         status:
-          $ref: '#/components/schemas/WidgetStatus'
+          $ref: '#/components/schemas/SdxWidgetStatus'
         metadata:
           type: object
           additionalProperties: true
-    AdminPatchWidgetRequest:
+    AdminPatchSdxWidgetRequest:
       description: Request body for partially updating a widget through an admin endpoint.
       type: object
       example:
@@ -652,7 +683,7 @@ components:
           nullable: true
           maxLength: 1000
         status:
-          $ref: '#/components/schemas/WidgetStatus'
+          $ref: '#/components/schemas/SdxWidgetStatus'
         metadata:
           type: object
           additionalProperties: true

@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger'
-import { WidgetStatus, WIDGET_STATUSES } from './widget.dto'
+import { SdxWidgetStatus, SDX_WIDGET_STATUSES } from './sdx-widget.dto'
 
-@ApiSchema({ name: 'CreateWidgetRequest' })
-export class CreateWidgetDto {
+@ApiSchema({ name: 'CreateSdxWidgetRequest' })
+export class CreateSdxWidgetDto {
   @ApiProperty({
     minLength: 1,
     maxLength: 200,
@@ -18,11 +18,11 @@ export class CreateWidgetDto {
   description?: string | null
 
   @ApiPropertyOptional({
-    enum: WIDGET_STATUSES,
+    enum: SDX_WIDGET_STATUSES,
     default: 'active',
     example: 'active',
   })
-  status?: WidgetStatus
+  status?: SdxWidgetStatus
 
   @ApiPropertyOptional({
     type: 'object',

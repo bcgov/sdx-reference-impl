@@ -7,13 +7,17 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import helmet from 'helmet'
 import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
-import { WidgetsModule } from './widgets/widgets.module'
+import { SdxWidgetsModule } from './sdx-widgets/sdx-widgets.module'
 
-const apiDescription = `Reference Resource Server API for managing Widgets.
+const apiDescription = `Reference Resource Server API for managing SDX Widgets.
 
-Normal user endpoints derive widget ownership from the authenticated JWT \`sub\` claim. Callers cannot set or change the subject through user-facing paths or request bodies.
+Normal user endpoints derive widget ownership from the authenticated subject in the JWT \`sub\` claim. Callers cannot set or change the subject through user-facing paths or request bodies.
 
 Authorization is layered. OAuth2 scopes authorize the client/token to invoke API operations, while the Resource Server separately enforces subject, tenant, resource ownership, delegation, role, ACL, or policy-based access rules.
+
+Scope names use the format \`<PrivacyZone>.<resource-type>.<action>\`. For this reference implementation, the privacy zone is \`SDX-RI\`, the resource type is \`sdx-widgets\`, and standard actions are \`read\`, \`create\`, \`update\`, and \`delete\`. Administrative operations are consolidated under the \`admin\` action.
+
+The SDX Widget scopes are \`SDX-RI.sdx-widgets.read\`, \`SDX-RI.sdx-widgets.create\`, \`SDX-RI.sdx-widgets.update\`, \`SDX-RI.sdx-widgets.delete\`, and \`SDX-RI.sdx-widgets.admin\`.
 
 Future implementations may use CSTAR as an authorization facts provider and a policy engine as a policy decision point, with the Resource Server remaining the policy enforcement point.`
 
@@ -35,14 +39,20 @@ export async function bootstrap() {
     prefix: 'v',
   })
   const config = new DocumentBuilder()
-    .setTitle('SDX Reference Implementation Widget API')
+    .setTitle('SDX Reference Implementation API - SDX Widgets')
     .setDescription(apiDescription)
     .setVersion('0.1.0')
     .setContact('SDX Reference Implementation Maintainers', '', '')
     .setLicense('Apache-2.0', '')
     .addServer('http://localhost:3000/api/v1', 'Local development')
-    .addTag('Admin Widgets', 'Administrative widget operations across subjects.')
-    .addTag('Widgets', 'Caller-owned widget operations.')
+    .addTag(
+      'Admin SDX Widgets',
+      'Administrative SDX Widget operations that can act across subjects.',
+    )
+    .addTag(
+      'SDX Widgets',
+      'SDX Widget operations that act on resources owned by the authenticated subject.',
+    )
     .addSecurity('oidc', {
       type: 'oauth2',
       description:
@@ -52,30 +62,32 @@ export async function bootstrap() {
           authorizationUrl: 'https://oidc.example.gov.bc.ca/oauth2/authorize',
           tokenUrl: 'https://oidc.example.gov.bc.ca/oauth2/token',
           scopes: {
-            'widgets.read': 'Read widgets owned by the caller.',
-            'widgets.write': 'Create, update, and delete widgets owned by the caller.',
-            'widgets.admin': 'Administer widgets across subjects.',
+            'SDX-RI.sdx-widgets.read': 'Read SDX Widgets for the authenticated subject.',
+            'SDX-RI.sdx-widgets.create': 'Create SDX Widgets for the authenticated subject.',
+            'SDX-RI.sdx-widgets.update': 'Update SDX Widgets for the authenticated subject.',
+            'SDX-RI.sdx-widgets.delete': 'Delete SDX Widgets for the authenticated subject.',
+            'SDX-RI.sdx-widgets.admin': 'Administer SDX Widgets across subjects.',
           },
         },
       },
     })
-    .addSecurityRequirements('oidc', ['widgets.read'])
+    .addSecurityRequirements('oidc', ['SDX-RI.sdx-widgets.read'])
     .build()
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [WidgetsModule],
+    include: [SdxWidgetsModule],
   })
-  alignGeneratedWidgetSpec(document)
+  alignGeneratedSdxWidgetSpec(document)
   SwaggerModule.setup('/api/docs', app, document)
   return app
 }
 
-function alignGeneratedWidgetSpec(document: OpenAPIObject) {
+function alignGeneratedSdxWidgetSpec(document: OpenAPIObject) {
   const pathSummaries: Record<string, string> = {
-    '/widgets': 'Manage caller-owned widgets.',
-    '/widgets/{widgetId}': 'Manage one caller-owned widget.',
-    '/admin/subjects/{subject}/widgets': 'Administer widgets for one subject.',
-    '/admin/widgets/{widgetId}': 'Administer one widget by ID.',
+    '/sdx-widgets': 'Manage SDX Widgets for the authenticated subject.',
+    '/sdx-widgets/{widgetId}': 'Manage one SDX Widget for the authenticated subject.',
+    '/admin/subjects/{subject}/sdx-widgets': 'Administer SDX Widgets for one subject.',
+    '/admin/sdx-widgets/{widgetId}': 'Administer one SDX Widget by ID.',
   }
 
   document.paths = Object.fromEntries(
