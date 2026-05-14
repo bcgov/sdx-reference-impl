@@ -61,20 +61,23 @@ paths:
           description: The list of SDX Widgets owned by the authenticated subject.
           content:
             application/json:
-              example:
-                items:
-                  - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
-                    subject: user-123
-                    name: Intake form
-                    description: Widget used for intake workflow testing.
-                    status: active
-                    metadata:
-                      source: local-dev
-                    createdAt: '2026-05-13T18:00:00Z'
-                    updatedAt: '2026-05-13T18:00:00Z'
-                nextCursor: null
               schema:
                 $ref: '#/components/schemas/SdxWidgetListResponse'
+              examples:
+                listWidgets:
+                  summary: List widgets
+                  value:
+                    items:
+                      - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                        subject: user-123
+                        name: Intake form
+                        description: Widget used for intake workflow testing.
+                        status: active
+                        metadata:
+                          source: local-dev
+                        createdAt: '2026-05-13T18:00:00Z'
+                        updatedAt: '2026-05-13T18:00:00Z'
+                    nextCursor: null
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -104,6 +107,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSdxWidgetRequest'
+            examples:
+              createActiveWidget:
+                summary: Create an active widget
+                value:
+                  name: Intake form
+                  description: Widget used for intake workflow testing.
+                  status: active
+                  metadata:
+                    source: local-dev
       responses:
         '201':
           description: The created SDX Widget for the authenticated subject.
@@ -114,6 +126,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                createdWidget:
+                  summary: Created widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: active
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:00:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -153,6 +178,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                requestedWidget:
+                  summary: Requested widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: active
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:00:00Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -182,6 +220,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateSdxWidgetRequest'
+            examples:
+              replaceWidget:
+                summary: Replace a widget
+                value:
+                  name: Intake form v2
+                  description: Updated widget used for intake workflow testing.
+                  status: inactive
+                  metadata:
+                    source: local-dev
       responses:
         '200':
           description: The replaced SDX Widget.
@@ -192,6 +239,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                replacedWidget:
+                  summary: Replaced widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form v2
+                    description: Updated widget used for intake workflow testing.
+                    status: inactive
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:30:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -230,6 +290,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatchSdxWidgetRequest'
+            examples:
+              archiveWidget:
+                summary: Archive a widget
+                value:
+                  status: archived
       responses:
         '200':
           description: The updated SDX Widget.
@@ -240,6 +305,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                updatedWidget:
+                  summary: Updated widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: archived
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:30:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -314,20 +392,23 @@ paths:
           description: The list of SDX Widgets owned by the requested subject.
           content:
             application/json:
-              example:
-                items:
-                  - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
-                    subject: user-123
-                    name: Intake form
-                    description: Widget used for intake workflow testing.
-                    status: active
-                    metadata:
-                      source: local-dev
-                    createdAt: '2026-05-13T18:00:00Z'
-                    updatedAt: '2026-05-13T18:00:00Z'
-                nextCursor: null
               schema:
                 $ref: '#/components/schemas/SdxWidgetListResponse'
+              examples:
+                listWidgetsForSubject:
+                  summary: List widgets for a subject
+                  value:
+                    items:
+                      - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                        subject: user-123
+                        name: Intake form
+                        description: Widget used for intake workflow testing.
+                        status: active
+                        metadata:
+                          source: local-dev
+                        createdAt: '2026-05-13T18:00:00Z'
+                        updatedAt: '2026-05-13T18:00:00Z'
+                    nextCursor: null
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -357,6 +438,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSdxWidgetRequest'
+            examples:
+              createWidgetForSubject:
+                summary: Create an active widget for a subject
+                value:
+                  name: Intake form
+                  description: Widget used for intake workflow testing.
+                  status: active
+                  metadata:
+                    source: local-dev
       responses:
         '201':
           description: The created SDX Widget for the requested subject.
@@ -367,6 +457,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                createdWidgetForSubject:
+                  summary: Created widget for a subject
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: active
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:00:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -406,6 +509,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                adminRequestedWidget:
+                  summary: Requested widget across subjects
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: active
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:00:00Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -435,6 +551,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AdminUpdateSdxWidgetRequest'
+            examples:
+              adminReplaceWidget:
+                summary: Replace a widget and transfer ownership
+                value:
+                  subject: user-456
+                  name: Intake form v2
+                  description: Updated widget used for intake workflow testing.
+                  status: inactive
+                  metadata:
+                    source: local-dev
       responses:
         '200':
           description: The replaced SDX Widget.
@@ -445,6 +571,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                adminReplacedWidget:
+                  summary: Replaced widget across subjects
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-456
+                    name: Intake form v2
+                    description: Updated widget used for intake workflow testing.
+                    status: inactive
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:30:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -482,6 +621,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AdminPatchSdxWidgetRequest'
+            examples:
+              adminArchiveWidget:
+                summary: Archive a widget and transfer ownership
+                value:
+                  subject: user-456
+                  status: archived
       responses:
         '200':
           description: The updated SDX Widget.
@@ -492,6 +637,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SdxWidget'
+              examples:
+                adminUpdatedWidget:
+                  summary: Updated widget across subjects
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-456
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: archived
+                    metadata:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:30:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
@@ -676,18 +834,21 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetailResponse'
-          example:
-            detail: widgetId must be a valid UUID
-            errors:
-              - code: INVALID_REQUEST
-                location: path
-                message: widgetId must be a valid UUID
-                pointer: '#/widgetId'
-                received: not-a-uuid
-                type: tag:request-error
-            status: 400
-            title: Bad Request
-            type: tag:request-errors
+          examples:
+            invalidWidgetId:
+              summary: Invalid path parameter
+              value:
+                detail: widgetId must be a valid UUID
+                errors:
+                  - code: INVALID_REQUEST
+                    location: path
+                    message: widgetId must be a valid UUID
+                    pointer: '#/widgetId'
+                    received: not-a-uuid
+                    type: tag:request-error
+                status: 400
+                title: Bad Request
+                type: tag:request-errors
     Conflict:
       description:
         Request conflicts with the current resource state, such as duplicate names, state
@@ -697,46 +858,71 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: conflict
-            message: Request conflicts with the current SDX Widget state
-            details:
-              correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+          examples:
+            widgetConflict:
+              summary: Request conflicts with widget state
+              value:
+                error: conflict
+                message: Request conflicts with the current SDX Widget state
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     Forbidden:
       description: Authenticated caller does not have the required scope.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingScope:
+              summary: Required scope is missing
+              value:
+                error: forbidden
+                message: Authenticated caller does not have the required scope
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     InternalServerError:
       description: Unexpected server error. The correlation ID can be used for support and tracing.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: internal_server_error
-            message: Internal server error
-            details:
-              correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
-              timestamp: '2026-05-13T18:00:00Z'
+          examples:
+            unexpectedError:
+              summary: Unexpected server error
+              value:
+                error: internal_server_error
+                message: Internal server error
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  timestamp: '2026-05-13T18:00:00Z'
     NotFound:
       description: Widget was not found for the current request.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            widgetNotFound:
+              summary: Widget not found
+              value:
+                error: not_found
+                message: SDX Widget not found
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     PreconditionFailed:
       description: The supplied If-Match value does not match the current widget version.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: precondition_failed
-            message: The supplied If-Match value does not match the current widget version
-            details:
-              correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+          examples:
+            staleEntityTag:
+              summary: If-Match does not match
+              value:
+                error: precondition_failed
+                message: The supplied If-Match value does not match the current widget version
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     TooManyRequests:
       description: Too many requests. Retry after the interval indicated by the Retry-After header.
       headers:
@@ -750,36 +936,50 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error: too_many_requests
-            message: Too many requests
-            details:
-              correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
-              retryAfter: 60
+          examples:
+            rateLimited:
+              summary: Request rate limited
+              value:
+                error: too_many_requests
+                message: Too many requests
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  retryAfter: 60
     UnprocessableEntity:
       description: Syntactically valid request failed Widget validation or database limit rules.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetailResponse'
-          example:
-            detail: name must be a non-empty string up to 200 characters
-            errors:
-              - code: VALIDATION_FAILED
-                location: body
-                message: name must be a non-empty string up to 200 characters
-                pointer: '#/name'
-                received: ''
-                type: tag:semantic-validation-error
-            status: 422
-            title: Unprocessable Entity
-            type: tag:semantic-validation-errors
+          examples:
+            invalidWidgetName:
+              summary: Request body fails validation
+              value:
+                detail: name must be a non-empty string up to 200 characters
+                errors:
+                  - code: VALIDATION_FAILED
+                    location: body
+                    message: name must be a non-empty string up to 200 characters
+                    pointer: '#/name'
+                    received: ''
+                    type: tag:semantic-validation-error
+                status: 422
+                title: Unprocessable Entity
+                type: tag:semantic-validation-errors
     Unauthorized:
       description: Missing or invalid authentication.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingAuthentication:
+              summary: Missing or invalid authentication
+              value:
+                error: unauthorized
+                message: Missing or invalid authentication
+                details:
+                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
   schemas:
     SdxWidgetStatus:
       description: Lifecycle status for a widget.
