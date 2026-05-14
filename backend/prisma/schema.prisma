@@ -12,14 +12,6 @@ datasource db {
   schemas  = ["users"]
 }
 
-model users {
-  id    Decimal @id(map: "USER_PK") @default(dbgenerated("nextval('\"USER_SEQ\"'::regclass)")) @db.Decimal
-  name  String  @db.VarChar(200)
-  email String  @db.VarChar(200)
-
-  @@schema("users")
-}
-
 model SdxWidget {
   id          String   @id @default(uuid()) @db.Uuid
   subject     String   @db.VarChar(255)

@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS USERS;
+
 CREATE TABLE IF NOT EXISTS USERS.SDX_WIDGETS
 (
     ID          uuid                     not null
