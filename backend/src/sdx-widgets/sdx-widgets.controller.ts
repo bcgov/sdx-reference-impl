@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -14,8 +15,10 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBody,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiHeader,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -63,6 +66,13 @@ const ERROR_EXAMPLE = {
     correlationId: 'req-abc123-xyz',
   },
 }
+const CONFLICT_ERROR_EXAMPLE = {
+  error: 'conflict',
+  message: 'Idempotency-Key was already used with a different request body',
+  details: {
+    correlationId: 'req-abc123-xyz',
+  },
+}
 const PROBLEM_DETAIL_EXAMPLE = {
   type: 'tag:validation-errors',
   title: 'Bad Request',
@@ -106,9 +116,14 @@ const ADMIN_PATCH_WIDGET_EXAMPLE = {
   subject: 'user-456',
   status: 'archived',
 }
+const IDEMPOTENCY_KEY_EXAMPLE = 'req-12345678'
 const ERROR_RESPONSE = {
   type: ErrorResponseDto,
   example: ERROR_EXAMPLE,
+}
+const CONFLICT_ERROR_RESPONSE = {
+  type: ErrorResponseDto,
+  example: CONFLICT_ERROR_EXAMPLE,
 }
 const PROBLEM_DETAIL_RESPONSE = {
   type: ProblemDetailResponseDto,
@@ -225,17 +240,34 @@ export class SdxWidgetsController {
       },
     },
   })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description:
+      'Optional client-generated key used to make create requests safely retryable. Reusing the same key with the same request body returns the original result.',
+    schema: {
+      type: 'string',
+      minLength: 8,
+      maxLength: 255,
+      example: IDEMPOTENCY_KEY_EXAMPLE,
+    },
+  })
   @ApiCreatedResponse({
     description: 'The created SDX Widget.',
     type: SdxWidgetDto,
     example: SDX_WIDGET_EXAMPLE,
   })
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateSdxWidgetDto) {
-    return this.widgetsService.createForSubject(user.subject, dto)
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateSdxWidgetDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.widgetsService.createForSubject(user.subject, dto, idempotencyKey)
   }
 
   @Get(':widgetId')
@@ -507,17 +539,34 @@ export class AdminSdxWidgetsController {
       },
     },
   })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description:
+      'Optional client-generated key used to make create requests safely retryable. Reusing the same key with the same request body returns the original result.',
+    schema: {
+      type: 'string',
+      minLength: 8,
+      maxLength: 255,
+      example: IDEMPOTENCY_KEY_EXAMPLE,
+    },
+  })
   @ApiCreatedResponse({
     description: 'The created SDX Widget.',
     type: SdxWidgetDto,
     example: SDX_WIDGET_EXAMPLE,
   })
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  createForSubject(@Param('subject') subject: string, @Body() dto: CreateSdxWidgetDto) {
-    return this.widgetsService.adminCreateForSubject(subject, dto)
+  createForSubject(
+    @Param('subject') subject: string,
+    @Body() dto: CreateSdxWidgetDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.widgetsService.adminCreateForSubject(subject, dto, idempotencyKey)
   }
 
   @Get('sdx-widgets/:widgetId')

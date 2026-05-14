@@ -89,6 +89,8 @@ paths:
       description:
         Creates a new SDX Widget for the authenticated subject. The service identifies the
         subject from the JWT `sub` claim rather than from the request body.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       security:
         - oidc:
             - SDX-RI.sdx-widgets.create
@@ -109,6 +111,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -284,6 +288,8 @@ paths:
       description:
         Creates a new SDX Widget for the subject identified in the path. This operation requires
         the SDX-RI.sdx-widgets.admin scope.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       security:
         - oidc:
             - SDX-RI.sdx-widgets.admin
@@ -304,6 +310,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -443,6 +451,18 @@ components:
             SDX-RI.sdx-widgets.delete: Delete SDX Widgets for the authenticated subject.
             SDX-RI.sdx-widgets.admin: Administer SDX Widgets across subjects.
   parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Optional client-generated key used to make create requests safely retryable. Reusing the
+        same key with the same request body returns the original result.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        example: req-12345678
     WidgetId:
       name: widgetId
       in: path
@@ -543,6 +563,17 @@ components:
             status: 400
             title: Bad Request
             type: tag:request-errors
+    Conflict:
+      description: Idempotency key was reused with a different request body.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: conflict
+            message: Idempotency-Key was already used with a different request body
+            details:
+              correlationId: req-abc123-xyz
     UnprocessableEntity:
       description: Syntactically valid request failed Widget validation or database limit rules.
       content:

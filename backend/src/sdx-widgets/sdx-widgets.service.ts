@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -7,6 +8,7 @@ import {
 import { PrismaService } from '../prisma.service'
 import { Prisma } from '../../generated/prisma/client.js'
 import type { InputJsonValue } from '@prisma/client/runtime/client'
+import { createHash } from 'crypto'
 import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
 import {
   ListSdxWidgetsQueryDto,
@@ -50,10 +52,53 @@ type ParsedListQuery = {
 export class SdxWidgetsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createForSubject(subject: string, dto: CreateSdxWidgetDto): Promise<SdxWidgetDto> {
+  async createForSubject(
+    subject: string,
+    dto: CreateSdxWidgetDto,
+    idempotencyKey?: string,
+  ): Promise<SdxWidgetDto> {
     const data = this.buildCreateData(subject, dto)
-    const widget = await this.prisma.sdxWidget.create({ data })
-    return this.toDto(widget)
+    const normalizedKey = this.normalizeIdempotencyKey(idempotencyKey)
+
+    if (!normalizedKey) {
+      const widget = await this.prisma.sdxWidget.create({ data })
+      return this.toDto(widget)
+    }
+
+    const requestHash = this.hashIdempotentCreateRequest(data)
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.sdxWidgetIdempotency.findUnique({
+        where: {
+          subject_idempotencyKey: {
+            subject,
+            idempotencyKey: normalizedKey,
+          },
+        },
+      })
+
+      if (existing) {
+        if (existing.requestHash !== requestHash) {
+          throw new ConflictException(
+            'Idempotency-Key was already used with a different request body',
+          )
+        }
+
+        const widget = await tx.sdxWidget.findUnique({ where: { id: existing.widgetId } })
+        return this.requireWidget(widget as WidgetRecord | null)
+      }
+
+      const widget = await tx.sdxWidget.create({ data })
+      await tx.sdxWidgetIdempotency.create({
+        data: {
+          subject,
+          idempotencyKey: normalizedKey,
+          requestHash,
+          widgetId: widget.id,
+        },
+      })
+      return this.toDto(widget)
+    })
   }
 
   async listForSubject(
@@ -105,8 +150,12 @@ export class SdxWidgetsService {
     await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
   }
 
-  async adminCreateForSubject(subject: string, dto: CreateSdxWidgetDto): Promise<SdxWidgetDto> {
-    return this.createForSubject(subject, dto)
+  async adminCreateForSubject(
+    subject: string,
+    dto: CreateSdxWidgetDto,
+    idempotencyKey?: string,
+  ): Promise<SdxWidgetDto> {
+    return this.createForSubject(subject, dto, idempotencyKey)
   }
 
   async adminListForSubject(
@@ -256,6 +305,49 @@ export class SdxWidgetsService {
     if (typeof widgetId !== 'string' || !UUID_PATTERN.test(widgetId)) {
       throw new BadRequestException('widgetId must be a valid UUID')
     }
+  }
+
+  private normalizeIdempotencyKey(value: unknown): string | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined
+    }
+    if (typeof value !== 'string') {
+      throw new UnprocessableEntityException('Idempotency-Key must be a string')
+    }
+    const trimmed = value.trim()
+    if (trimmed.length < 8 || trimmed.length > 255) {
+      throw new UnprocessableEntityException('Idempotency-Key must be between 8 and 255 characters')
+    }
+    return trimmed
+  }
+
+  private hashIdempotentCreateRequest(data: Prisma.SdxWidgetCreateInput): string {
+    // The idempotency key is scoped to the authenticated subject, so we do not include subject here.
+    // We do include server-applied defaults so retries can omit optional fields consistently.
+    const canonical = this.stableStringify({
+      name: data.name,
+      description: data.description,
+      status: data.status,
+      metadata: data.metadata,
+    })
+    return createHash('sha256').update(canonical, 'utf8').digest('hex')
+  }
+
+  private stableStringify(value: unknown): string {
+    if (value === null || value === undefined) {
+      return JSON.stringify(value)
+    }
+    if (typeof value !== 'object') {
+      return JSON.stringify(value)
+    }
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => this.stableStringify(item)).join(',')}]`
+    }
+
+    const record = value as Record<string, unknown>
+    const keys = Object.keys(record).sort()
+    const entries = keys.map((key) => `${JSON.stringify(key)}:${this.stableStringify(record[key])}`)
+    return `{${entries.join(',')}}`
   }
 
   private metadataOrDefault(metadata: unknown): InputJsonValue {

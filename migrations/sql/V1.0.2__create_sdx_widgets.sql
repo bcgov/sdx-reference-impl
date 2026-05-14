@@ -16,3 +16,24 @@ CREATE TABLE IF NOT EXISTS USERS.SDX_WIDGETS
 
 CREATE INDEX IF NOT EXISTS "SDX_WIDGET_SUBJECT_IDX"
     ON USERS.SDX_WIDGETS (SUBJECT);
+
+CREATE TABLE IF NOT EXISTS USERS.SDX_WIDGET_IDEMPOTENCY
+(
+    ID              uuid                     not null
+        constraint "SDX_WIDGET_IDEMPOTENCY_PK"
+            primary key,
+    SUBJECT         varchar(255)             not null,
+    IDEMPOTENCY_KEY varchar(255)             not null,
+    REQUEST_HASH    varchar(64)              not null,
+    WIDGET_ID       uuid                     not null
+        constraint "SDX_WIDGET_IDEMPOTENCY_WIDGET_FK"
+            references USERS.SDX_WIDGETS
+            on delete cascade,
+    CREATED_AT      timestamp with time zone not null DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "SDX_WIDGET_IDEMPOTENCY_UQ"
+    ON USERS.SDX_WIDGET_IDEMPOTENCY (SUBJECT, IDEMPOTENCY_KEY);
+
+CREATE INDEX IF NOT EXISTS "SDX_WIDGET_IDEMPOTENCY_WIDGET_ID_IDX"
+    ON USERS.SDX_WIDGET_IDEMPOTENCY (WIDGET_ID);

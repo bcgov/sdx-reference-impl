@@ -16,8 +16,18 @@ type WidgetRow = {
   updatedAt: Date
 }
 
+type IdempotencyRow = {
+  id: string
+  subject: string
+  idempotencyKey: string
+  requestHash: string
+  widgetId: string
+  createdAt: Date
+}
+
 class FakePrismaService {
   private rows: WidgetRow[] = []
+  private idempotencyRows: IdempotencyRow[] = []
 
   sdxWidget = {
     create: async ({ data }: { data: Partial<WidgetRow> }) => {
@@ -102,6 +112,42 @@ class FakePrismaService {
       return row
     },
   }
+
+  sdxWidgetIdempotency = {
+    findUnique: async ({
+      where,
+    }: {
+      where: { subject_idempotencyKey: { subject: string; idempotencyKey: string } }
+    }) =>
+      this.idempotencyRows.find(
+        (row) =>
+          row.subject === where.subject_idempotencyKey.subject &&
+          row.idempotencyKey === where.subject_idempotencyKey.idempotencyKey,
+      ) ?? null,
+    create: async ({
+      data,
+    }: {
+      data: {
+        subject: string
+        idempotencyKey: string
+        requestHash: string
+        widgetId: string
+      }
+    }) => {
+      const row: IdempotencyRow = {
+        id: randomUUID(),
+        subject: data.subject,
+        idempotencyKey: data.idempotencyKey,
+        requestHash: data.requestHash,
+        widgetId: data.widgetId,
+        createdAt: new Date(),
+      }
+      this.idempotencyRows.push(row)
+      return row
+    },
+  }
+
+  $transaction = async <T>(fn: (tx: this) => Promise<T>) => fn(this)
 }
 
 const tokenFor = (subject: string, scopes: string[]) => {
@@ -264,6 +310,45 @@ describe('SdxWidgetsController', () => {
       .expect(200)
 
     expect(response.body.items).toHaveLength(0)
+  })
+
+  it('makes create requests safely retryable with Idempotency-Key', async () => {
+    const idempotencyKey = 'req-12345678'
+
+    const first = await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .set('idempotency-key', idempotencyKey)
+      .send({ name: 'Alpha' })
+      .expect(201)
+
+    const second = await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .set('idempotency-key', idempotencyKey)
+      .send({ name: 'Alpha' })
+      .expect(201)
+
+    expect(second.body.id).toBe(first.body.id)
+    expect(second.body.subject).toBe('alice')
+  })
+
+  it('returns 409 when Idempotency-Key is reused with a different request body', async () => {
+    const idempotencyKey = 'req-12345678'
+
+    await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .set('idempotency-key', idempotencyKey)
+      .send({ name: 'Alpha' })
+      .expect(201)
+
+    await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .set('idempotency-key', idempotencyKey)
+      .send({ name: 'Bravo' })
+      .expect(409)
   })
 
   it('filters, sorts, and paginates SDX Widget lists', async () => {

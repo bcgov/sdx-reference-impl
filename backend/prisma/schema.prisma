@@ -30,7 +30,25 @@ model SdxWidget {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  idempotencyRecords SdxWidgetIdempotency[]
+
   @@index([subject], map: "SDX_WIDGET_SUBJECT_IDX")
   @@map("SDX_WIDGETS")
+  @@schema("users")
+}
+
+model SdxWidgetIdempotency {
+  id             String   @id @default(uuid()) @db.Uuid
+  subject        String   @db.VarChar(255)
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(255)
+  requestHash    String   @map("request_hash") @db.VarChar(64)
+  widgetId       String   @map("widget_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  widget SdxWidget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+
+  @@unique([subject, idempotencyKey], map: "SDX_WIDGET_IDEMPOTENCY_UQ")
+  @@index([widgetId], map: "SDX_WIDGET_IDEMPOTENCY_WIDGET_ID_IDX")
+  @@map("SDX_WIDGET_IDEMPOTENCY")
   @@schema("users")
 }
