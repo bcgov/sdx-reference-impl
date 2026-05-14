@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common'
 import type { Request, Response } from 'express'
+import { randomUUID } from 'crypto'
 
 interface ErrorResponse {
   error: string
@@ -104,12 +105,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private errorDetails(request: Request): Record<string, unknown> | null {
     const traceHeader = request.header('x-request-id') || request.header('x-correlation-id')
-    return traceHeader
-      ? {
-          correlationId: traceHeader,
-          timestamp: new Date().toISOString(),
-        }
-      : null
+    return {
+      correlationId: traceHeader || randomUUID(),
+      timestamp: new Date().toISOString(),
+    }
   }
 
   private hasMessage(value: unknown): value is { message: string | string[] } {

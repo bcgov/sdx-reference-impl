@@ -297,7 +297,9 @@ export class SdxWidgetsService {
       status !== undefined &&
       (typeof status !== 'string' || !SDX_WIDGET_STATUSES.includes(status as SdxWidgetStatus))
     ) {
-      throw new UnprocessableEntityException(`status must be one of: ${SDX_WIDGET_STATUSES.join(', ')}`)
+      throw new UnprocessableEntityException(
+        `status must be one of: ${SDX_WIDGET_STATUSES.join(', ')}`,
+      )
     }
   }
 
@@ -430,10 +432,7 @@ export class SdxWidgetsService {
             }
           : {}),
       },
-      orderBy: [
-        { [parsed.sortBy]: parsed.sortOrder },
-        { id: parsed.sortOrder },
-      ],
+      orderBy: [{ [parsed.sortBy]: parsed.sortOrder }, { id: parsed.sortOrder }],
       skip: parsed.cursorOffset,
       take: parsed.limit + 1,
     })
@@ -443,9 +442,7 @@ export class SdxWidgetsService {
 
     return {
       items,
-      nextCursor: hasNextPage
-        ? this.encodeCursor(parsed.cursorOffset + parsed.limit)
-        : null,
+      nextCursor: hasNextPage ? this.encodeCursor(parsed.cursorOffset + parsed.limit) : null,
     }
   }
 
@@ -538,9 +535,7 @@ export class SdxWidgetsService {
     }
 
     if (!SDX_WIDGET_SORT_FIELDS.includes(sortBy as SdxWidgetSortField)) {
-      throw new BadRequestException(
-        `sortBy must be one of: ${SDX_WIDGET_SORT_FIELDS.join(', ')}`,
-      )
+      throw new BadRequestException(`sortBy must be one of: ${SDX_WIDGET_SORT_FIELDS.join(', ')}`)
     }
 
     return sortBy as SdxWidgetSortField

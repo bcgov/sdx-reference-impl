@@ -19,6 +19,7 @@ import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiHeader,
+  ApiInternalServerErrorResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -27,6 +28,7 @@ import {
   ApiQuery,
   ApiSecurity,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger'
@@ -68,9 +70,25 @@ const ERROR_EXAMPLE = {
 }
 const CONFLICT_ERROR_EXAMPLE = {
   error: 'conflict',
-  message: 'Idempotency-Key was already used with a different request body',
+  message: 'Request conflicts with the current SDX Widget state',
   details: {
     correlationId: 'req-abc123-xyz',
+  },
+}
+const TOO_MANY_REQUESTS_ERROR_EXAMPLE = {
+  error: 'too_many_requests',
+  message: 'Too many requests',
+  details: {
+    correlationId: 'req-abc123-xyz',
+    retryAfter: 60,
+  },
+}
+const INTERNAL_SERVER_ERROR_EXAMPLE = {
+  error: 'internal_server_error',
+  message: 'Internal server error',
+  details: {
+    correlationId: 'req-abc123-xyz',
+    timestamp: '2026-05-13T18:00:00Z',
   },
 }
 const PROBLEM_DETAIL_EXAMPLE = {
@@ -125,6 +143,24 @@ const CONFLICT_ERROR_RESPONSE = {
   type: ErrorResponseDto,
   example: CONFLICT_ERROR_EXAMPLE,
 }
+const TOO_MANY_REQUESTS_RESPONSE = {
+  type: ErrorResponseDto,
+  example: TOO_MANY_REQUESTS_ERROR_EXAMPLE,
+  headers: {
+    'Retry-After': {
+      description: 'Number of seconds to wait before retrying the request.',
+      schema: {
+        type: 'integer',
+        minimum: 1,
+        example: 60,
+      },
+    },
+  },
+}
+const INTERNAL_SERVER_ERROR_RESPONSE = {
+  type: ErrorResponseDto,
+  example: INTERNAL_SERVER_ERROR_EXAMPLE,
+}
 const PROBLEM_DETAIL_RESPONSE = {
   type: ProblemDetailResponseDto,
   example: PROBLEM_DETAIL_EXAMPLE,
@@ -147,6 +183,8 @@ const UNPROCESSABLE_ENTITY_RESPONSE = {
   'SDX-RI.sdx-widgets.update',
   'SDX-RI.sdx-widgets.delete',
 ])
+@ApiTooManyRequestsResponse(TOO_MANY_REQUESTS_RESPONSE)
+@ApiInternalServerErrorResponse(INTERNAL_SERVER_ERROR_RESPONSE)
 @UseGuards(JwtAuthGuard, ScopesGuard)
 @Controller({ path: 'sdx-widgets', version: '1' })
 export class SdxWidgetsController {
@@ -336,6 +374,7 @@ export class SdxWidgetsController {
   })
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
@@ -383,6 +422,7 @@ export class SdxWidgetsController {
   })
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
@@ -416,6 +456,7 @@ export class SdxWidgetsController {
   @ApiNoContentResponse({
     description: 'The SDX Widget was deleted.',
   })
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
@@ -426,6 +467,8 @@ export class SdxWidgetsController {
 
 @ApiTags('Admin SDX Widgets')
 @ApiSecurity('oidc', ['SDX-RI.sdx-widgets.admin'])
+@ApiTooManyRequestsResponse(TOO_MANY_REQUESTS_RESPONSE)
+@ApiInternalServerErrorResponse(INTERNAL_SERVER_ERROR_RESPONSE)
 @UseGuards(JwtAuthGuard, ScopesGuard)
 @Controller({ path: 'admin', version: '1' })
 export class AdminSdxWidgetsController {
@@ -635,6 +678,7 @@ export class AdminSdxWidgetsController {
   })
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
@@ -678,6 +722,7 @@ export class AdminSdxWidgetsController {
   })
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
@@ -707,6 +752,7 @@ export class AdminSdxWidgetsController {
   @ApiNoContentResponse({
     description: 'The SDX Widget was deleted.',
   })
+  @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
