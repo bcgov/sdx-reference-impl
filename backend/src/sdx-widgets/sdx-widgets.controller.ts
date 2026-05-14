@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common'
 import {
@@ -25,6 +26,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiPreconditionFailedResponse,
   ApiQuery,
   ApiSecurity,
   ApiTags,
@@ -32,6 +34,7 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger'
+import type { Response } from 'express'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RequireScopes } from '../auth/scopes.decorator'
@@ -135,6 +138,7 @@ const ADMIN_PATCH_WIDGET_EXAMPLE = {
   status: 'archived',
 }
 const IDEMPOTENCY_KEY_EXAMPLE = 'req-12345678'
+const ETAG_EXAMPLE = '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
 const ERROR_RESPONSE = {
   type: ErrorResponseDto,
   example: ERROR_EXAMPLE,
@@ -160,6 +164,36 @@ const TOO_MANY_REQUESTS_RESPONSE = {
 const INTERNAL_SERVER_ERROR_RESPONSE = {
   type: ErrorResponseDto,
   example: INTERNAL_SERVER_ERROR_EXAMPLE,
+}
+const ETAG_RESPONSE_HEADER = {
+  ETag: {
+    description: 'Entity tag representing the returned widget version.',
+    schema: {
+      type: 'string',
+      example: ETAG_EXAMPLE,
+    },
+  },
+}
+const IF_MATCH_HEADER = {
+  name: 'If-Match',
+  required: false,
+  description:
+    'Optional entity tag from a previous GET response. When supplied, the update or delete only succeeds if the widget has not changed.',
+  schema: {
+    type: 'string',
+    example: ETAG_EXAMPLE,
+  },
+}
+const PRECONDITION_FAILED_RESPONSE = {
+  description: 'The supplied If-Match value does not match the current widget version.',
+  type: ErrorResponseDto,
+  example: {
+    error: 'precondition_failed',
+    message: 'The supplied If-Match value does not match the current widget version',
+    details: {
+      correlationId: 'req-abc123-xyz',
+    },
+  },
 }
 const PROBLEM_DETAIL_RESPONSE = {
   type: ProblemDetailResponseDto,
@@ -189,6 +223,10 @@ const UNPROCESSABLE_ENTITY_RESPONSE = {
 @Controller({ path: 'sdx-widgets', version: '1' })
 export class SdxWidgetsController {
   constructor(private readonly widgetsService: SdxWidgetsService) {}
+
+  private setWidgetEtag(response: Response, widget: SdxWidgetDto): void {
+    response.setHeader('ETag', this.widgetsService.etagForWidget(widget))
+  }
 
   @Get()
   @RequireScopes('SDX-RI.sdx-widgets.read')
@@ -294,18 +332,22 @@ export class SdxWidgetsController {
     description: 'The created SDX Widget.',
     type: SdxWidgetDto,
     example: SDX_WIDGET_EXAMPLE,
+    headers: ETAG_RESPONSE_HEADER,
   })
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  create(
+  async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateSdxWidgetDto,
-    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.widgetsService.createForSubject(user.subject, dto, idempotencyKey)
+    const widget = await this.widgetsService.createForSubject(user.subject, dto, idempotencyKey)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Get(':widgetId')
@@ -330,12 +372,19 @@ export class SdxWidgetsController {
     description: 'The requested SDX Widget.',
     type: SdxWidgetDto,
     example: SDX_WIDGET_EXAMPLE,
+    headers: ETAG_RESPONSE_HEADER,
   })
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('widgetId') widgetId: string) {
-    return this.widgetsService.getForSubject(widgetId, user.subject)
+  async findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('widgetId') widgetId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const widget = await this.widgetsService.getForSubject(widgetId, user.subject)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Put(':widgetId')
@@ -371,19 +420,26 @@ export class SdxWidgetsController {
       ...SDX_WIDGET_EXAMPLE,
       ...UPDATE_WIDGET_EXAMPLE,
     },
+    headers: ETAG_RESPONSE_HEADER,
   })
+  @ApiHeader(IF_MATCH_HEADER)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
+  @ApiPreconditionFailedResponse(PRECONDITION_FAILED_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  replace(
+  async replace(
     @CurrentUser() user: AuthenticatedUser,
     @Param('widgetId') widgetId: string,
     @Body() dto: UpdateSdxWidgetDto,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.widgetsService.replaceForSubject(widgetId, user.subject, dto)
+    const widget = await this.widgetsService.replaceForSubject(widgetId, user.subject, dto, ifMatch)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Patch(':widgetId')
@@ -419,19 +475,26 @@ export class SdxWidgetsController {
       ...SDX_WIDGET_EXAMPLE,
       ...PATCH_WIDGET_EXAMPLE,
     },
+    headers: ETAG_RESPONSE_HEADER,
   })
+  @ApiHeader(IF_MATCH_HEADER)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
+  @ApiPreconditionFailedResponse(PRECONDITION_FAILED_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  update(
+  async update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('widgetId') widgetId: string,
     @Body() dto: PatchSdxWidgetDto,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.widgetsService.patchForSubject(widgetId, user.subject, dto)
+    const widget = await this.widgetsService.patchForSubject(widgetId, user.subject, dto, ifMatch)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Delete(':widgetId')
@@ -456,12 +519,18 @@ export class SdxWidgetsController {
   @ApiNoContentResponse({
     description: 'The SDX Widget was deleted.',
   })
+  @ApiHeader(IF_MATCH_HEADER)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
+  @ApiPreconditionFailedResponse(PRECONDITION_FAILED_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('widgetId') widgetId: string) {
-    return this.widgetsService.deleteForSubject(widgetId, user.subject)
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('widgetId') widgetId: string,
+    @Headers('if-match') ifMatch?: string,
+  ) {
+    return this.widgetsService.deleteForSubject(widgetId, user.subject, ifMatch)
   }
 }
 
@@ -473,6 +542,10 @@ export class SdxWidgetsController {
 @Controller({ path: 'admin', version: '1' })
 export class AdminSdxWidgetsController {
   constructor(private readonly widgetsService: SdxWidgetsService) {}
+
+  private setWidgetEtag(response: Response, widget: SdxWidgetDto): void {
+    response.setHeader('ETag', this.widgetsService.etagForWidget(widget))
+  }
 
   @Get('subjects/:subject/sdx-widgets')
   @RequireScopes('SDX-RI.sdx-widgets.admin')
@@ -598,18 +671,22 @@ export class AdminSdxWidgetsController {
     description: 'The created SDX Widget.',
     type: SdxWidgetDto,
     example: SDX_WIDGET_EXAMPLE,
+    headers: ETAG_RESPONSE_HEADER,
   })
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  createForSubject(
+  async createForSubject(
     @Param('subject') subject: string,
     @Body() dto: CreateSdxWidgetDto,
-    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.widgetsService.adminCreateForSubject(subject, dto, idempotencyKey)
+    const widget = await this.widgetsService.adminCreateForSubject(subject, dto, idempotencyKey)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Get('sdx-widgets/:widgetId')
@@ -634,12 +711,18 @@ export class AdminSdxWidgetsController {
     description: 'The requested SDX Widget.',
     type: SdxWidgetDto,
     example: SDX_WIDGET_EXAMPLE,
+    headers: ETAG_RESPONSE_HEADER,
   })
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  findOne(@Param('widgetId') widgetId: string) {
-    return this.widgetsService.adminGet(widgetId)
+  async findOne(
+    @Param('widgetId') widgetId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const widget = await this.widgetsService.adminGet(widgetId)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Put('sdx-widgets/:widgetId')
@@ -675,15 +758,25 @@ export class AdminSdxWidgetsController {
       ...SDX_WIDGET_EXAMPLE,
       ...ADMIN_UPDATE_WIDGET_EXAMPLE,
     },
+    headers: ETAG_RESPONSE_HEADER,
   })
+  @ApiHeader(IF_MATCH_HEADER)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
+  @ApiPreconditionFailedResponse(PRECONDITION_FAILED_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  replace(@Param('widgetId') widgetId: string, @Body() dto: AdminUpdateSdxWidgetDto) {
-    return this.widgetsService.adminReplace(widgetId, dto)
+  async replace(
+    @Param('widgetId') widgetId: string,
+    @Body() dto: AdminUpdateSdxWidgetDto,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const widget = await this.widgetsService.adminReplace(widgetId, dto, ifMatch)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Patch('sdx-widgets/:widgetId')
@@ -719,15 +812,25 @@ export class AdminSdxWidgetsController {
       ...SDX_WIDGET_EXAMPLE,
       ...ADMIN_PATCH_WIDGET_EXAMPLE,
     },
+    headers: ETAG_RESPONSE_HEADER,
   })
+  @ApiHeader(IF_MATCH_HEADER)
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnprocessableEntityResponse(UNPROCESSABLE_ENTITY_RESPONSE)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
+  @ApiPreconditionFailedResponse(PRECONDITION_FAILED_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  update(@Param('widgetId') widgetId: string, @Body() dto: AdminPatchSdxWidgetDto) {
-    return this.widgetsService.adminPatch(widgetId, dto)
+  async update(
+    @Param('widgetId') widgetId: string,
+    @Body() dto: AdminPatchSdxWidgetDto,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const widget = await this.widgetsService.adminPatch(widgetId, dto, ifMatch)
+    this.setWidgetEtag(response, widget)
+    return widget
   }
 
   @Delete('sdx-widgets/:widgetId')
@@ -752,11 +855,13 @@ export class AdminSdxWidgetsController {
   @ApiNoContentResponse({
     description: 'The SDX Widget was deleted.',
   })
+  @ApiHeader(IF_MATCH_HEADER)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
+  @ApiPreconditionFailedResponse(PRECONDITION_FAILED_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   @ApiNotFoundResponse(ERROR_RESPONSE)
-  remove(@Param('widgetId') widgetId: string) {
-    return this.widgetsService.adminDelete(widgetId)
+  remove(@Param('widgetId') widgetId: string, @Headers('if-match') ifMatch?: string) {
+    return this.widgetsService.adminDelete(widgetId, ifMatch)
   }
 }

@@ -107,6 +107,9 @@ paths:
       responses:
         '201':
           description: The created SDX Widget for the authenticated subject.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -143,6 +146,9 @@ paths:
       responses:
         '200':
           description: The requested SDX Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -168,6 +174,8 @@ paths:
       security:
         - oidc:
             - SDX-RI.sdx-widgets.update
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -177,6 +185,9 @@ paths:
       responses:
         '200':
           description: The replaced SDX Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -187,6 +198,8 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -209,6 +222,8 @@ paths:
       security:
         - oidc:
             - SDX-RI.sdx-widgets.update
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -218,6 +233,9 @@ paths:
       responses:
         '200':
           description: The updated SDX Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -228,6 +246,8 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -249,6 +269,8 @@ paths:
       security:
         - oidc:
             - SDX-RI.sdx-widgets.delete
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
       responses:
         '204':
           description: The SDX Widget was deleted.
@@ -260,6 +282,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -336,6 +360,9 @@ paths:
       responses:
         '201':
           description: The created SDX Widget for the requested subject.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -372,6 +399,9 @@ paths:
       responses:
         '200':
           description: The requested SDX Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -397,6 +427,8 @@ paths:
       security:
         - oidc:
             - SDX-RI.sdx-widgets.admin
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -406,6 +438,9 @@ paths:
       responses:
         '200':
           description: The replaced SDX Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -416,6 +451,8 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -437,6 +474,8 @@ paths:
       security:
         - oidc:
             - SDX-RI.sdx-widgets.admin
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
@@ -446,6 +485,9 @@ paths:
       responses:
         '200':
           description: The updated SDX Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
@@ -456,6 +498,8 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -477,6 +521,8 @@ paths:
       security:
         - oidc:
             - SDX-RI.sdx-widgets.admin
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
       responses:
         '204':
           description: The SDX Widget was deleted.
@@ -488,6 +534,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -510,6 +558,13 @@ components:
             SDX-RI.sdx-widgets.update: Update SDX Widgets for the authenticated subject.
             SDX-RI.sdx-widgets.delete: Delete SDX Widgets for the authenticated subject.
             SDX-RI.sdx-widgets.admin: Administer SDX Widgets across subjects.
+  headers:
+    ETag:
+      required: true
+      description: Entity tag representing the returned widget version.
+      schema:
+        type: string
+        example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
   parameters:
     IdempotencyKey:
       name: Idempotency-Key
@@ -523,6 +578,16 @@ components:
         minLength: 8
         maxLength: 255
         example: req-12345678
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: >
+        Optional entity tag from a previous GET response. When supplied, the update or delete only
+        succeeds if the widget has not changed.
+      schema:
+        type: string
+        example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
     WidgetId:
       name: widgetId
       in: path
@@ -661,6 +726,17 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    PreconditionFailed:
+      description: The supplied If-Match value does not match the current widget version.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: precondition_failed
+            message: The supplied If-Match value does not match the current widget version
+            details:
+              correlationId: req-abc123-xyz
     TooManyRequests:
       description: Too many requests. Retry after the interval indicated by the Retry-After header.
       headers:

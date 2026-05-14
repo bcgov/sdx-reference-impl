@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  PreconditionFailedException,
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
@@ -120,9 +121,11 @@ export class SdxWidgetsService {
     widgetId: string,
     subject: string,
     dto: UpdateSdxWidgetDto,
+    ifMatch?: string,
   ): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
-    await this.getForSubject(widgetId, subject)
+    const current = await this.getWidgetForSubject(widgetId, subject)
+    this.validateIfMatch(current, ifMatch)
     const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildUpdateData(dto, true),
@@ -134,9 +137,11 @@ export class SdxWidgetsService {
     widgetId: string,
     subject: string,
     dto: PatchSdxWidgetDto,
+    ifMatch?: string,
   ): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
-    await this.getForSubject(widgetId, subject)
+    const current = await this.getWidgetForSubject(widgetId, subject)
+    this.validateIfMatch(current, ifMatch)
     const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildUpdateData(dto, false),
@@ -144,9 +149,10 @@ export class SdxWidgetsService {
     return this.toDto(widget)
   }
 
-  async deleteForSubject(widgetId: string, subject: string): Promise<void> {
+  async deleteForSubject(widgetId: string, subject: string, ifMatch?: string): Promise<void> {
     this.validateWidgetId(widgetId)
-    await this.getForSubject(widgetId, subject)
+    const current = await this.getWidgetForSubject(widgetId, subject)
+    this.validateIfMatch(current, ifMatch)
     await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
   }
 
@@ -171,9 +177,14 @@ export class SdxWidgetsService {
     return this.requireWidget(widget)
   }
 
-  async adminReplace(widgetId: string, dto: AdminUpdateSdxWidgetDto): Promise<SdxWidgetDto> {
+  async adminReplace(
+    widgetId: string,
+    dto: AdminUpdateSdxWidgetDto,
+    ifMatch?: string,
+  ): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
-    await this.adminGet(widgetId)
+    const current = await this.getWidget(widgetId)
+    this.validateIfMatch(current, ifMatch)
     const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildAdminUpdateData(dto, true),
@@ -181,9 +192,14 @@ export class SdxWidgetsService {
     return this.toDto(widget)
   }
 
-  async adminPatch(widgetId: string, dto: AdminPatchSdxWidgetDto): Promise<SdxWidgetDto> {
+  async adminPatch(
+    widgetId: string,
+    dto: AdminPatchSdxWidgetDto,
+    ifMatch?: string,
+  ): Promise<SdxWidgetDto> {
     this.validateWidgetId(widgetId)
-    await this.adminGet(widgetId)
+    const current = await this.getWidget(widgetId)
+    this.validateIfMatch(current, ifMatch)
     const widget = await this.prisma.sdxWidget.update({
       where: { id: widgetId },
       data: this.buildAdminUpdateData(dto, false),
@@ -191,10 +207,20 @@ export class SdxWidgetsService {
     return this.toDto(widget)
   }
 
-  async adminDelete(widgetId: string): Promise<void> {
+  async adminDelete(widgetId: string, ifMatch?: string): Promise<void> {
     this.validateWidgetId(widgetId)
-    await this.adminGet(widgetId)
+    const current = await this.getWidget(widgetId)
+    this.validateIfMatch(current, ifMatch)
     await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
+  }
+
+  etagForWidget(widget: Pick<SdxWidgetDto, 'id' | 'updatedAt'>): string {
+    const updatedAt =
+      widget.updatedAt instanceof Date ? widget.updatedAt.toISOString() : String(widget.updatedAt)
+    const hash = createHash('sha256')
+      .update(`${widget.id}:${updatedAt}`, 'utf8')
+      .digest('base64url')
+    return `"${hash}"`
   }
 
   private buildCreateData(subject: string, dto: CreateSdxWidgetDto): Prisma.SdxWidgetCreateInput {
@@ -309,6 +335,20 @@ export class SdxWidgetsService {
     }
   }
 
+  private validateIfMatch(widget: WidgetRecord, ifMatch: unknown): void {
+    if (ifMatch === undefined || ifMatch === null || ifMatch === '') {
+      return
+    }
+    if (typeof ifMatch !== 'string') {
+      throw new BadRequestException('If-Match must be a string')
+    }
+    if (ifMatch.trim() !== this.etagForWidget(widget)) {
+      throw new PreconditionFailedException(
+        'The supplied If-Match value does not match the current widget version',
+      )
+    }
+  }
+
   private normalizeIdempotencyKey(value: unknown): string | undefined {
     if (value === undefined || value === null || value === '') {
       return undefined
@@ -396,6 +436,25 @@ export class SdxWidgetsService {
       throw new NotFoundException('SDX Widget not found')
     }
     return this.toDto(widget)
+  }
+
+  private requireWidgetRecord(widget: WidgetRecord | null): WidgetRecord {
+    if (!widget) {
+      throw new NotFoundException('SDX Widget not found')
+    }
+    return widget
+  }
+
+  private async getWidgetForSubject(widgetId: string, subject: string): Promise<WidgetRecord> {
+    const widget = await this.prisma.sdxWidget.findFirst({
+      where: { id: widgetId, subject },
+    })
+    return this.requireWidgetRecord(widget)
+  }
+
+  private async getWidget(widgetId: string): Promise<WidgetRecord> {
+    const widget = await this.prisma.sdxWidget.findUnique({ where: { id: widgetId } })
+    return this.requireWidgetRecord(widget)
   }
 
   private toDto(widget: WidgetRecord): SdxWidgetDto {
