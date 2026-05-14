@@ -106,7 +106,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private errorDetails(request: Request): Record<string, unknown> | null {
     const traceHeader = request.header('x-request-id') || request.header('x-correlation-id')
     return {
-      correlationId: traceHeader || randomUUID(),
+      // Preserve upstream trace IDs; when this API creates one, prefix it so logs show the source.
+      correlationId: traceHeader || `sdxw-${randomUUID()}`,
       timestamp: new Date().toISOString(),
     }
   }

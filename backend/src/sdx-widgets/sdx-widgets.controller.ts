@@ -68,21 +68,21 @@ const ERROR_EXAMPLE = {
   error: 'not_found',
   message: 'SDX Widget not found',
   details: {
-    correlationId: 'req-abc123-xyz',
+    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
   },
 }
 const CONFLICT_ERROR_EXAMPLE = {
   error: 'conflict',
   message: 'Request conflicts with the current SDX Widget state',
   details: {
-    correlationId: 'req-abc123-xyz',
+    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
   },
 }
 const TOO_MANY_REQUESTS_ERROR_EXAMPLE = {
   error: 'too_many_requests',
   message: 'Too many requests',
   details: {
-    correlationId: 'req-abc123-xyz',
+    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
     retryAfter: 60,
   },
 }
@@ -90,7 +90,7 @@ const INTERNAL_SERVER_ERROR_EXAMPLE = {
   error: 'internal_server_error',
   message: 'Internal server error',
   details: {
-    correlationId: 'req-abc123-xyz',
+    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
     timestamp: '2026-05-13T18:00:00Z',
   },
 }
@@ -191,7 +191,7 @@ const PRECONDITION_FAILED_RESPONSE = {
     error: 'precondition_failed',
     message: 'The supplied If-Match value does not match the current widget version',
     details: {
-      correlationId: 'req-abc123-xyz',
+      correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
     },
   },
 }
