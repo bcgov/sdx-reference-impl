@@ -12,7 +12,7 @@ datasource db {
   schemas  = ["users"]
 }
 
-model SdxWidget {
+model Widget {
   id          String   @id @default(uuid()) @db.Uuid
   subject     String   @db.VarChar(255)
   name        String   @db.VarChar(200)
@@ -22,14 +22,14 @@ model SdxWidget {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  idempotencyRecords SdxWidgetIdempotency[]
+  idempotencyRecords WidgetIdempotency[]
 
-  @@index([subject], map: "SDX_WIDGET_SUBJECT_IDX")
-  @@map("SDX_WIDGETS")
+  @@index([subject], map: "WIDGET_SUBJECT_IDX")
+  @@map("WIDGETS")
   @@schema("users")
 }
 
-model SdxWidgetIdempotency {
+model WidgetIdempotency {
   id             String   @id @default(uuid()) @db.Uuid
   subject        String   @db.VarChar(255)
   idempotencyKey String   @map("idempotency_key") @db.VarChar(255)
@@ -37,10 +37,10 @@ model SdxWidgetIdempotency {
   widgetId       String   @map("widget_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  widget SdxWidget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  widget Widget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
 
-  @@unique([subject, idempotencyKey], map: "SDX_WIDGET_IDEMPOTENCY_UQ")
-  @@index([widgetId], map: "SDX_WIDGET_IDEMPOTENCY_WIDGET_ID_IDX")
-  @@map("SDX_WIDGET_IDEMPOTENCY")
+  @@unique([subject, idempotencyKey], map: "WIDGET_IDEMPOTENCY_UQ")
+  @@index([widgetId], map: "WIDGET_IDEMPOTENCY_WIDGET_ID_IDX")
+  @@map("WIDGET_IDEMPOTENCY")
   @@schema("users")
 }

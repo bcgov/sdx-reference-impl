@@ -6,8 +6,8 @@ const { bootstrap } = require('../dist/app.js')
 
 const port = Number.parseInt(process.env.OPENAPI_EXPORT_PORT || '3107', 10)
 const host = process.env.OPENAPI_EXPORT_HOST || '127.0.0.1'
-const jsonOutputPath = path.resolve(__dirname, '../openapi/sdx-widgets.generated.openapi.json')
-const yamlOutputPath = path.resolve(__dirname, '../openapi/sdx-widgets.generated.openapi.yaml')
+const jsonOutputPath = path.resolve(__dirname, '../openapi/widgets.generated.openapi.json')
+const yamlOutputPath = path.resolve(__dirname, '../openapi/widgets.generated.openapi.yaml')
 
 async function main() {
   const app = await bootstrap()

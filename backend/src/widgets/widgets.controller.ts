@@ -38,49 +38,49 @@ import type { Response } from 'express'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import type { AuthenticatedUser } from '../auth/auth.types'
-import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
+import { CreateWidgetDto } from './dto/create-widget.dto'
 import {
-  ListSdxWidgetsQueryDto,
-  SdxWidgetListResponseDto,
-  SDX_WIDGET_SORT_DIRECTIONS,
-  SDX_WIDGET_SORT_FIELDS,
-} from './dto/list-sdx-widgets.dto'
+  ListWidgetsQueryDto,
+  WidgetListResponseDto,
+  WIDGET_SORT_DIRECTIONS,
+  WIDGET_SORT_FIELDS,
+} from './dto/list-widgets.dto'
 import {
-  AdminPatchSdxWidgetDto,
-  AdminUpdateSdxWidgetDto,
-  PatchSdxWidgetDto,
-  UpdateSdxWidgetDto,
-} from './dto/update-sdx-widget.dto'
+  AdminPatchWidgetDto,
+  AdminUpdateWidgetDto,
+  PatchWidgetDto,
+  UpdateWidgetDto,
+} from './dto/update-widget.dto'
 import {
   ErrorResponseDto,
   ProblemDetailResponseDto,
-  SdxWidgetDto,
-  SDX_WIDGET_STATUSES,
-  SDX_WIDGET_EXAMPLE,
-} from './dto/sdx-widget.dto'
-import { SdxWidgetsService } from './sdx-widgets.service'
+  WidgetDto,
+  WIDGET_STATUSES,
+  WIDGET_EXAMPLE,
+} from './dto/widget.dto'
+import { WidgetsService } from './widgets.service'
 
-const SDX_WIDGET_ID_EXAMPLE = SDX_WIDGET_EXAMPLE.id
-const SUBJECT_EXAMPLE = SDX_WIDGET_EXAMPLE.subject
+const WIDGET_ID_EXAMPLE = WIDGET_EXAMPLE.id
+const SUBJECT_EXAMPLE = WIDGET_EXAMPLE.subject
 const ERROR_EXAMPLE = {
   error: 'not_found',
-  message: 'SDX Widget not found',
+  message: 'Widget not found',
   details: {
-    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+    correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
   },
 }
 const CONFLICT_ERROR_EXAMPLE = {
   error: 'conflict',
-  message: 'Request conflicts with the current SDX Widget state',
+  message: 'Request conflicts with the current Widget state',
   details: {
-    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+    correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
   },
 }
 const TOO_MANY_REQUESTS_ERROR_EXAMPLE = {
   error: 'too_many_requests',
   message: 'Too many requests',
   details: {
-    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+    correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
     retryAfter: 60,
   },
 }
@@ -88,7 +88,7 @@ const INTERNAL_SERVER_ERROR_EXAMPLE = {
   error: 'internal_server_error',
   message: 'Internal server error',
   details: {
-    correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+    correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
     timestamp: '2026-05-13T18:00:00Z',
   },
 }
@@ -138,20 +138,20 @@ const ADMIN_PATCH_WIDGET_EXAMPLE = {
 const CREATED_WIDGET_EXAMPLES = {
   createdWidget: {
     summary: 'Created widget',
-    value: SDX_WIDGET_EXAMPLE,
+    value: WIDGET_EXAMPLE,
   },
 }
 const REQUESTED_WIDGET_EXAMPLES = {
   requestedWidget: {
     summary: 'Requested widget',
-    value: SDX_WIDGET_EXAMPLE,
+    value: WIDGET_EXAMPLE,
   },
 }
 const REPLACED_WIDGET_EXAMPLES = {
   replacedWidget: {
     summary: 'Replaced widget',
     value: {
-      ...SDX_WIDGET_EXAMPLE,
+      ...WIDGET_EXAMPLE,
       ...UPDATE_WIDGET_EXAMPLE,
       updatedAt: '2026-05-13T18:30:00Z',
     },
@@ -161,7 +161,7 @@ const UPDATED_WIDGET_EXAMPLES = {
   updatedWidget: {
     summary: 'Updated widget',
     value: {
-      ...SDX_WIDGET_EXAMPLE,
+      ...WIDGET_EXAMPLE,
       ...PATCH_WIDGET_EXAMPLE,
       updatedAt: '2026-05-13T18:30:00Z',
     },
@@ -171,7 +171,7 @@ const ADMIN_REPLACED_WIDGET_EXAMPLES = {
   adminReplacedWidget: {
     summary: 'Replaced widget across subjects',
     value: {
-      ...SDX_WIDGET_EXAMPLE,
+      ...WIDGET_EXAMPLE,
       ...ADMIN_UPDATE_WIDGET_EXAMPLE,
       updatedAt: '2026-05-13T18:30:00Z',
     },
@@ -181,7 +181,7 @@ const ADMIN_UPDATED_WIDGET_EXAMPLES = {
   adminUpdatedWidget: {
     summary: 'Updated widget across subjects',
     value: {
-      ...SDX_WIDGET_EXAMPLE,
+      ...WIDGET_EXAMPLE,
       ...ADMIN_PATCH_WIDGET_EXAMPLE,
       updatedAt: '2026-05-13T18:30:00Z',
     },
@@ -264,7 +264,7 @@ const PRECONDITION_FAILED_RESPONSE = {
         error: 'precondition_failed',
         message: 'The supplied If-Match value does not match the current widget version',
         details: {
-          correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+          correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
         },
       },
     },
@@ -289,37 +289,37 @@ const UNPROCESSABLE_ENTITY_RESPONSE = {
         type: 'tag:semantic-validation-errors',
         title: 'Unprocessable Entity',
         status: 422,
-        detail: 'The request body is syntactically valid but failed SDX widget validation rules',
+        detail: 'The request body is syntactically valid but failed widget validation rules',
       },
     },
   },
 }
 
-@ApiTags('SDX Widgets')
+@ApiTags('Widgets')
 @ApiTooManyRequestsResponse(TOO_MANY_REQUESTS_RESPONSE)
 @ApiInternalServerErrorResponse(INTERNAL_SERVER_ERROR_RESPONSE)
 @UseGuards(JwtAuthGuard)
-@Controller({ path: 'sdx-widgets', version: '1' })
-export class SdxWidgetsController {
-  constructor(private readonly widgetsService: SdxWidgetsService) {}
+@Controller({ path: 'widgets', version: '1' })
+export class WidgetsController {
+  constructor(private readonly widgetsService: WidgetsService) {}
 
-  private setWidgetEtag(response: Response, widget: SdxWidgetDto): void {
+  private setWidgetEtag(response: Response, widget: WidgetDto): void {
     response.setHeader('ETag', this.widgetsService.etagForWidget(widget))
   }
 
   @Get()
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.read'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.read'])
   @ApiOperation({
-    operationId: 'listSdxWidgets',
-    summary: 'List SDX Widgets owned by the authenticated subject.',
+    operationId: 'listWidgets',
+    summary: 'List Widgets owned by the authenticated subject.',
     description:
-      'Returns the SDX Widgets owned by the authenticated subject identified by the JWT sub claim.',
+      'Returns the Widgets owned by the authenticated subject identified by the JWT sub claim.',
   })
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: SDX_WIDGET_STATUSES,
-    enumName: 'SdxWidgetStatus',
+    enum: WIDGET_STATUSES,
+    enumName: 'WidgetStatus',
     example: 'active',
     description: 'Filter widgets by lifecycle status.',
   })
@@ -357,10 +357,10 @@ export class SdxWidgetsController {
   @ApiQuery({
     name: 'sortBy',
     required: false,
-    enum: SDX_WIDGET_SORT_FIELDS,
+    enum: WIDGET_SORT_FIELDS,
     schema: {
       type: 'string',
-      enum: [...SDX_WIDGET_SORT_FIELDS],
+      enum: [...WIDGET_SORT_FIELDS],
       default: 'createdAt',
       example: 'createdAt',
     },
@@ -369,23 +369,23 @@ export class SdxWidgetsController {
   @ApiQuery({
     name: 'sortOrder',
     required: false,
-    enum: SDX_WIDGET_SORT_DIRECTIONS,
+    enum: WIDGET_SORT_DIRECTIONS,
     schema: {
       type: 'string',
-      enum: [...SDX_WIDGET_SORT_DIRECTIONS],
+      enum: [...WIDGET_SORT_DIRECTIONS],
       default: 'desc',
       example: 'desc',
     },
     description: 'Sort direction for the selected sort field.',
   })
   @ApiOkResponse({
-    description: 'The list of SDX Widgets owned by the authenticated subject.',
-    type: SdxWidgetListResponseDto,
+    description: 'The list of Widgets owned by the authenticated subject.',
+    type: WidgetListResponseDto,
     examples: {
       listWidgets: {
         summary: 'List widgets',
         value: {
-          items: [SDX_WIDGET_EXAMPLE],
+          items: [WIDGET_EXAMPLE],
           nextCursor: null,
         },
       },
@@ -394,20 +394,20 @@ export class SdxWidgetsController {
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  findAll(@CurrentUser() user: AuthenticatedUser, @Query() query: ListSdxWidgetsQueryDto) {
+  findAll(@CurrentUser() user: AuthenticatedUser, @Query() query: ListWidgetsQueryDto) {
     return this.widgetsService.listForSubject(user.subject, query)
   }
 
   @Post()
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.create'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.create'])
   @ApiOperation({
-    operationId: 'createSdxWidget',
-    summary: 'Create a SDX Widget for the authenticated subject.',
+    operationId: 'createWidget',
+    summary: 'Create a Widget for the authenticated subject.',
     description:
-      'Creates a new SDX Widget for the authenticated subject. The service identifies the subject from the JWT sub claim rather than from the request body.',
+      'Creates a new Widget for the authenticated subject. The service identifies the subject from the JWT sub claim rather than from the request body.',
   })
   @ApiBody({
-    type: CreateSdxWidgetDto,
+    type: CreateWidgetDto,
     examples: {
       createWidget: {
         summary: 'Create an active widget',
@@ -428,8 +428,8 @@ export class SdxWidgetsController {
     },
   })
   @ApiCreatedResponse({
-    description: 'The created SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The created Widget.',
+    type: WidgetDto,
     examples: CREATED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -440,7 +440,7 @@ export class SdxWidgetsController {
   @ApiForbiddenResponse(ERROR_RESPONSE)
   async create(
     @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: CreateSdxWidgetDto,
+    @Body() dto: CreateWidgetDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -450,25 +450,25 @@ export class SdxWidgetsController {
   }
 
   @Get(':widgetId')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.read'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.read'])
   @ApiOperation({
-    operationId: 'getSdxWidget',
-    summary: 'Get a SDX Widget owned by the authenticated subject.',
+    operationId: 'getWidget',
+    summary: 'Get a Widget owned by the authenticated subject.',
     description:
-      'Returns the SDX Widget when it is owned by the authenticated subject. Responds with 404 when the widget does not exist or is owned by another subject.',
+      'Returns the Widget when it is owned by the authenticated subject. Responds with 404 when the widget does not exist or is owned by another subject.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiOkResponse({
-    description: 'The requested SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The requested Widget.',
+    type: WidgetDto,
     examples: REQUESTED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -486,24 +486,24 @@ export class SdxWidgetsController {
   }
 
   @Put(':widgetId')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.update'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.update'])
   @ApiOperation({
-    operationId: 'replaceSdxWidget',
-    summary: 'Replace a SDX Widget for the authenticated subject.',
+    operationId: 'replaceWidget',
+    summary: 'Replace a Widget for the authenticated subject.',
     description:
-      'Replaces the SDX Widget when it is owned by the authenticated subject. The service identifies the subject from the JWT sub claim rather than from the request body.',
+      'Replaces the Widget when it is owned by the authenticated subject. The service identifies the subject from the JWT sub claim rather than from the request body.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiBody({
-    type: UpdateSdxWidgetDto,
+    type: UpdateWidgetDto,
     examples: {
       replaceWidget: {
         summary: 'Replace a widget',
@@ -512,8 +512,8 @@ export class SdxWidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The replaced SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The replaced Widget.',
+    type: WidgetDto,
     examples: REPLACED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -528,7 +528,7 @@ export class SdxWidgetsController {
   async replace(
     @CurrentUser() user: AuthenticatedUser,
     @Param('widgetId') widgetId: string,
-    @Body() dto: UpdateSdxWidgetDto,
+    @Body() dto: UpdateWidgetDto,
     @Headers('if-match') ifMatch: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -538,24 +538,24 @@ export class SdxWidgetsController {
   }
 
   @Patch(':widgetId')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.update'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.update'])
   @ApiOperation({
-    operationId: 'updateSdxWidget',
-    summary: 'Partially update a SDX Widget for the authenticated subject.',
+    operationId: 'updateWidget',
+    summary: 'Partially update a Widget for the authenticated subject.',
     description:
-      'Applies a partial update to the SDX Widget when it is owned by the authenticated subject. The service identifies the subject from the JWT sub claim rather than from the request body.',
+      'Applies a partial update to the Widget when it is owned by the authenticated subject. The service identifies the subject from the JWT sub claim rather than from the request body.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiBody({
-    type: PatchSdxWidgetDto,
+    type: PatchWidgetDto,
     examples: {
       updateWidget: {
         summary: 'Archive a widget',
@@ -564,8 +564,8 @@ export class SdxWidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The updated SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The updated Widget.',
+    type: WidgetDto,
     examples: UPDATED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -580,7 +580,7 @@ export class SdxWidgetsController {
   async update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('widgetId') widgetId: string,
-    @Body() dto: PatchSdxWidgetDto,
+    @Body() dto: PatchWidgetDto,
     @Headers('if-match') ifMatch: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -591,24 +591,24 @@ export class SdxWidgetsController {
 
   @Delete(':widgetId')
   @HttpCode(204)
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.delete'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.delete'])
   @ApiOperation({
-    operationId: 'deleteSdxWidget',
-    summary: 'Delete a SDX Widget owned by the authenticated subject.',
+    operationId: 'deleteWidget',
+    summary: 'Delete a Widget owned by the authenticated subject.',
     description:
-      'Deletes the SDX Widget when it is owned by the authenticated subject. Responds with 404 when the widget does not exist or is owned by another subject.',
+      'Deletes the Widget when it is owned by the authenticated subject. Responds with 404 when the widget does not exist or is owned by another subject.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiNoContentResponse({
-    description: 'The SDX Widget was deleted.',
+    description: 'The Widget was deleted.',
   })
   @ApiHeader(IF_MATCH_HEADER)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)
@@ -625,30 +625,30 @@ export class SdxWidgetsController {
   }
 }
 
-@ApiTags('Admin SDX Widgets')
+@ApiTags('Admin Widgets')
 @ApiTooManyRequestsResponse(TOO_MANY_REQUESTS_RESPONSE)
 @ApiInternalServerErrorResponse(INTERNAL_SERVER_ERROR_RESPONSE)
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'admin', version: '1' })
-export class AdminSdxWidgetsController {
-  constructor(private readonly widgetsService: SdxWidgetsService) {}
+export class AdminWidgetsController {
+  constructor(private readonly widgetsService: WidgetsService) {}
 
-  private setWidgetEtag(response: Response, widget: SdxWidgetDto): void {
+  private setWidgetEtag(response: Response, widget: WidgetDto): void {
     response.setHeader('ETag', this.widgetsService.etagForWidget(widget))
   }
 
-  @Get('subjects/:subject/sdx-widgets')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
+  @Get('subjects/:subject/widgets')
+  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
   @ApiOperation({
-    operationId: 'adminListSubjectSdxWidgets',
-    summary: 'List SDX Widgets for the requested subject.',
-    description: 'Returns the SDX Widgets owned by the subject identified in the path.',
+    operationId: 'adminListSubjectWidgets',
+    summary: 'List Widgets for the requested subject.',
+    description: 'Returns the Widgets owned by the subject identified in the path.',
   })
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: SDX_WIDGET_STATUSES,
-    enumName: 'SdxWidgetStatus',
+    enum: WIDGET_STATUSES,
+    enumName: 'WidgetStatus',
     example: 'active',
     description: 'Filter widgets by lifecycle status.',
   })
@@ -686,10 +686,10 @@ export class AdminSdxWidgetsController {
   @ApiQuery({
     name: 'sortBy',
     required: false,
-    enum: SDX_WIDGET_SORT_FIELDS,
+    enum: WIDGET_SORT_FIELDS,
     schema: {
       type: 'string',
-      enum: [...SDX_WIDGET_SORT_FIELDS],
+      enum: [...WIDGET_SORT_FIELDS],
       default: 'createdAt',
       example: 'createdAt',
     },
@@ -698,10 +698,10 @@ export class AdminSdxWidgetsController {
   @ApiQuery({
     name: 'sortOrder',
     required: false,
-    enum: SDX_WIDGET_SORT_DIRECTIONS,
+    enum: WIDGET_SORT_DIRECTIONS,
     schema: {
       type: 'string',
-      enum: [...SDX_WIDGET_SORT_DIRECTIONS],
+      enum: [...WIDGET_SORT_DIRECTIONS],
       default: 'desc',
       example: 'desc',
     },
@@ -718,13 +718,13 @@ export class AdminSdxWidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The list of SDX Widgets owned by the requested subject.',
-    type: SdxWidgetListResponseDto,
+    description: 'The list of Widgets owned by the requested subject.',
+    type: WidgetListResponseDto,
     examples: {
       listWidgetsForSubject: {
         summary: 'List widgets for a subject',
         value: {
-          items: [SDX_WIDGET_EXAMPLE],
+          items: [WIDGET_EXAMPLE],
           nextCursor: null,
         },
       },
@@ -733,16 +733,16 @@ export class AdminSdxWidgetsController {
   @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
-  findForSubject(@Param('subject') subject: string, @Query() query: ListSdxWidgetsQueryDto) {
+  findForSubject(@Param('subject') subject: string, @Query() query: ListWidgetsQueryDto) {
     return this.widgetsService.adminListForSubject(subject, query)
   }
 
-  @Post('subjects/:subject/sdx-widgets')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
+  @Post('subjects/:subject/widgets')
+  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
   @ApiOperation({
-    operationId: 'adminCreateSubjectSdxWidget',
-    summary: 'Create a SDX Widget for the requested subject.',
-    description: 'Creates a new SDX Widget for the subject identified in the path.',
+    operationId: 'adminCreateSubjectWidget',
+    summary: 'Create a Widget for the requested subject.',
+    description: 'Creates a new Widget for the subject identified in the path.',
   })
   @ApiParam({
     name: 'subject',
@@ -755,7 +755,7 @@ export class AdminSdxWidgetsController {
     },
   })
   @ApiBody({
-    type: CreateSdxWidgetDto,
+    type: CreateWidgetDto,
     examples: {
       adminCreateSubjectWidget: {
         summary: 'Create an active widget for a subject',
@@ -776,8 +776,8 @@ export class AdminSdxWidgetsController {
     },
   })
   @ApiCreatedResponse({
-    description: 'The created SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The created Widget.',
+    type: WidgetDto,
     examples: CREATED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -788,7 +788,7 @@ export class AdminSdxWidgetsController {
   @ApiForbiddenResponse(ERROR_RESPONSE)
   async createForSubject(
     @Param('subject') subject: string,
-    @Body() dto: CreateSdxWidgetDto,
+    @Body() dto: CreateWidgetDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -797,25 +797,25 @@ export class AdminSdxWidgetsController {
     return widget
   }
 
-  @Get('sdx-widgets/:widgetId')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
+  @Get('widgets/:widgetId')
+  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
   @ApiOperation({
-    operationId: 'adminGetSdxWidget',
-    summary: 'Get a SDX Widget by ID across subjects.',
-    description: 'Returns the SDX Widget identified by the path parameter across all subjects.',
+    operationId: 'adminGetWidget',
+    summary: 'Get a Widget by ID across subjects.',
+    description: 'Returns the Widget identified by the path parameter across all subjects.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiOkResponse({
-    description: 'The requested SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The requested Widget.',
+    type: WidgetDto,
     examples: REQUESTED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -831,25 +831,25 @@ export class AdminSdxWidgetsController {
     return widget
   }
 
-  @Put('sdx-widgets/:widgetId')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
+  @Put('widgets/:widgetId')
+  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
   @ApiOperation({
-    operationId: 'adminReplaceSdxWidget',
-    summary: 'Replace any SDX Widget by ID.',
+    operationId: 'adminReplaceWidget',
+    summary: 'Replace any Widget by ID.',
     description:
-      'Replaces the SDX Widget identified by the path parameter across all subjects. Subject transfer is allowed only on this administrative operation.',
+      'Replaces the Widget identified by the path parameter across all subjects. Subject transfer is allowed only on this administrative operation.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiBody({
-    type: AdminUpdateSdxWidgetDto,
+    type: AdminUpdateWidgetDto,
     examples: {
       adminReplaceWidget: {
         summary: 'Replace a widget and transfer ownership',
@@ -858,8 +858,8 @@ export class AdminSdxWidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The replaced SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The replaced Widget.',
+    type: WidgetDto,
     examples: ADMIN_REPLACED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -873,7 +873,7 @@ export class AdminSdxWidgetsController {
   @ApiNotFoundResponse(ERROR_RESPONSE)
   async replace(
     @Param('widgetId') widgetId: string,
-    @Body() dto: AdminUpdateSdxWidgetDto,
+    @Body() dto: AdminUpdateWidgetDto,
     @Headers('if-match') ifMatch: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -882,25 +882,25 @@ export class AdminSdxWidgetsController {
     return widget
   }
 
-  @Patch('sdx-widgets/:widgetId')
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
+  @Patch('widgets/:widgetId')
+  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
   @ApiOperation({
-    operationId: 'adminUpdateSdxWidget',
-    summary: 'Partially update a SDX Widget by ID across subjects.',
+    operationId: 'adminUpdateWidget',
+    summary: 'Partially update a Widget by ID across subjects.',
     description:
-      'Applies a partial update to the SDX Widget identified by the path parameter across all subjects. Subject transfer is allowed only on this administrative operation.',
+      'Applies a partial update to the Widget identified by the path parameter across all subjects. Subject transfer is allowed only on this administrative operation.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiBody({
-    type: AdminPatchSdxWidgetDto,
+    type: AdminPatchWidgetDto,
     examples: {
       adminUpdateWidget: {
         summary: 'Archive a widget and transfer ownership',
@@ -909,8 +909,8 @@ export class AdminSdxWidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The updated SDX Widget.',
-    type: SdxWidgetDto,
+    description: 'The updated Widget.',
+    type: WidgetDto,
     examples: ADMIN_UPDATED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
   })
@@ -924,7 +924,7 @@ export class AdminSdxWidgetsController {
   @ApiNotFoundResponse(ERROR_RESPONSE)
   async update(
     @Param('widgetId') widgetId: string,
-    @Body() dto: AdminPatchSdxWidgetDto,
+    @Body() dto: AdminPatchWidgetDto,
     @Headers('if-match') ifMatch: string | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -933,25 +933,25 @@ export class AdminSdxWidgetsController {
     return widget
   }
 
-  @Delete('sdx-widgets/:widgetId')
+  @Delete('widgets/:widgetId')
   @HttpCode(204)
-  @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
+  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
   @ApiOperation({
-    operationId: 'adminDeleteSdxWidget',
-    summary: 'Delete a SDX Widget by ID across subjects.',
-    description: 'Deletes the SDX Widget identified by the path parameter across all subjects.',
+    operationId: 'adminDeleteWidget',
+    summary: 'Delete a Widget by ID across subjects.',
+    description: 'Deletes the Widget identified by the path parameter across all subjects.',
   })
   @ApiParam({
     name: 'widgetId',
-    description: 'The UUID of the SDX Widget.',
+    description: 'The UUID of the Widget.',
     schema: {
       type: 'string',
       format: 'uuid',
-      example: SDX_WIDGET_ID_EXAMPLE,
+      example: WIDGET_ID_EXAMPLE,
     },
   })
   @ApiNoContentResponse({
-    description: 'The SDX Widget was deleted.',
+    description: 'The Widget was deleted.',
   })
   @ApiHeader(IF_MATCH_HEADER)
   @ApiConflictResponse(CONFLICT_ERROR_RESPONSE)

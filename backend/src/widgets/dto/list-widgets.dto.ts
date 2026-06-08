@@ -1,16 +1,16 @@
 import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger'
-import { SdxWidgetDto, SDX_WIDGET_STATUSES } from './sdx-widget.dto'
+import { WidgetDto, WIDGET_STATUSES } from './widget.dto'
 
-export const SDX_WIDGET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'status'] as const
-export type SdxWidgetSortField = (typeof SDX_WIDGET_SORT_FIELDS)[number]
+export const WIDGET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'status'] as const
+export type WidgetSortField = (typeof WIDGET_SORT_FIELDS)[number]
 
-export const SDX_WIDGET_SORT_DIRECTIONS = ['asc', 'desc'] as const
-export type SdxWidgetSortDirection = (typeof SDX_WIDGET_SORT_DIRECTIONS)[number]
+export const WIDGET_SORT_DIRECTIONS = ['asc', 'desc'] as const
+export type WidgetSortDirection = (typeof WIDGET_SORT_DIRECTIONS)[number]
 
-@ApiSchema({ name: 'ListSdxWidgetsQuery' })
-export class ListSdxWidgetsQueryDto {
+@ApiSchema({ name: 'ListWidgetsQuery' })
+export class ListWidgetsQueryDto {
   @ApiPropertyOptional({
-    enum: SDX_WIDGET_STATUSES,
+    enum: WIDGET_STATUSES,
     description: 'Filter widgets by lifecycle status.',
     example: 'active',
   })
@@ -43,14 +43,14 @@ export class ListSdxWidgetsQueryDto {
   cursor?: string
 
   @ApiPropertyOptional({
-    enum: SDX_WIDGET_SORT_FIELDS,
+    enum: WIDGET_SORT_FIELDS,
     description: 'Field used to sort results.',
     example: 'createdAt',
   })
   sortBy?: string
 
   @ApiPropertyOptional({
-    enum: SDX_WIDGET_SORT_DIRECTIONS,
+    enum: WIDGET_SORT_DIRECTIONS,
     description: 'Sort direction for the selected sort field.',
     example: 'desc',
   })
@@ -58,12 +58,12 @@ export class ListSdxWidgetsQueryDto {
 }
 
 @ApiSchema({
-  name: 'SdxWidgetListResponse',
-  description: 'A paginated list of SDX Widgets with an optional cursor for the next page.',
+  name: 'WidgetListResponse',
+  description: 'A paginated list of widgets with an optional cursor for the next page.',
 })
-export class SdxWidgetListResponseDto {
+export class WidgetListResponseDto {
   @ApiProperty({
-    type: SdxWidgetDto,
+    type: WidgetDto,
     isArray: true,
     example: [
       {
@@ -80,7 +80,7 @@ export class SdxWidgetListResponseDto {
       },
     ],
   })
-  items: SdxWidgetDto[]
+  items: WidgetDto[]
 
   @ApiPropertyOptional({
     type: 'string',

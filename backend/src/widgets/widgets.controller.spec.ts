@@ -2,7 +2,7 @@ import request from 'supertest'
 import { Test } from '@nestjs/testing'
 import { VersioningType, type INestApplication } from '@nestjs/common'
 import { randomUUID } from 'crypto'
-import { SdxWidgetsModule } from './sdx-widgets.module'
+import { WidgetsModule } from './widgets.module'
 import { PrismaService } from '../prisma.service'
 
 type WidgetRow = {
@@ -29,7 +29,7 @@ class FakePrismaService {
   private rows: WidgetRow[] = []
   private idempotencyRows: IdempotencyRow[] = []
 
-  sdxWidget = {
+  widget = {
     create: async ({ data }: { data: Partial<WidgetRow> }) => {
       const now = new Date()
       const row: WidgetRow = {
@@ -113,7 +113,7 @@ class FakePrismaService {
     },
   }
 
-  sdxWidgetIdempotency = {
+  widgetIdempotency = {
     findUnique: async ({
       where,
     }: {
@@ -157,13 +157,13 @@ const tokenFor = (subject: string, scopes?: string[]) => {
   return `${header}.${payload}.`
 }
 
-describe('SdxWidgetsController', () => {
+describe('WidgetsController', () => {
   let app: INestApplication
 
   beforeEach(async () => {
     process.env.NODE_ENV = 'test'
     const moduleRef = await Test.createTestingModule({
-      imports: [SdxWidgetsModule],
+      imports: [WidgetsModule],
     })
       .overrideProvider(PrismaService)
       .useValue(new FakePrismaService())
@@ -184,8 +184,8 @@ describe('SdxWidgetsController', () => {
 
   it('creates a widget for the authenticated subject', async () => {
     const response = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Alpha', subject: 'spoofed-subject' })
       .expect(201)
 
@@ -195,28 +195,28 @@ describe('SdxWidgetsController', () => {
 
   it('does not enforce operation scopes after the gateway forwards a request', async () => {
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
+      .post('/api/v1/widgets')
       .set('authorization', `Bearer ${tokenFor('alice')}`)
       .send({ name: 'Gateway-authorized widget' })
       .expect(201)
   })
 
-  it('lists only SDX Widgets for the authenticated subject', async () => {
+  it('lists only Widgets for the authenticated subject', async () => {
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Alice widget' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
-      .get('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .get('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(200)
 
     expect(response.body.items).toHaveLength(1)
@@ -226,27 +226,27 @@ describe('SdxWidgetsController', () => {
 
   it('does not expose another subject widget through normal endpoints', async () => {
     const bobWidget = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .get(`/api/v1/sdx-widgets/${bobWidget.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .get(`/api/v1/widgets/${bobWidget.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(404)
   })
 
-  it('allows admins to list SDX Widgets for a subject', async () => {
+  it('allows admins to list Widgets for a subject', async () => {
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
-      .get('/api/v1/admin/subjects/bob/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.sdx-widgets.admin'])}`)
+      .get('/api/v1/admin/subjects/bob/widgets')
+      .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.widgets.admin'])}`)
       .expect(200)
 
     expect(response.body.items).toHaveLength(1)
@@ -256,14 +256,14 @@ describe('SdxWidgetsController', () => {
 
   it('allows admins to access a widget by ID', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
-      .get(`/api/v1/admin/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.sdx-widgets.admin'])}`)
+      .get(`/api/v1/admin/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.widgets.admin'])}`)
       .expect(200)
 
     expect(response.body.id).toBe(created.body.id)
@@ -271,14 +271,14 @@ describe('SdxWidgetsController', () => {
 
   it('updates a widget for the authenticated subject', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Old name' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
-      .patch(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.update'])}`)
+      .patch(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
       .send({ name: 'New name', status: 'inactive' })
       .expect(200)
 
@@ -288,32 +288,32 @@ describe('SdxWidgetsController', () => {
 
   it('deletes a widget for the authenticated subject', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Delete me' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .delete(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.delete'])}`)
+      .delete(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.delete'])}`)
       .expect(204)
 
     await request(app.getHttpServer())
-      .get(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .get(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(404)
   })
 
   it('rejects invalid create values before writing to the database', async () => {
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 123 })
       .expect(422)
 
     const response = await request(app.getHttpServer())
-      .get('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .get('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(200)
 
     expect(response.body.items).toHaveLength(0)
@@ -323,15 +323,15 @@ describe('SdxWidgetsController', () => {
     const idempotencyKey = 'req-12345678'
 
     const first = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Alpha' })
       .expect(201)
 
     const second = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Alpha' })
       .expect(201)
@@ -344,43 +344,43 @@ describe('SdxWidgetsController', () => {
     const idempotencyKey = 'req-12345678'
 
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Alpha' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Bravo' })
       .expect(409)
   })
 
-  it('filters, sorts, and paginates SDX Widget lists', async () => {
+  it('filters, sorts, and paginates Widget lists', async () => {
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Bravo intake', status: 'active' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Alpha intake', status: 'active' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Archived item', status: 'archived' })
       .expect(201)
 
     const firstPage = await request(app.getHttpServer())
-      .get('/api/v1/sdx-widgets')
+      .get('/api/v1/widgets')
       .query({ status: 'active', name: 'intake', sortBy: 'name', sortOrder: 'asc', limit: 1 })
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(200)
 
     expect(firstPage.body.items).toHaveLength(1)
@@ -388,7 +388,7 @@ describe('SdxWidgetsController', () => {
     expect(firstPage.body.nextCursor).toBeTruthy()
 
     const secondPage = await request(app.getHttpServer())
-      .get('/api/v1/sdx-widgets')
+      .get('/api/v1/widgets')
       .query({
         status: 'active',
         name: 'intake',
@@ -397,7 +397,7 @@ describe('SdxWidgetsController', () => {
         limit: 1,
         cursor: firstPage.body.nextCursor,
       })
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(200)
 
     expect(secondPage.body.items).toHaveLength(1)
@@ -407,30 +407,30 @@ describe('SdxWidgetsController', () => {
 
   it('rejects invalid list query parameters', async () => {
     await request(app.getHttpServer())
-      .get('/api/v1/sdx-widgets')
+      .get('/api/v1/widgets')
       .query({ limit: 101 })
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(400)
   })
 
   it('rejects update values that exceed database column sizes', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Valid widget' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .put(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.update'])}`)
+      .put(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
       .send({ name: 'x'.repeat(201) })
       .expect(422)
   })
 
   it('resets omitted optional fields during full replacement', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({
         name: 'Original widget',
         description: 'Original description',
@@ -440,8 +440,8 @@ describe('SdxWidgetsController', () => {
       .expect(201)
 
     const replaced = await request(app.getHttpServer())
-      .put(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.update'])}`)
+      .put(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
       .send({ name: 'Replacement widget' })
       .expect(200)
 
@@ -453,28 +453,28 @@ describe('SdxWidgetsController', () => {
 
   it('rejects patch values with invalid status or metadata shape', async () => {
     const created = await request(app.getHttpServer())
-      .post('/api/v1/sdx-widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.create'])}`)
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
       .send({ name: 'Valid widget' })
       .expect(201)
 
     await request(app.getHttpServer())
-      .patch(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.update'])}`)
+      .patch(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
       .send({ status: 'deleted' })
       .expect(422)
 
     await request(app.getHttpServer())
-      .patch(`/api/v1/sdx-widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.update'])}`)
+      .patch(`/api/v1/widgets/${created.body.id}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
       .send({ metadata: ['not', 'an', 'object'] })
       .expect(422)
   })
 
   it('rejects invalid widget IDs before querying Prisma', async () => {
     await request(app.getHttpServer())
-      .get('/api/v1/sdx-widgets/not-a-uuid')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.sdx-widgets.read'])}`)
+      .get('/api/v1/widgets/not-a-uuid')
+      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
       .expect(400)
   })
 })

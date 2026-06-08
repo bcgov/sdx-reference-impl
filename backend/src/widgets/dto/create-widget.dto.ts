@@ -1,12 +1,12 @@
 import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger'
-import { SdxWidgetStatus, SDX_WIDGET_STATUSES } from './sdx-widget.dto'
+import { WidgetStatus, WIDGET_STATUSES } from './widget.dto'
 
 @ApiSchema({
-  name: 'CreateSdxWidgetRequest',
+  name: 'CreateWidgetRequest',
   description:
     'Request body for creating a widget. Subject is never accepted here. If status is omitted, the service creates the widget with status `active`. If metadata is omitted, the service stores an empty metadata object.',
 })
-export class CreateSdxWidgetDto {
+export class CreateWidgetDto {
   @ApiProperty({
     minLength: 1,
     maxLength: 200,
@@ -23,12 +23,12 @@ export class CreateSdxWidgetDto {
   description?: string | null
 
   @ApiPropertyOptional({
-    enum: SDX_WIDGET_STATUSES,
-    enumName: 'SdxWidgetStatus',
+    enum: WIDGET_STATUSES,
+    enumName: 'WidgetStatus',
     default: 'active',
     example: 'active',
   })
-  status?: SdxWidgetStatus
+  status?: WidgetStatus
 
   @ApiPropertyOptional({
     type: 'object',

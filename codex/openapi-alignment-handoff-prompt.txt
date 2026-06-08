@@ -1,14 +1,14 @@
 You are Codex working in the Git repository `sdx-reference-impl`.
 
 We are aligning:
-- Static contract: `backend/openapi/sdx-widgets.openapi.yaml`
-- API-generated contract: `backend/openapi/sdx-widgets.generated.openapi.yaml`
-- Generated JSON: `backend/openapi/sdx-widgets.generated.openapi.json`
+- Static contract: `backend/openapi/widgets.openapi.yaml`
+- API-generated contract: `backend/openapi/widgets.generated.openapi.yaml`
+- Generated JSON: `backend/openapi/widgets.generated.openapi.json`
 
 Primary working rule:
 - Keep changes to the static contract minimal.
 - Prefer changing NestJS Swagger decorators, DTO metadata, or
-  `alignGeneratedSdxWidgetSpec()` when generated output can reasonably be made to match.
+  `alignGeneratedWidgetSpec()` when generated output can reasonably be made to match.
 - When explicitly asked to update the static document, change only the requested content.
 - Do not replace generated Swagger with the static document.
 
@@ -20,7 +20,7 @@ Current state:
 - Mapping/property order has also been aligned with the generated YAML.
 - The static document does not use reusable `components.parameters` or path-item-level
   parameters. Parameters are declared on individual operations.
-- Generated output uses reusable response components, reusable `ETag`, `SdxWidgetStatus`,
+- Generated output uses reusable response components, reusable `ETag`, `WidgetStatus`,
   and `ProblemDetailErrorLocation`.
 
 Important editing constraint:
@@ -47,11 +47,11 @@ Generation workflow:
 
 Relevant implementation files:
 - `backend/src/app.ts`
-- `backend/src/sdx-widgets/sdx-widgets.controller.ts`
-- `backend/src/sdx-widgets/dto/sdx-widget.dto.ts`
-- `backend/src/sdx-widgets/dto/create-sdx-widget.dto.ts`
-- `backend/src/sdx-widgets/dto/list-sdx-widgets.dto.ts`
-- `backend/src/sdx-widgets/dto/update-sdx-widget.dto.ts`
+- `backend/src/widgets/widgets.controller.ts`
+- `backend/src/widgets/dto/widget.dto.ts`
+- `backend/src/widgets/dto/create-widget.dto.ts`
+- `backend/src/widgets/dto/list-widgets.dto.ts`
+- `backend/src/widgets/dto/update-widget.dto.ts`
 - `backend/scripts/generate-openapi.cjs`
 
 Verification that passed during the previous session:

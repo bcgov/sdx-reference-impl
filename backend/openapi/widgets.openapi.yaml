@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: SDX Reference Implementation API - SDX Widgets
+  title: SDX Reference Implementation API - Widgets
   description: >-
-    Reference API for managing SDX Widgets.
+    Reference API for managing widgets.
 
 
     Normal user endpoints derive widget ownership from the authenticated subject
@@ -12,14 +12,14 @@ info:
 
     Scope names use the format `<PrivacyZone>.<resource-type>.<action>`. For
     this reference implementation, the privacy zone is `SDX-RI`, the resource
-    type is `sdx-widgets`, and standard actions are `read`, `create`, `update`,
-    and `delete`. Administrative operations are consolidated under the `admin`
+    type is `widgets`, and standard actions are `read`, `create`, `update`, and
+    `delete`. Administrative operations are consolidated under the `admin`
     action.
 
 
-    The SDX Widget scopes are `SDX-RI.sdx-widgets.read`,
-    `SDX-RI.sdx-widgets.create`, `SDX-RI.sdx-widgets.update`,
-    `SDX-RI.sdx-widgets.delete`, and `SDX-RI.sdx-widgets.admin`.
+    The Widget scopes are `SDX-RI.widgets.read`, `SDX-RI.widgets.create`,
+    `SDX-RI.widgets.update`, `SDX-RI.widgets.delete`, and
+    `SDX-RI.widgets.admin`.
   version: 0.1.0
   contact:
     name: SDX Reference Implementation Maintainers
@@ -27,32 +27,29 @@ info:
     name: Apache-2.0
 servers:
   - url: 'http://localhost:3000/api/v1'
-    description: Local development server for the SDX Widgets API
+    description: Local development server for the Widgets API
 tags:
-  - name: Admin SDX Widgets
-    description: Administrative SDX Widget operations that can act across subjects.
-  - name: SDX Widgets
+  - name: Admin Widgets
+    description: Administrative Widget operations that can act across subjects.
+  - name: Widgets
     description: >-
-      SDX Widget operations that act on resources owned by the authenticated
+      Widget operations that act on resources owned by the authenticated
       subject.
-security:
-  - openId:
-      - SDX-RI.sdx-widgets.read
 paths:
-  /sdx-widgets:
-    summary: Manage SDX Widgets for the authenticated subject.
+  /widgets:
+    summary: Manage widgets for the authenticated subject.
     get:
       description: >-
-        Returns the SDX Widgets owned by the authenticated subject identified by
-        the JWT sub claim.
-      operationId: listSdxWidgets
+        Returns the Widgets owned by the authenticated subject identified by the
+        JWT sub claim.
+      operationId: listWidgets
       parameters:
         - name: status
           required: false
           in: query
           description: Filter widgets by lifecycle status.
           schema:
-            $ref: '#/components/schemas/SdxWidgetStatus'
+            $ref: '#/components/schemas/WidgetStatus'
         - name: name
           required: false
           in: query
@@ -105,11 +102,11 @@ paths:
             example: desc
       responses:
         '200':
-          description: The list of SDX Widgets owned by the authenticated subject.
+          description: The list of Widgets owned by the authenticated subject.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidgetListResponse'
+                $ref: '#/components/schemas/WidgetListResponse'
               examples:
                 listWidgets:
                   summary: List widgets
@@ -137,16 +134,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.read
-      summary: List SDX Widgets owned by the authenticated subject.
+            - SDX-RI.widgets.read
+      summary: List Widgets owned by the authenticated subject.
       tags:
-        - SDX Widgets
+        - Widgets
     post:
       description: >-
-        Creates a new SDX Widget for the authenticated subject. The service
+        Creates a new Widget for the authenticated subject. The service
         identifies the subject from the JWT sub claim rather than from the
         request body.
-      operationId: createSdxWidget
+      operationId: createWidget
       parameters:
         - name: Idempotency-Key
           in: header
@@ -165,7 +162,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSdxWidgetRequest'
+              $ref: '#/components/schemas/CreateWidgetRequest'
             examples:
               createActiveWidget:
                 summary: Create an active widget
@@ -177,14 +174,14 @@ paths:
                     source: local-dev
       responses:
         '201':
-          description: The created SDX Widget for the authenticated subject.
+          description: The created Widget for the authenticated subject.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 createdWidget:
                   summary: Created widget
@@ -214,18 +211,18 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.create
-      summary: Create a SDX Widget for the authenticated subject.
+            - SDX-RI.widgets.create
+      summary: Create a Widget for the authenticated subject.
       tags:
-        - SDX Widgets
-  '/sdx-widgets/{widgetId}':
-    summary: Manage one SDX Widget for the authenticated subject.
+        - Widgets
+  '/widgets/{widgetId}':
+    summary: Manage one widget for the authenticated subject.
     get:
       description: >-
-        Returns the SDX Widget when it is owned by the authenticated subject.
+        Returns the Widget when it is owned by the authenticated subject.
         Responds with 404 when the widget does not exist or is owned by another
         subject.
-      operationId: getSdxWidget
+      operationId: getWidget
       parameters:
         - name: widgetId
           required: true
@@ -237,14 +234,14 @@ paths:
             example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
       responses:
         '200':
-          description: The requested SDX Widget.
+          description: The requested Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 requestedWidget:
                   summary: Requested widget
@@ -270,16 +267,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.read
-      summary: Get a SDX Widget owned by the authenticated subject.
+            - SDX-RI.widgets.read
+      summary: Get a Widget owned by the authenticated subject.
       tags:
-        - SDX Widgets
+        - Widgets
     put:
       description: >-
-        Replaces the SDX Widget when it is owned by the authenticated subject.
-        The service identifies the subject from the JWT sub claim rather than
-        from the request body.
-      operationId: replaceSdxWidget
+        Replaces the Widget when it is owned by the authenticated subject. The
+        service identifies the subject from the JWT sub claim rather than from
+        the request body.
+      operationId: replaceWidget
       parameters:
         - name: widgetId
           required: true
@@ -303,7 +300,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateSdxWidgetRequest'
+              $ref: '#/components/schemas/UpdateWidgetRequest'
             examples:
               replaceWidget:
                 summary: Replace a widget
@@ -315,14 +312,14 @@ paths:
                     source: local-dev
       responses:
         '200':
-          description: The replaced SDX Widget.
+          description: The replaced Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 replacedWidget:
                   summary: Replaced widget
@@ -356,16 +353,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.update
-      summary: Replace a SDX Widget for the authenticated subject.
+            - SDX-RI.widgets.update
+      summary: Replace a Widget for the authenticated subject.
       tags:
-        - SDX Widgets
+        - Widgets
     patch:
       description: >-
-        Applies a partial update to the SDX Widget when it is owned by the
+        Applies a partial update to the Widget when it is owned by the
         authenticated subject. The service identifies the subject from the JWT
         sub claim rather than from the request body.
-      operationId: updateSdxWidget
+      operationId: updateWidget
       parameters:
         - name: widgetId
           required: true
@@ -389,7 +386,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchSdxWidgetRequest'
+              $ref: '#/components/schemas/PatchWidgetRequest'
             examples:
               archiveWidget:
                 summary: Archive a widget
@@ -397,14 +394,14 @@ paths:
                   status: archived
       responses:
         '200':
-          description: The updated SDX Widget.
+          description: The updated Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 updatedWidget:
                   summary: Updated widget
@@ -438,16 +435,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.update
-      summary: Partially update a SDX Widget for the authenticated subject.
+            - SDX-RI.widgets.update
+      summary: Partially update a Widget for the authenticated subject.
       tags:
-        - SDX Widgets
+        - Widgets
     delete:
       description: >-
-        Deletes the SDX Widget when it is owned by the authenticated subject.
+        Deletes the Widget when it is owned by the authenticated subject.
         Responds with 404 when the widget does not exist or is owned by another
         subject.
-      operationId: deleteSdxWidget
+      operationId: deleteWidget
       parameters:
         - name: widgetId
           required: true
@@ -468,7 +465,7 @@ paths:
             example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
       responses:
         '204':
-          description: The SDX Widget was deleted.
+          description: The Widget was deleted.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -485,15 +482,15 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.delete
-      summary: Delete a SDX Widget owned by the authenticated subject.
+            - SDX-RI.widgets.delete
+      summary: Delete a Widget owned by the authenticated subject.
       tags:
-        - SDX Widgets
-  '/admin/subjects/{subject}/sdx-widgets':
-    summary: Administer SDX Widgets for one subject.
+        - Widgets
+  '/admin/subjects/{subject}/widgets':
+    summary: Administer widgets for one subject.
     get:
-      description: Returns the SDX Widgets owned by the subject identified in the path.
-      operationId: adminListSubjectSdxWidgets
+      description: Returns the Widgets owned by the subject identified in the path.
+      operationId: adminListSubjectWidgets
       parameters:
         - name: subject
           required: true
@@ -509,7 +506,7 @@ paths:
           in: query
           description: Filter widgets by lifecycle status.
           schema:
-            $ref: '#/components/schemas/SdxWidgetStatus'
+            $ref: '#/components/schemas/WidgetStatus'
         - name: name
           required: false
           in: query
@@ -562,11 +559,11 @@ paths:
             example: desc
       responses:
         '200':
-          description: The list of SDX Widgets owned by the requested subject.
+          description: The list of Widgets owned by the requested subject.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidgetListResponse'
+                $ref: '#/components/schemas/WidgetListResponse'
               examples:
                 listWidgetsForSubject:
                   summary: List widgets for a subject
@@ -594,13 +591,13 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.admin
-      summary: List SDX Widgets for the requested subject.
+            - SDX-RI.widgets.admin
+      summary: List Widgets for the requested subject.
       tags:
-        - Admin SDX Widgets
+        - Admin Widgets
     post:
-      description: Creates a new SDX Widget for the subject identified in the path.
-      operationId: adminCreateSubjectSdxWidget
+      description: Creates a new Widget for the subject identified in the path.
+      operationId: adminCreateSubjectWidget
       parameters:
         - name: subject
           required: true
@@ -628,7 +625,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSdxWidgetRequest'
+              $ref: '#/components/schemas/CreateWidgetRequest'
             examples:
               createWidgetForSubject:
                 summary: Create an active widget for a subject
@@ -640,14 +637,14 @@ paths:
                     source: local-dev
       responses:
         '201':
-          description: The created SDX Widget for the requested subject.
+          description: The created Widget for the requested subject.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 createdWidgetForSubject:
                   summary: Created widget for a subject
@@ -677,17 +674,15 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.admin
-      summary: Create a SDX Widget for the requested subject.
+            - SDX-RI.widgets.admin
+      summary: Create a Widget for the requested subject.
       tags:
-        - Admin SDX Widgets
-  '/admin/sdx-widgets/{widgetId}':
-    summary: Administer one SDX Widget by ID.
+        - Admin Widgets
+  '/admin/widgets/{widgetId}':
+    summary: Administer one widget by ID.
     get:
-      description: >-
-        Returns the SDX Widget identified by the path parameter across all
-        subjects.
-      operationId: adminGetSdxWidget
+      description: Returns the Widget identified by the path parameter across all subjects.
+      operationId: adminGetWidget
       parameters:
         - name: widgetId
           required: true
@@ -699,14 +694,14 @@ paths:
             example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
       responses:
         '200':
-          description: The requested SDX Widget.
+          description: The requested Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 adminRequestedWidget:
                   summary: Requested widget across subjects
@@ -732,16 +727,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.admin
-      summary: Get a SDX Widget by ID across subjects.
+            - SDX-RI.widgets.admin
+      summary: Get a Widget by ID across subjects.
       tags:
-        - Admin SDX Widgets
+        - Admin Widgets
     put:
       description: >-
-        Replaces the SDX Widget identified by the path parameter across all
+        Replaces the Widget identified by the path parameter across all
         subjects. Subject transfer is allowed only on this administrative
         operation.
-      operationId: adminReplaceSdxWidget
+      operationId: adminReplaceWidget
       parameters:
         - name: widgetId
           required: true
@@ -765,7 +760,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminUpdateSdxWidgetRequest'
+              $ref: '#/components/schemas/AdminUpdateWidgetRequest'
             examples:
               adminReplaceWidget:
                 summary: Replace a widget and transfer ownership
@@ -778,14 +773,14 @@ paths:
                     source: local-dev
       responses:
         '200':
-          description: The replaced SDX Widget.
+          description: The replaced Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 adminReplacedWidget:
                   summary: Replaced widget across subjects
@@ -819,16 +814,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.admin
-      summary: Replace any SDX Widget by ID.
+            - SDX-RI.widgets.admin
+      summary: Replace any Widget by ID.
       tags:
-        - Admin SDX Widgets
+        - Admin Widgets
     patch:
       description: >-
-        Applies a partial update to the SDX Widget identified by the path
-        parameter across all subjects. Subject transfer is allowed only on this
+        Applies a partial update to the Widget identified by the path parameter
+        across all subjects. Subject transfer is allowed only on this
         administrative operation.
-      operationId: adminUpdateSdxWidget
+      operationId: adminUpdateWidget
       parameters:
         - name: widgetId
           required: true
@@ -852,7 +847,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminPatchSdxWidgetRequest'
+              $ref: '#/components/schemas/AdminPatchWidgetRequest'
             examples:
               adminArchiveWidget:
                 summary: Archive a widget and transfer ownership
@@ -861,14 +856,14 @@ paths:
                   status: archived
       responses:
         '200':
-          description: The updated SDX Widget.
+          description: The updated Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SdxWidget'
+                $ref: '#/components/schemas/Widget'
               examples:
                 adminUpdatedWidget:
                   summary: Updated widget across subjects
@@ -902,15 +897,13 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.admin
-      summary: Partially update a SDX Widget by ID across subjects.
+            - SDX-RI.widgets.admin
+      summary: Partially update a Widget by ID across subjects.
       tags:
-        - Admin SDX Widgets
+        - Admin Widgets
     delete:
-      description: >-
-        Deletes the SDX Widget identified by the path parameter across all
-        subjects.
-      operationId: adminDeleteSdxWidget
+      description: Deletes the Widget identified by the path parameter across all subjects.
+      operationId: adminDeleteWidget
       parameters:
         - name: widgetId
           required: true
@@ -931,7 +924,7 @@ paths:
             example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
       responses:
         '204':
-          description: The SDX Widget was deleted.
+          description: The Widget was deleted.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -948,10 +941,10 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.sdx-widgets.admin
-      summary: Delete a SDX Widget by ID across subjects.
+            - SDX-RI.widgets.admin
+      summary: Delete a Widget by ID across subjects.
       tags:
-        - Admin SDX Widgets
+        - Admin Widgets
 components:
   securitySchemes:
     openId:
@@ -1001,7 +994,7 @@ components:
                 error: unauthorized
                 message: Missing or invalid authentication
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     Forbidden:
       description: The authenticated caller does not have the required authorization.
       content:
@@ -1015,7 +1008,7 @@ components:
                 error: forbidden
                 message: Required scope is missing
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     TooManyRequests:
       description: >-
         Too many requests. Retry after the interval indicated by the Retry-After
@@ -1038,7 +1031,7 @@ components:
                 error: too_many_requests
                 message: Too many requests
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
                   retryAfter: 60
     InternalServerError:
       description: >-
@@ -1055,7 +1048,7 @@ components:
                 error: internal_server_error
                 message: Internal server error
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
                   timestamp: '2026-05-13T18:00:00Z'
     Conflict:
       description: >-
@@ -1071,9 +1064,9 @@ components:
               summary: Request conflicts with widget state
               value:
                 error: conflict
-                message: Request conflicts with the current SDX Widget state
+                message: Request conflicts with the current Widget state
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     UnprocessableEntity:
       description: >-
         Syntactically valid request failed Widget validation or database limit
@@ -1108,9 +1101,9 @@ components:
               summary: Widget not found
               value:
                 error: not_found
-                message: SDX Widget not found
+                message: Widget not found
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     PreconditionFailed:
       description: The supplied If-Match value does not match the current widget version.
       content:
@@ -1126,7 +1119,7 @@ components:
                   The supplied If-Match value does not match the current widget
                   version
                 details:
-                  correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
   schemas:
     ErrorResponse:
       type: object
@@ -1155,10 +1148,10 @@ components:
             Optional additional context or structured details about the error.
             Use sparingly and avoid including sensitive data. For generated
             error responses, this object includes a `correlationId`. Values
-            generated by this API use the `sdxw-<uuid>` format; values supplied
-            by upstream callers are preserved as received.
+            generated by this API use the `widget-<uuid>` format; values
+            supplied by upstream callers are preserved as received.
           example:
-            correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+            correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
             timestamp: '2026-01-16T19:22:00Z'
       description: >-
         Standard error response format for unexpected or server-side errors
@@ -1168,8 +1161,8 @@ components:
         validation-specific. The `details.correlationId` value is used for
         support and log tracing. When an inbound `x-request-id` or
         `x-correlation-id` header is present, the API preserves that upstream
-        value. When this API generates the value, it uses the `sdxw-<uuid>`
-        format so logs show that SDX Widgets created the correlation ID.
+        value. When this API generates the value, it uses the `widget-<uuid>`
+        format so logs show that Widgets created the correlation ID.
       required:
         - error
         - message
@@ -1178,8 +1171,8 @@ components:
         error: forbidden
         message: You are not authorized to access this resource
         details:
-          correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
-    SdxWidgetStatus:
+          correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+    WidgetStatus:
       description: Lifecycle status for a widget.
       type: string
       example: active
@@ -1187,7 +1180,7 @@ components:
         - active
         - inactive
         - archived
-    SdxWidget:
+    Widget:
       type: object
       properties:
         id:
@@ -1211,7 +1204,7 @@ components:
           maxLength: 1000
           example: Widget used for intake workflow testing.
         status:
-          $ref: '#/components/schemas/SdxWidgetStatus'
+          $ref: '#/components/schemas/WidgetStatus'
         metadata:
           type: object
           additionalProperties: true
@@ -1247,7 +1240,7 @@ components:
           source: local-dev
         createdAt: '2026-05-13T18:00:00Z'
         updatedAt: '2026-05-13T18:00:00Z'
-    SdxWidgetListResponse:
+    WidgetListResponse:
       type: object
       properties:
         items:
@@ -1263,7 +1256,7 @@ components:
               updatedAt: '2026-05-13T18:00:00Z'
           type: array
           items:
-            $ref: '#/components/schemas/SdxWidget'
+            $ref: '#/components/schemas/Widget'
         nextCursor:
           type: string
           nullable: true
@@ -1271,9 +1264,7 @@ components:
             Cursor to retrieve the next page, or null when there are no more
             results.
           example: eyJvZmZzZXQiOjI1fQ==
-      description: >-
-        A paginated list of SDX Widgets with an optional cursor for the next
-        page.
+      description: A paginated list of widgets with an optional cursor for the next page.
       required:
         - items
       example:
@@ -1431,7 +1422,7 @@ components:
         status: 400
         title: Bad Request
         type: 'tag:validation-errors'
-    CreateSdxWidgetRequest:
+    CreateWidgetRequest:
       type: object
       properties:
         name:
@@ -1445,7 +1436,7 @@ components:
           maxLength: 1000
           example: Widget used for intake workflow testing.
         status:
-          $ref: '#/components/schemas/SdxWidgetStatus'
+          $ref: '#/components/schemas/WidgetStatus'
         metadata:
           type: object
           additionalProperties: true
@@ -1464,7 +1455,7 @@ components:
         status: active
         metadata:
           source: local-dev
-    UpdateSdxWidgetRequest:
+    UpdateWidgetRequest:
       type: object
       properties:
         name:
@@ -1478,7 +1469,7 @@ components:
           maxLength: 1000
           example: Widget used for intake workflow testing.
         status:
-          $ref: '#/components/schemas/SdxWidgetStatus'
+          $ref: '#/components/schemas/WidgetStatus'
         metadata:
           type: object
           additionalProperties: true
@@ -1498,7 +1489,7 @@ components:
         status: inactive
         metadata:
           source: local-dev
-    PatchSdxWidgetRequest:
+    PatchWidgetRequest:
       type: object
       properties:
         name:
@@ -1512,7 +1503,7 @@ components:
           maxLength: 1000
           example: Widget used for intake workflow testing.
         status:
-          $ref: '#/components/schemas/SdxWidgetStatus'
+          $ref: '#/components/schemas/WidgetStatus'
         metadata:
           type: object
           additionalProperties: true
@@ -1525,7 +1516,7 @@ components:
       minProperties: 1
       example:
         status: archived
-    AdminUpdateSdxWidgetRequest:
+    AdminUpdateWidgetRequest:
       type: object
       properties:
         name:
@@ -1539,7 +1530,7 @@ components:
           maxLength: 1000
           example: Widget used for intake workflow testing.
         status:
-          $ref: '#/components/schemas/SdxWidgetStatus'
+          $ref: '#/components/schemas/WidgetStatus'
         metadata:
           type: object
           additionalProperties: true
@@ -1566,7 +1557,7 @@ components:
         status: inactive
         metadata:
           source: local-dev
-    AdminPatchSdxWidgetRequest:
+    AdminPatchWidgetRequest:
       type: object
       properties:
         name:
@@ -1580,7 +1571,7 @@ components:
           maxLength: 1000
           example: Widget used for intake workflow testing.
         status:
-          $ref: '#/components/schemas/SdxWidgetStatus'
+          $ref: '#/components/schemas/WidgetStatus'
         metadata:
           type: object
           additionalProperties: true

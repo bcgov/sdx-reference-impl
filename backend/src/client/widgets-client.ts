@@ -1,19 +1,19 @@
-export interface SdxWidgetClientOptions {
+export interface WidgetClientOptions {
   baseUrl: string
   accessToken: string
 }
 
-export class SdxWidgetsClient {
-  constructor(private readonly options: SdxWidgetClientOptions) {}
+export class WidgetsClient {
+  constructor(private readonly options: WidgetClientOptions) {}
 
-  listSdxWidgets() {
-    return this.request('/sdx-widgets')
+  listWidgets() {
+    return this.request('/widgets')
   }
 
-  createSdxWidget(sdxWidget: Record<string, unknown>) {
-    return this.request('/sdx-widgets', {
+  createWidget(widget: Record<string, unknown>) {
+    return this.request('/widgets', {
       method: 'POST',
-      body: JSON.stringify(sdxWidget),
+      body: JSON.stringify(widget),
     })
   }
 
@@ -28,7 +28,7 @@ export class SdxWidgetsClient {
     })
 
     if (!response.ok) {
-      throw new Error(`SDX Widgets API request failed with status ${response.status}`)
+      throw new Error(`Widgets API request failed with status ${response.status}`)
     }
 
     if (response.status === 204) {

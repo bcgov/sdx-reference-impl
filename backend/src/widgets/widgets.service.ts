@@ -10,22 +10,22 @@ import { PrismaService } from '../prisma.service'
 import { Prisma } from '../../generated/prisma/client.js'
 import type { InputJsonValue } from '@prisma/client/runtime/client'
 import { createHash } from 'crypto'
-import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
+import { CreateWidgetDto } from './dto/create-widget.dto'
 import {
-  ListSdxWidgetsQueryDto,
-  SdxWidgetListResponseDto,
-  SDX_WIDGET_SORT_DIRECTIONS,
-  SDX_WIDGET_SORT_FIELDS,
-  type SdxWidgetSortDirection,
-  type SdxWidgetSortField,
-} from './dto/list-sdx-widgets.dto'
+  ListWidgetsQueryDto,
+  WidgetListResponseDto,
+  WIDGET_SORT_DIRECTIONS,
+  WIDGET_SORT_FIELDS,
+  type WidgetSortDirection,
+  type WidgetSortField,
+} from './dto/list-widgets.dto'
 import {
-  AdminPatchSdxWidgetDto,
-  AdminUpdateSdxWidgetDto,
-  PatchSdxWidgetDto,
-  UpdateSdxWidgetDto,
-} from './dto/update-sdx-widget.dto'
-import { SdxWidgetDto, SdxWidgetStatus, SDX_WIDGET_STATUSES } from './dto/sdx-widget.dto'
+  AdminPatchWidgetDto,
+  AdminUpdateWidgetDto,
+  PatchWidgetDto,
+  UpdateWidgetDto,
+} from './dto/update-widget.dto'
+import { WidgetDto, WidgetStatus, WIDGET_STATUSES } from './dto/widget.dto'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -44,32 +44,32 @@ type ParsedListQuery = {
   cursorOffset: number
   limit: number
   name?: string
-  sortBy: SdxWidgetSortField
-  sortOrder: SdxWidgetSortDirection
-  status?: SdxWidgetStatus
+  sortBy: WidgetSortField
+  sortOrder: WidgetSortDirection
+  status?: WidgetStatus
 }
 
 @Injectable()
-export class SdxWidgetsService {
+export class WidgetsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createForSubject(
     subject: string,
-    dto: CreateSdxWidgetDto,
+    dto: CreateWidgetDto,
     idempotencyKey?: string,
-  ): Promise<SdxWidgetDto> {
+  ): Promise<WidgetDto> {
     const data = this.buildCreateData(subject, dto)
     const normalizedKey = this.normalizeIdempotencyKey(idempotencyKey)
 
     if (!normalizedKey) {
-      const widget = await this.prisma.sdxWidget.create({ data })
+      const widget = await this.prisma.widget.create({ data })
       return this.toDto(widget)
     }
 
     const requestHash = this.hashIdempotentCreateRequest(data)
 
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.sdxWidgetIdempotency.findUnique({
+      const existing = await tx.widgetIdempotency.findUnique({
         where: {
           subject_idempotencyKey: {
             subject,
@@ -85,12 +85,12 @@ export class SdxWidgetsService {
           )
         }
 
-        const widget = await tx.sdxWidget.findUnique({ where: { id: existing.widgetId } })
+        const widget = await tx.widget.findUnique({ where: { id: existing.widgetId } })
         return this.requireWidget(widget as WidgetRecord | null)
       }
 
-      const widget = await tx.sdxWidget.create({ data })
-      await tx.sdxWidgetIdempotency.create({
+      const widget = await tx.widget.create({ data })
+      await tx.widgetIdempotency.create({
         data: {
           subject,
           idempotencyKey: normalizedKey,
@@ -104,14 +104,14 @@ export class SdxWidgetsService {
 
   async listForSubject(
     subject: string,
-    query: ListSdxWidgetsQueryDto,
-  ): Promise<SdxWidgetListResponseDto> {
+    query: ListWidgetsQueryDto,
+  ): Promise<WidgetListResponseDto> {
     return this.listWidgets({ subject }, query)
   }
 
-  async getForSubject(widgetId: string, subject: string): Promise<SdxWidgetDto> {
+  async getForSubject(widgetId: string, subject: string): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
-    const widget = await this.prisma.sdxWidget.findFirst({
+    const widget = await this.prisma.widget.findFirst({
       where: { id: widgetId, subject },
     })
     return this.requireWidget(widget)
@@ -120,13 +120,13 @@ export class SdxWidgetsService {
   async replaceForSubject(
     widgetId: string,
     subject: string,
-    dto: UpdateSdxWidgetDto,
+    dto: UpdateWidgetDto,
     ifMatch?: string,
-  ): Promise<SdxWidgetDto> {
+  ): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
     const current = await this.getWidgetForSubject(widgetId, subject)
     this.validateIfMatch(current, ifMatch)
-    const widget = await this.prisma.sdxWidget.update({
+    const widget = await this.prisma.widget.update({
       where: { id: widgetId },
       data: this.buildUpdateData(dto, true),
     })
@@ -136,13 +136,13 @@ export class SdxWidgetsService {
   async patchForSubject(
     widgetId: string,
     subject: string,
-    dto: PatchSdxWidgetDto,
+    dto: PatchWidgetDto,
     ifMatch?: string,
-  ): Promise<SdxWidgetDto> {
+  ): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
     const current = await this.getWidgetForSubject(widgetId, subject)
     this.validateIfMatch(current, ifMatch)
-    const widget = await this.prisma.sdxWidget.update({
+    const widget = await this.prisma.widget.update({
       where: { id: widgetId },
       data: this.buildUpdateData(dto, false),
     })
@@ -153,39 +153,39 @@ export class SdxWidgetsService {
     this.validateWidgetId(widgetId)
     const current = await this.getWidgetForSubject(widgetId, subject)
     this.validateIfMatch(current, ifMatch)
-    await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
+    await this.prisma.widget.delete({ where: { id: widgetId } })
   }
 
   async adminCreateForSubject(
     subject: string,
-    dto: CreateSdxWidgetDto,
+    dto: CreateWidgetDto,
     idempotencyKey?: string,
-  ): Promise<SdxWidgetDto> {
+  ): Promise<WidgetDto> {
     return this.createForSubject(subject, dto, idempotencyKey)
   }
 
   async adminListForSubject(
     subject: string,
-    query: ListSdxWidgetsQueryDto,
-  ): Promise<SdxWidgetListResponseDto> {
+    query: ListWidgetsQueryDto,
+  ): Promise<WidgetListResponseDto> {
     return this.listWidgets({ subject }, query)
   }
 
-  async adminGet(widgetId: string): Promise<SdxWidgetDto> {
+  async adminGet(widgetId: string): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
-    const widget = await this.prisma.sdxWidget.findUnique({ where: { id: widgetId } })
+    const widget = await this.prisma.widget.findUnique({ where: { id: widgetId } })
     return this.requireWidget(widget)
   }
 
   async adminReplace(
     widgetId: string,
-    dto: AdminUpdateSdxWidgetDto,
+    dto: AdminUpdateWidgetDto,
     ifMatch?: string,
-  ): Promise<SdxWidgetDto> {
+  ): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
     const current = await this.getWidget(widgetId)
     this.validateIfMatch(current, ifMatch)
-    const widget = await this.prisma.sdxWidget.update({
+    const widget = await this.prisma.widget.update({
       where: { id: widgetId },
       data: this.buildAdminUpdateData(dto, true),
     })
@@ -194,13 +194,13 @@ export class SdxWidgetsService {
 
   async adminPatch(
     widgetId: string,
-    dto: AdminPatchSdxWidgetDto,
+    dto: AdminPatchWidgetDto,
     ifMatch?: string,
-  ): Promise<SdxWidgetDto> {
+  ): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
     const current = await this.getWidget(widgetId)
     this.validateIfMatch(current, ifMatch)
-    const widget = await this.prisma.sdxWidget.update({
+    const widget = await this.prisma.widget.update({
       where: { id: widgetId },
       data: this.buildAdminUpdateData(dto, false),
     })
@@ -211,10 +211,10 @@ export class SdxWidgetsService {
     this.validateWidgetId(widgetId)
     const current = await this.getWidget(widgetId)
     this.validateIfMatch(current, ifMatch)
-    await this.prisma.sdxWidget.delete({ where: { id: widgetId } })
+    await this.prisma.widget.delete({ where: { id: widgetId } })
   }
 
-  etagForWidget(widget: Pick<SdxWidgetDto, 'id' | 'updatedAt'>): string {
+  etagForWidget(widget: Pick<WidgetDto, 'id' | 'updatedAt'>): string {
     const updatedAt =
       widget.updatedAt instanceof Date ? widget.updatedAt.toISOString() : String(widget.updatedAt)
     const hash = createHash('sha256')
@@ -223,7 +223,7 @@ export class SdxWidgetsService {
     return `"${hash}"`
   }
 
-  private buildCreateData(subject: string, dto: CreateSdxWidgetDto): Prisma.SdxWidgetCreateInput {
+  private buildCreateData(subject: string, dto: CreateWidgetDto): Prisma.WidgetCreateInput {
     this.validateSubject(subject)
     this.validateName(dto.name, true)
     this.validateDescription(dto.description)
@@ -239,10 +239,10 @@ export class SdxWidgetsService {
   }
 
   private buildUpdateData(
-    dto: UpdateSdxWidgetDto | PatchSdxWidgetDto,
+    dto: UpdateWidgetDto | PatchWidgetDto,
     replace: boolean,
     allowEmpty = false,
-  ): Prisma.SdxWidgetUpdateInput {
+  ): Prisma.WidgetUpdateInput {
     if (replace) {
       this.validateName(dto.name, true)
     } else if (dto.name !== undefined) {
@@ -252,7 +252,7 @@ export class SdxWidgetsService {
     this.validateDescription(dto.description)
     this.validateStatus(dto.status)
 
-    const data: Prisma.SdxWidgetUpdateInput = {}
+    const data: Prisma.WidgetUpdateInput = {}
     if (replace) {
       data.name = dto.name!.trim()
       data.description = dto.description ?? null
@@ -280,9 +280,9 @@ export class SdxWidgetsService {
   }
 
   private buildAdminUpdateData(
-    dto: AdminUpdateSdxWidgetDto | AdminPatchSdxWidgetDto,
+    dto: AdminUpdateWidgetDto | AdminPatchWidgetDto,
     replace: boolean,
-  ): Prisma.SdxWidgetUpdateInput {
+  ): Prisma.WidgetUpdateInput {
     const data = this.buildUpdateData(dto, replace, dto.subject !== undefined)
     if (dto.subject !== undefined) {
       this.validateSubject(dto.subject)
@@ -321,11 +321,9 @@ export class SdxWidgetsService {
   private validateStatus(status: unknown): void {
     if (
       status !== undefined &&
-      (typeof status !== 'string' || !SDX_WIDGET_STATUSES.includes(status as SdxWidgetStatus))
+      (typeof status !== 'string' || !WIDGET_STATUSES.includes(status as WidgetStatus))
     ) {
-      throw new UnprocessableEntityException(
-        `status must be one of: ${SDX_WIDGET_STATUSES.join(', ')}`,
-      )
+      throw new UnprocessableEntityException(`status must be one of: ${WIDGET_STATUSES.join(', ')}`)
     }
   }
 
@@ -363,7 +361,7 @@ export class SdxWidgetsService {
     return trimmed
   }
 
-  private hashIdempotentCreateRequest(data: Prisma.SdxWidgetCreateInput): string {
+  private hashIdempotentCreateRequest(data: Prisma.WidgetCreateInput): string {
     // The idempotency key is scoped to the authenticated subject, so we do not include subject here.
     // We do include server-applied defaults so retries can omit optional fields consistently.
     const canonical = this.stableStringify({
@@ -431,39 +429,39 @@ export class SdxWidgetsService {
     throw new BadRequestException(`${path} must be valid JSON`)
   }
 
-  private requireWidget(widget: WidgetRecord | null): SdxWidgetDto {
+  private requireWidget(widget: WidgetRecord | null): WidgetDto {
     if (!widget) {
-      throw new NotFoundException('SDX Widget not found')
+      throw new NotFoundException('Widget not found')
     }
     return this.toDto(widget)
   }
 
   private requireWidgetRecord(widget: WidgetRecord | null): WidgetRecord {
     if (!widget) {
-      throw new NotFoundException('SDX Widget not found')
+      throw new NotFoundException('Widget not found')
     }
     return widget
   }
 
   private async getWidgetForSubject(widgetId: string, subject: string): Promise<WidgetRecord> {
-    const widget = await this.prisma.sdxWidget.findFirst({
+    const widget = await this.prisma.widget.findFirst({
       where: { id: widgetId, subject },
     })
     return this.requireWidgetRecord(widget)
   }
 
   private async getWidget(widgetId: string): Promise<WidgetRecord> {
-    const widget = await this.prisma.sdxWidget.findUnique({ where: { id: widgetId } })
+    const widget = await this.prisma.widget.findUnique({ where: { id: widgetId } })
     return this.requireWidgetRecord(widget)
   }
 
-  private toDto(widget: WidgetRecord): SdxWidgetDto {
+  private toDto(widget: WidgetRecord): WidgetDto {
     return {
       id: widget.id,
       subject: widget.subject,
       name: widget.name,
       description: widget.description,
-      status: widget.status as SdxWidgetStatus,
+      status: widget.status as WidgetStatus,
       metadata:
         widget.metadata && typeof widget.metadata === 'object' && !Array.isArray(widget.metadata)
           ? (widget.metadata as Record<string, unknown>)
@@ -474,11 +472,11 @@ export class SdxWidgetsService {
   }
 
   private async listWidgets(
-    where: Pick<Prisma.SdxWidgetWhereInput, 'subject'>,
-    query: ListSdxWidgetsQueryDto,
-  ): Promise<SdxWidgetListResponseDto> {
+    where: Pick<Prisma.WidgetWhereInput, 'subject'>,
+    query: ListWidgetsQueryDto,
+  ): Promise<WidgetListResponseDto> {
     const parsed = this.parseListQuery(query)
-    const widgets = await this.prisma.sdxWidget.findMany({
+    const widgets = await this.prisma.widget.findMany({
       where: {
         ...where,
         ...(parsed.status ? { status: parsed.status } : {}),
@@ -505,7 +503,7 @@ export class SdxWidgetsService {
     }
   }
 
-  private parseListQuery(query: ListSdxWidgetsQueryDto): ParsedListQuery {
+  private parseListQuery(query: ListWidgetsQueryDto): ParsedListQuery {
     const limit = this.parseLimit(query.limit)
     const cursorOffset = this.parseCursor(query.cursor)
     const status = this.parseStatusFilter(query.status)
@@ -564,16 +562,16 @@ export class SdxWidgetsService {
     }
   }
 
-  private parseStatusFilter(status: string | undefined): SdxWidgetStatus | undefined {
+  private parseStatusFilter(status: string | undefined): WidgetStatus | undefined {
     if (status === undefined) {
       return undefined
     }
 
-    if (!SDX_WIDGET_STATUSES.includes(status as SdxWidgetStatus)) {
-      throw new BadRequestException(`status must be one of: ${SDX_WIDGET_STATUSES.join(', ')}`)
+    if (!WIDGET_STATUSES.includes(status as WidgetStatus)) {
+      throw new BadRequestException(`status must be one of: ${WIDGET_STATUSES.join(', ')}`)
     }
 
-    return status as SdxWidgetStatus
+    return status as WidgetStatus
   }
 
   private parseNameFilter(name: string | undefined): string | undefined {
@@ -588,30 +586,30 @@ export class SdxWidgetsService {
     return name.trim()
   }
 
-  private parseSortBy(sortBy: string | undefined): SdxWidgetSortField {
+  private parseSortBy(sortBy: string | undefined): WidgetSortField {
     if (sortBy === undefined) {
       return 'createdAt'
     }
 
-    if (!SDX_WIDGET_SORT_FIELDS.includes(sortBy as SdxWidgetSortField)) {
-      throw new BadRequestException(`sortBy must be one of: ${SDX_WIDGET_SORT_FIELDS.join(', ')}`)
+    if (!WIDGET_SORT_FIELDS.includes(sortBy as WidgetSortField)) {
+      throw new BadRequestException(`sortBy must be one of: ${WIDGET_SORT_FIELDS.join(', ')}`)
     }
 
-    return sortBy as SdxWidgetSortField
+    return sortBy as WidgetSortField
   }
 
-  private parseSortOrder(sortOrder: string | undefined): SdxWidgetSortDirection {
+  private parseSortOrder(sortOrder: string | undefined): WidgetSortDirection {
     if (sortOrder === undefined) {
       return 'desc'
     }
 
-    if (!SDX_WIDGET_SORT_DIRECTIONS.includes(sortOrder as SdxWidgetSortDirection)) {
+    if (!WIDGET_SORT_DIRECTIONS.includes(sortOrder as WidgetSortDirection)) {
       throw new BadRequestException(
-        `sortOrder must be one of: ${SDX_WIDGET_SORT_DIRECTIONS.join(', ')}`,
+        `sortOrder must be one of: ${WIDGET_SORT_DIRECTIONS.join(', ')}`,
       )
     }
 
-    return sortOrder as SdxWidgetSortDirection
+    return sortOrder as WidgetSortDirection
   }
 
   private encodeCursor(offset: number): string {

@@ -7,15 +7,15 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import helmet from 'helmet'
 import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
-import { SdxWidgetsModule } from './sdx-widgets/sdx-widgets.module'
+import { WidgetsModule } from './widgets/widgets.module'
 
-const apiDescription = `Reference API for managing SDX Widgets.
+const apiDescription = `Reference API for managing widgets.
 
 Normal user endpoints derive widget ownership from the authenticated subject in the JWT \`sub\` claim. Callers cannot set or change the subject through user-facing paths or request bodies.
 
-Scope names use the format \`<PrivacyZone>.<resource-type>.<action>\`. For this reference implementation, the privacy zone is \`SDX-RI\`, the resource type is \`sdx-widgets\`, and standard actions are \`read\`, \`create\`, \`update\`, and \`delete\`. Administrative operations are consolidated under the \`admin\` action.
+Scope names use the format \`<PrivacyZone>.<resource-type>.<action>\`. For this reference implementation, the privacy zone is \`SDX-RI\`, the resource type is \`widgets\`, and standard actions are \`read\`, \`create\`, \`update\`, and \`delete\`. Administrative operations are consolidated under the \`admin\` action.
 
-The SDX Widget scopes are \`SDX-RI.sdx-widgets.read\`, \`SDX-RI.sdx-widgets.create\`, \`SDX-RI.sdx-widgets.update\`, \`SDX-RI.sdx-widgets.delete\`, and \`SDX-RI.sdx-widgets.admin\`.`
+The Widget scopes are \`SDX-RI.widgets.read\`, \`SDX-RI.widgets.create\`, \`SDX-RI.widgets.update\`, \`SDX-RI.widgets.delete\`, and \`SDX-RI.widgets.admin\`.`
 
 /**
  *
@@ -35,50 +35,46 @@ export async function bootstrap() {
     prefix: 'v',
   })
   const config = new DocumentBuilder()
-    .setTitle('SDX Reference Implementation API - SDX Widgets')
+    .setTitle('SDX Reference Implementation API - Widgets')
     .setDescription(apiDescription)
     .setVersion('0.1.0')
     .setContact('SDX Reference Implementation Maintainers', undefined as any, undefined as any)
     .setLicense('Apache-2.0', undefined as any)
 
-    .addServer('http://localhost:3000/api/v1', 'Local development server for the SDX Widgets API')
+    .addServer('http://localhost:3000/api/v1', 'Local development server for the Widgets API')
+    .addTag('Admin Widgets', 'Administrative Widget operations that can act across subjects.')
     .addTag(
-      'Admin SDX Widgets',
-      'Administrative SDX Widget operations that can act across subjects.',
-    )
-    .addTag(
-      'SDX Widgets',
-      'SDX Widget operations that act on resources owned by the authenticated subject.',
+      'Widgets',
+      'Widget operations that act on resources owned by the authenticated subject.',
     )
     .addSecurity('openId', {
       type: 'openIdConnect',
       description: 'Access token with the scope specified by each operation.',
       openIdConnectUrl: undefined as any,
     })
-    .addSecurityRequirements('openId', ['SDX-RI.sdx-widgets.read'])
     .build()
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [SdxWidgetsModule],
+    include: [WidgetsModule],
   })
-  alignGeneratedSdxWidgetSpec(document)
+  alignGeneratedWidgetSpec(document)
   SwaggerModule.setup('/api/docs', app, document)
   return app
 }
 
-function alignGeneratedSdxWidgetSpec(document: OpenAPIObject) {
+function alignGeneratedWidgetSpec(document: OpenAPIObject) {
   const pathSummaries: Record<string, string> = {
-    '/sdx-widgets': 'Manage SDX Widgets for the authenticated subject.',
-    '/sdx-widgets/{widgetId}': 'Manage one SDX Widget for the authenticated subject.',
-    '/admin/subjects/{subject}/sdx-widgets': 'Administer SDX Widgets for one subject.',
-    '/admin/sdx-widgets/{widgetId}': 'Administer one SDX Widget by ID.',
+    '/widgets': 'Manage widgets for the authenticated subject.',
+    '/widgets/{widgetId}': 'Manage one widget for the authenticated subject.',
+    '/admin/subjects/{subject}/widgets': 'Administer widgets for one subject.',
+    '/admin/widgets/{widgetId}': 'Administer one widget by ID.',
   }
 
   const orderedPaths = [
-    '/sdx-widgets',
-    '/sdx-widgets/{widgetId}',
-    '/admin/subjects/{subject}/sdx-widgets',
-    '/admin/sdx-widgets/{widgetId}',
+    '/widgets',
+    '/widgets/{widgetId}',
+    '/admin/subjects/{subject}/widgets',
+    '/admin/widgets/{widgetId}',
   ]
 
   const normalizedPaths = Object.fromEntries(
@@ -115,7 +111,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     return
   }
 
-  schemas.SdxWidgetStatus = {
+  schemas.WidgetStatus = {
     description: 'Lifecycle status for a widget.',
     type: 'string',
     example: 'active',
@@ -130,17 +126,17 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
   }
 
   for (const schemaName of [
-    'SdxWidget',
-    'CreateSdxWidgetRequest',
-    'UpdateSdxWidgetRequest',
-    'PatchSdxWidgetRequest',
-    'AdminUpdateSdxWidgetRequest',
-    'AdminPatchSdxWidgetRequest',
+    'Widget',
+    'CreateWidgetRequest',
+    'UpdateWidgetRequest',
+    'PatchWidgetRequest',
+    'AdminUpdateWidgetRequest',
+    'AdminPatchWidgetRequest',
   ]) {
     const properties = schemas[schemaName]?.properties
     if (isRecord(properties) && isRecord(properties.status)) {
       properties.status = {
-        $ref: '#/components/schemas/SdxWidgetStatus',
+        $ref: '#/components/schemas/WidgetStatus',
       }
     }
   }
@@ -163,7 +159,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       }
       if (parameter.name === 'status') {
         parameter.schema = {
-          $ref: '#/components/schemas/SdxWidgetStatus',
+          $ref: '#/components/schemas/WidgetStatus',
         }
       }
       if (parameter.name === 'widgetId') {
@@ -179,24 +175,24 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
   }
 
   for (const schemaName of [
-    'CreateSdxWidgetRequest',
-    'UpdateSdxWidgetRequest',
-    'PatchSdxWidgetRequest',
-    'AdminUpdateSdxWidgetRequest',
-    'AdminPatchSdxWidgetRequest',
+    'CreateWidgetRequest',
+    'UpdateWidgetRequest',
+    'PatchWidgetRequest',
+    'AdminUpdateWidgetRequest',
+    'AdminPatchWidgetRequest',
   ]) {
     if (schemas[schemaName]) {
       schemas[schemaName].additionalProperties = false
     }
   }
-  if (schemas.PatchSdxWidgetRequest) {
-    schemas.PatchSdxWidgetRequest.minProperties = 1
+  if (schemas.PatchWidgetRequest) {
+    schemas.PatchWidgetRequest.minProperties = 1
   }
-  if (schemas.AdminPatchSdxWidgetRequest) {
-    schemas.AdminPatchSdxWidgetRequest.minProperties = 1
+  if (schemas.AdminPatchWidgetRequest) {
+    schemas.AdminPatchWidgetRequest.minProperties = 1
   }
 
-  Object.assign(schemas.SdxWidget, {
+  Object.assign(schemas.Widget, {
     description: 'Widget resource owned by a subject.',
     example: {
       id: '4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f',
@@ -209,14 +205,14 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       updatedAt: '2026-05-13T18:00:00Z',
     },
   })
-  Object.assign(schemas.SdxWidgetListResponse, {
-    description: 'A paginated list of SDX Widgets with an optional cursor for the next page.',
+  Object.assign(schemas.WidgetListResponse, {
+    description: 'A paginated list of widgets with an optional cursor for the next page.',
     example: {
-      items: [schemas.SdxWidget.example],
+      items: [schemas.Widget.example],
       nextCursor: 'eyJvZmZzZXQiOjI1fQ',
     },
   })
-  Object.assign(schemas.CreateSdxWidgetRequest, {
+  Object.assign(schemas.CreateWidgetRequest, {
     example: {
       name: 'Intake form',
       description: 'Widget used for intake workflow testing.',
@@ -224,7 +220,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       metadata: { source: 'local-dev' },
     },
   })
-  Object.assign(schemas.UpdateSdxWidgetRequest, {
+  Object.assign(schemas.UpdateWidgetRequest, {
     example: {
       name: 'Intake form v2',
       description: 'Updated widget used for intake workflow testing.',
@@ -232,10 +228,10 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       metadata: { source: 'local-dev' },
     },
   })
-  Object.assign(schemas.PatchSdxWidgetRequest, {
+  Object.assign(schemas.PatchWidgetRequest, {
     example: { status: 'archived' },
   })
-  Object.assign(schemas.AdminUpdateSdxWidgetRequest, {
+  Object.assign(schemas.AdminUpdateWidgetRequest, {
     example: {
       subject: 'user-456',
       name: 'Intake form v2',
@@ -244,7 +240,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       metadata: { source: 'local-dev' },
     },
   })
-  Object.assign(schemas.AdminPatchSdxWidgetRequest, {
+  Object.assign(schemas.AdminPatchWidgetRequest, {
     example: {
       subject: 'user-456',
       status: 'archived',
@@ -253,7 +249,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
   Object.assign(schemas.ErrorResponse, {
     title: 'ErrorResponse',
     description:
-      'Standard error response format for unexpected or server-side errors (e.g., 500 Internal Server Error, 403 Forbidden, 401 Unauthorized, etc.). This is used when a more structured Problem Details response (RFC 9457) is not appropriate or when the error is general rather than validation-specific. The `details.correlationId` value is used for support and log tracing. When an inbound `x-request-id` or `x-correlation-id` header is present, the API preserves that upstream value. When this API generates the value, it uses the `sdxw-<uuid>` format so logs show that SDX Widgets created the correlation ID.',
+      'Standard error response format for unexpected or server-side errors (e.g., 500 Internal Server Error, 403 Forbidden, 401 Unauthorized, etc.). This is used when a more structured Problem Details response (RFC 9457) is not appropriate or when the error is general rather than validation-specific. The `details.correlationId` value is used for support and log tracing. When an inbound `x-request-id` or `x-correlation-id` header is present, the API preserves that upstream value. When this API generates the value, it uses the `widget-<uuid>` format so logs show that Widgets created the correlation ID.',
     example: errorExample('forbidden', 'You are not authorized to access this resource'),
   })
   Object.assign(schemas.ProblemDetailErrorItem, {
@@ -363,7 +359,7 @@ function alignGeneratedResponses(document: OpenAPIObject): void {
       examples: {
         widgetNotFound: {
           summary: 'Widget not found',
-          value: errorExample('not_found', 'SDX Widget not found'),
+          value: errorExample('not_found', 'Widget not found'),
         },
       },
     },
@@ -376,7 +372,7 @@ function alignGeneratedResponses(document: OpenAPIObject): void {
       examples: {
         widgetConflict: {
           summary: 'Request conflicts with widget state',
-          value: errorExample('conflict', 'Request conflicts with the current SDX Widget state'),
+          value: errorExample('conflict', 'Request conflicts with the current Widget state'),
         },
       },
     },
@@ -434,7 +430,7 @@ function alignGeneratedResponses(document: OpenAPIObject): void {
           value: {
             ...errorExample('too_many_requests', 'Too many requests'),
             details: {
-              correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+              correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
               retryAfter: 60,
             },
           },
@@ -453,7 +449,7 @@ function alignGeneratedResponses(document: OpenAPIObject): void {
           value: {
             ...errorExample('internal_server_error', 'Internal server error'),
             details: {
-              correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+              correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
               timestamp: '2026-05-13T18:00:00Z',
             },
           },
@@ -539,14 +535,14 @@ function alignGeneratedSuccessContent(document: OpenAPIObject): void {
     const requestMedia = isRecord(requestContent) ? requestContent['application/json'] : undefined
     const requestExamples = isRecord(requestMedia) ? requestMedia.examples : undefined
 
-    if (operationId === 'createSdxWidget' && isRecord(requestMedia) && isRecord(requestExamples)) {
+    if (operationId === 'createWidget' && isRecord(requestMedia) && isRecord(requestExamples)) {
       requestMedia.examples = renameKey(requestExamples, 'createWidget', 'createActiveWidget')
     }
-    if (operationId === 'updateSdxWidget' && isRecord(requestMedia) && isRecord(requestExamples)) {
+    if (operationId === 'updateWidget' && isRecord(requestMedia) && isRecord(requestExamples)) {
       requestMedia.examples = renameKey(requestExamples, 'updateWidget', 'archiveWidget')
     }
     if (
-      operationId === 'adminCreateSubjectSdxWidget' &&
+      operationId === 'adminCreateSubjectWidget' &&
       isRecord(requestMedia) &&
       isRecord(requestExamples)
     ) {
@@ -557,7 +553,7 @@ function alignGeneratedSuccessContent(document: OpenAPIObject): void {
       )
     }
     if (
-      operationId === 'adminUpdateSdxWidget' &&
+      operationId === 'adminUpdateWidget' &&
       isRecord(requestMedia) &&
       isRecord(requestExamples)
     ) {
@@ -575,11 +571,11 @@ function alignGeneratedSuccessContent(document: OpenAPIObject): void {
     const media = isRecord(content) ? content['application/json'] : undefined
     const examples = isRecord(media) ? media.examples : undefined
 
-    if (operationId === 'createSdxWidget') {
-      successResponse.description = 'The created SDX Widget for the authenticated subject.'
+    if (operationId === 'createWidget') {
+      successResponse.description = 'The created Widget for the authenticated subject.'
     }
-    if (operationId === 'adminCreateSubjectSdxWidget') {
-      successResponse.description = 'The created SDX Widget for the requested subject.'
+    if (operationId === 'adminCreateSubjectWidget') {
+      successResponse.description = 'The created Widget for the requested subject.'
       if (isRecord(media) && isRecord(examples)) {
         media.examples = renameKey(examples, 'createdWidget', 'createdWidgetForSubject')
         const example = media.examples
@@ -588,7 +584,7 @@ function alignGeneratedSuccessContent(document: OpenAPIObject): void {
         }
       }
     }
-    if (operationId === 'adminGetSdxWidget' && isRecord(media) && isRecord(examples)) {
+    if (operationId === 'adminGetWidget' && isRecord(media) && isRecord(examples)) {
       media.examples = renameKey(examples, 'requestedWidget', 'adminRequestedWidget')
       const example = media.examples
       if (isRecord(example) && isRecord(example.adminRequestedWidget)) {
@@ -631,7 +627,7 @@ function errorExample(error: string, message: string): Record<string, unknown> {
     error,
     message,
     details: {
-      correlationId: 'sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
+      correlationId: 'widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f',
     },
   }
 }
