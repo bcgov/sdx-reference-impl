@@ -48,7 +48,10 @@ cd backend
 npm run lint:openapi
 ```
 
-The current Spectral configuration is `backend/.spectral.yaml`. It extends the standard OpenAPI ruleset and contains a TODO for replacing the placeholder with the official SDX Spectral ruleset URL or package reference when that ruleset is available.
+The API contract is checked against the
+[Connected Services Integration Toolkit API Governance Style Guide](https://github.com/bcgov/csit-api-governance-spectral-style-guide/blob/main/dist/spectral/STRICT_STYLE_GUIDE.md).
+The local configuration in `backend/.spectral.yaml` extends the corresponding
+shared strict Spectral ruleset to enforce the guide during linting.
 
 ## Widgets API Local Development
 
