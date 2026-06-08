@@ -68,14 +68,13 @@ docker compose up database migrations backend frontend
 
 The backend is exposed on `http://localhost:3001`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3001/api/docs`.
 
-For local development and tests, the auth middleware accepts unsigned JWT payloads or mock claim headers when `NODE_ENV` is `development` or `test`, or when `AUTH_ALLOW_MOCK_CLAIMS=true`.
+The backend derives the authenticated subject from the bearer token's JWT `sub` claim. The gateway is responsible for validating the token and enforcing the operation's OAuth scope before forwarding the request.
 
-Example mock headers:
+Example request:
 
 ```sh
 curl \
-  -H "x-sdx-sub: user-123" \
-  -H "x-sdx-scopes: SDX-RI.sdx-widgets.read" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   http://localhost:3001/api/v1/sdx-widgets
 ```
 

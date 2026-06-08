@@ -27,13 +27,6 @@ export class JwtAuthGuard implements CanActivate {
       return this.decodeJwtPayload(authorization.slice('Bearer '.length))
     }
 
-    if (this.allowMockClaims()) {
-      const subject = this.readHeader(request, 'x-sdx-sub')
-      if (subject) {
-        return { sub: subject }
-      }
-    }
-
     throw new UnauthorizedException('Bearer token is required')
   }
 
@@ -58,13 +51,5 @@ export class JwtAuthGuard implements CanActivate {
   private readHeader(request: AuthenticatedRequest, name: string): string | undefined {
     const value = request.headers[name] || request.headers[name.toLowerCase()]
     return Array.isArray(value) ? value[0] : value
-  }
-
-  private allowMockClaims(): boolean {
-    return (
-      process.env.AUTH_ALLOW_MOCK_CLAIMS === 'true' ||
-      process.env.NODE_ENV === 'test' ||
-      process.env.NODE_ENV === 'development'
-    )
   }
 }
