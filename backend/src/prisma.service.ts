@@ -9,7 +9,7 @@ const DB_USER = process.env.POSTGRES_USER || 'postgres'
 const DB_PWD = encodeURIComponent(process.env.POSTGRES_PASSWORD || 'default')
 const DB_PORT = process.env.POSTGRES_PORT || 5432
 const DB_NAME = process.env.POSTGRES_DATABASE || 'postgres'
-const DB_SCHEMA = process.env.POSTGRES_SCHEMA || 'users'
+const DB_SCHEMA = process.env.POSTGRES_SCHEMA || 'widgets'
 const PGBOUNCER_URL = process.env.PGBOUNCER_URL
 const dataSourceURL = PGBOUNCER_URL
   ? `${PGBOUNCER_URL}?schema=${DB_SCHEMA}&pgbouncer=true`

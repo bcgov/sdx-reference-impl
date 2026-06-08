@@ -9,7 +9,7 @@ generator client {
 // This file no longer contains the `url` field for the datasource.
 datasource db {
   provider = "postgresql"
-  schemas  = ["users"]
+  schemas  = ["widgets"]
 }
 
 model Widget {
@@ -26,7 +26,7 @@ model Widget {
 
   @@index([subject], map: "WIDGET_SUBJECT_IDX")
   @@map("WIDGETS")
-  @@schema("users")
+  @@schema("widgets")
 }
 
 model WidgetIdempotency {
@@ -42,5 +42,5 @@ model WidgetIdempotency {
   @@unique([subject, idempotencyKey], map: "WIDGET_IDEMPOTENCY_UQ")
   @@index([widgetId], map: "WIDGET_IDEMPOTENCY_WIDGET_ID_IDX")
   @@map("WIDGET_IDEMPOTENCY")
-  @@schema("users")
+  @@schema("widgets")
 }
