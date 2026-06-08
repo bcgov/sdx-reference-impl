@@ -49,7 +49,7 @@ Latest verification:
 - Controller tests using `supertest` may fail in the Codex sandbox with `listen EPERM` because binding local ports is not permitted.
 
 Known remaining Spectral findings:
-- Static and generated OpenAPI security now use an OAuth2 authorization-code scheme named `oidc`, with `SDX-RI.widgets.read`, `SDX-RI.widgets.create`, `SDX-RI.widgets.update`, `SDX-RI.widgets.delete`, and `SDX-RI.widgets.admin` scopes declared in the scheme.
+- Static and generated OpenAPI operations use an OpenID Connect scheme named `openId`, with explicit `nrs:widgets:read`, `nrs:widgets:create`, `nrs:widgets:update`, `nrs:widgets:delete`, and `nrs:widgets:admin` scope requirements.
 - Error responses now use the BCGov OAS 3.0 `ErrorResponse` and `ProblemDetailResponse` structures from `bcgov/csit-api-governance-spectral-style-guide`.
 - Bad request and unprocessable entity responses use `ProblemDetailResponse` with `application/problem+json`; general authentication, authorization, not found, and server-side errors use `ErrorResponse`.
 - Short summary/description warnings were fixed.

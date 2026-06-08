@@ -9,13 +9,13 @@ import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
 import { WidgetsModule } from './widgets/widgets.module'
 
-const apiDescription = `Reference API for managing widgets.
+const apiDescription = `Reference API for managing fictional Natural Resources widgets.
 
 Normal user endpoints derive widget ownership from the authenticated subject in the JWT \`sub\` claim. Callers cannot set or change the subject through user-facing paths or request bodies.
 
-Scope names use the format \`<PrivacyZone>.<resource-type>.<action>\`. For this reference implementation, the privacy zone is \`SDX-RI\`, the resource type is \`widgets\`, and standard actions are \`read\`, \`create\`, \`update\`, and \`delete\`. Administrative operations are consolidated under the \`admin\` action.
+Scope names use the format \`<namespace>:<resource>:<action>\`. For this API, the namespace is \`nrs\`, the resource is \`widgets\`, and standard actions are \`read\`, \`create\`, \`update\`, and \`delete\`. Administrative operations are consolidated under the \`admin\` action.
 
-The Widget scopes are \`SDX-RI.widgets.read\`, \`SDX-RI.widgets.create\`, \`SDX-RI.widgets.update\`, \`SDX-RI.widgets.delete\`, and \`SDX-RI.widgets.admin\`.`
+The Widget scopes are \`nrs:widgets:read\`, \`nrs:widgets:create\`, \`nrs:widgets:update\`, \`nrs:widgets:delete\`, and \`nrs:widgets:admin\`.`
 
 /**
  *

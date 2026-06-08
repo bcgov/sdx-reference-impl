@@ -185,7 +185,7 @@ describe('WidgetsController', () => {
   it('creates a widget for the authenticated subject', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Alpha', subject: 'spoofed-subject' })
       .expect(201)
 
@@ -204,19 +204,19 @@ describe('WidgetsController', () => {
   it('lists only Widgets for the authenticated subject', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Alice widget' })
       .expect(201)
 
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('bob', ['nrs:widgets:create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
       .get('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(200)
 
     expect(response.body.items).toHaveLength(1)
@@ -227,26 +227,26 @@ describe('WidgetsController', () => {
   it('does not expose another subject widget through normal endpoints', async () => {
     const bobWidget = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('bob', ['nrs:widgets:create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     await request(app.getHttpServer())
       .get(`/api/v1/widgets/${bobWidget.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(404)
   })
 
   it('allows admins to list Widgets for a subject', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('bob', ['nrs:widgets:create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
       .get('/api/v1/admin/subjects/bob/widgets')
-      .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.widgets.admin'])}`)
+      .set('authorization', `Bearer ${tokenFor('admin', ['nrs:widgets:admin'])}`)
       .expect(200)
 
     expect(response.body.items).toHaveLength(1)
@@ -257,13 +257,13 @@ describe('WidgetsController', () => {
   it('allows admins to access a widget by ID', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('bob', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('bob', ['nrs:widgets:create'])}`)
       .send({ name: 'Bob widget' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
       .get(`/api/v1/admin/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('admin', ['SDX-RI.widgets.admin'])}`)
+      .set('authorization', `Bearer ${tokenFor('admin', ['nrs:widgets:admin'])}`)
       .expect(200)
 
     expect(response.body.id).toBe(created.body.id)
@@ -272,13 +272,13 @@ describe('WidgetsController', () => {
   it('updates a widget for the authenticated subject', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Old name' })
       .expect(201)
 
     const response = await request(app.getHttpServer())
       .patch(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:update'])}`)
       .send({ name: 'New name', status: 'inactive' })
       .expect(200)
 
@@ -289,31 +289,31 @@ describe('WidgetsController', () => {
   it('deletes a widget for the authenticated subject', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Delete me' })
       .expect(201)
 
     await request(app.getHttpServer())
       .delete(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.delete'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:delete'])}`)
       .expect(204)
 
     await request(app.getHttpServer())
       .get(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(404)
   })
 
   it('rejects invalid create values before writing to the database', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 123 })
       .expect(422)
 
     const response = await request(app.getHttpServer())
       .get('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(200)
 
     expect(response.body.items).toHaveLength(0)
@@ -324,14 +324,14 @@ describe('WidgetsController', () => {
 
     const first = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Alpha' })
       .expect(201)
 
     const second = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Alpha' })
       .expect(201)
@@ -345,14 +345,14 @@ describe('WidgetsController', () => {
 
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Alpha' })
       .expect(201)
 
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .set('idempotency-key', idempotencyKey)
       .send({ name: 'Bravo' })
       .expect(409)
@@ -361,26 +361,26 @@ describe('WidgetsController', () => {
   it('filters, sorts, and paginates Widget lists', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Bravo intake', status: 'active' })
       .expect(201)
 
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Alpha intake', status: 'active' })
       .expect(201)
 
     await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Archived item', status: 'archived' })
       .expect(201)
 
     const firstPage = await request(app.getHttpServer())
       .get('/api/v1/widgets')
       .query({ status: 'active', name: 'intake', sortBy: 'name', sortOrder: 'asc', limit: 1 })
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(200)
 
     expect(firstPage.body.items).toHaveLength(1)
@@ -397,7 +397,7 @@ describe('WidgetsController', () => {
         limit: 1,
         cursor: firstPage.body.nextCursor,
       })
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(200)
 
     expect(secondPage.body.items).toHaveLength(1)
@@ -409,20 +409,20 @@ describe('WidgetsController', () => {
     await request(app.getHttpServer())
       .get('/api/v1/widgets')
       .query({ limit: 101 })
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(400)
   })
 
   it('rejects update values that exceed database column sizes', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Valid widget' })
       .expect(201)
 
     await request(app.getHttpServer())
       .put(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:update'])}`)
       .send({ name: 'x'.repeat(201) })
       .expect(422)
   })
@@ -430,7 +430,7 @@ describe('WidgetsController', () => {
   it('resets omitted optional fields during full replacement', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({
         name: 'Original widget',
         description: 'Original description',
@@ -441,7 +441,7 @@ describe('WidgetsController', () => {
 
     const replaced = await request(app.getHttpServer())
       .put(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:update'])}`)
       .send({ name: 'Replacement widget' })
       .expect(200)
 
@@ -454,19 +454,19 @@ describe('WidgetsController', () => {
   it('rejects patch values with invalid status or metadata shape', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.create'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
       .send({ name: 'Valid widget' })
       .expect(201)
 
     await request(app.getHttpServer())
       .patch(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:update'])}`)
       .send({ status: 'deleted' })
       .expect(422)
 
     await request(app.getHttpServer())
       .patch(`/api/v1/widgets/${created.body.id}`)
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.update'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:update'])}`)
       .send({ metadata: ['not', 'an', 'object'] })
       .expect(422)
   })
@@ -474,7 +474,7 @@ describe('WidgetsController', () => {
   it('rejects invalid widget IDs before querying Prisma', async () => {
     await request(app.getHttpServer())
       .get('/api/v1/widgets/not-a-uuid')
-      .set('authorization', `Bearer ${tokenFor('alice', ['SDX-RI.widgets.read'])}`)
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'])}`)
       .expect(400)
   })
 })

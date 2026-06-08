@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: SDX Reference Implementation API - Widgets
   description: >-
-    Reference API for managing widgets.
+    Reference API for managing fictional Natural Resources widgets.
 
 
     Normal user endpoints derive widget ownership from the authenticated subject
@@ -10,16 +10,15 @@ info:
     user-facing paths or request bodies.
 
 
-    Scope names use the format `<PrivacyZone>.<resource-type>.<action>`. For
-    this reference implementation, the privacy zone is `SDX-RI`, the resource
-    type is `widgets`, and standard actions are `read`, `create`, `update`, and
-    `delete`. Administrative operations are consolidated under the `admin`
-    action.
+    Scope names use the format `<namespace>:<resource>:<action>`. For this API,
+    the namespace is `nrs`, the resource is `widgets`, and standard actions are
+    `read`, `create`, `update`, and `delete`. Administrative operations are
+    consolidated under the `admin` action.
 
 
-    The Widget scopes are `SDX-RI.widgets.read`, `SDX-RI.widgets.create`,
-    `SDX-RI.widgets.update`, `SDX-RI.widgets.delete`, and
-    `SDX-RI.widgets.admin`.
+    The Widget scopes are `nrs:widgets:read`, `nrs:widgets:create`,
+    `nrs:widgets:update`, `nrs:widgets:delete`, and
+    `nrs:widgets:admin`.
   version: 0.1.0
   contact:
     name: SDX Reference Implementation Maintainers
@@ -134,7 +133,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.read
+            - nrs:widgets:read
       summary: List Widgets owned by the authenticated subject.
       tags:
         - Widgets
@@ -211,7 +210,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.create
+            - nrs:widgets:create
       summary: Create a Widget for the authenticated subject.
       tags:
         - Widgets
@@ -267,7 +266,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.read
+            - nrs:widgets:read
       summary: Get a Widget owned by the authenticated subject.
       tags:
         - Widgets
@@ -353,7 +352,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.update
+            - nrs:widgets:update
       summary: Replace a Widget for the authenticated subject.
       tags:
         - Widgets
@@ -435,7 +434,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.update
+            - nrs:widgets:update
       summary: Partially update a Widget for the authenticated subject.
       tags:
         - Widgets
@@ -482,7 +481,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.delete
+            - nrs:widgets:delete
       summary: Delete a Widget owned by the authenticated subject.
       tags:
         - Widgets
@@ -591,7 +590,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.admin
+            - nrs:widgets:admin
       summary: List Widgets for the requested subject.
       tags:
         - Admin Widgets
@@ -674,7 +673,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.admin
+            - nrs:widgets:admin
       summary: Create a Widget for the requested subject.
       tags:
         - Admin Widgets
@@ -727,7 +726,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.admin
+            - nrs:widgets:admin
       summary: Get a Widget by ID across subjects.
       tags:
         - Admin Widgets
@@ -814,7 +813,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.admin
+            - nrs:widgets:admin
       summary: Replace any Widget by ID.
       tags:
         - Admin Widgets
@@ -897,7 +896,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.admin
+            - nrs:widgets:admin
       summary: Partially update a Widget by ID across subjects.
       tags:
         - Admin Widgets
@@ -941,7 +940,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       security:
         - openId:
-            - SDX-RI.widgets.admin
+            - nrs:widgets:admin
       summary: Delete a Widget by ID across subjects.
       tags:
         - Admin Widgets

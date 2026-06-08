@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "SDX Reference Implementation API - Widgets",
-    "description": "Reference API for managing widgets.\n\nNormal user endpoints derive widget ownership from the authenticated subject in the JWT `sub` claim. Callers cannot set or change the subject through user-facing paths or request bodies.\n\nScope names use the format `<PrivacyZone>.<resource-type>.<action>`. For this reference implementation, the privacy zone is `SDX-RI`, the resource type is `widgets`, and standard actions are `read`, `create`, `update`, and `delete`. Administrative operations are consolidated under the `admin` action.\n\nThe Widget scopes are `SDX-RI.widgets.read`, `SDX-RI.widgets.create`, `SDX-RI.widgets.update`, `SDX-RI.widgets.delete`, and `SDX-RI.widgets.admin`.",
+    "description": "Reference API for managing fictional Natural Resources widgets.\n\nNormal user endpoints derive widget ownership from the authenticated subject in the JWT `sub` claim. Callers cannot set or change the subject through user-facing paths or request bodies.\n\nScope names use the format `<namespace>:<resource>:<action>`. For this API, the namespace is `nrs`, the resource is `widgets`, and standard actions are `read`, `create`, `update`, and `delete`. Administrative operations are consolidated under the `admin` action.\n\nThe Widget scopes are `nrs:widgets:read`, `nrs:widgets:create`, `nrs:widgets:update`, `nrs:widgets:delete`, and `nrs:widgets:admin`.",
     "version": "0.1.0",
     "contact": {
       "name": "SDX Reference Implementation Maintainers"
@@ -163,7 +163,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.read"
+              "nrs:widgets:read"
             ]
           }
         ],
@@ -270,7 +270,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.create"
+              "nrs:widgets:create"
             ]
           }
         ],
@@ -350,7 +350,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.read"
+              "nrs:widgets:read"
             ]
           }
         ],
@@ -472,7 +472,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.update"
+              "nrs:widgets:update"
             ]
           }
         ],
@@ -589,7 +589,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.update"
+              "nrs:widgets:update"
             ]
           }
         ],
@@ -653,7 +653,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.delete"
+              "nrs:widgets:delete"
             ]
           }
         ],
@@ -810,7 +810,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.admin"
+              "nrs:widgets:admin"
             ]
           }
         ],
@@ -929,7 +929,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.admin"
+              "nrs:widgets:admin"
             ]
           }
         ],
@@ -1009,7 +1009,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.admin"
+              "nrs:widgets:admin"
             ]
           }
         ],
@@ -1132,7 +1132,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.admin"
+              "nrs:widgets:admin"
             ]
           }
         ],
@@ -1250,7 +1250,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.admin"
+              "nrs:widgets:admin"
             ]
           }
         ],
@@ -1314,7 +1314,7 @@
         "security": [
           {
             "openId": [
-              "SDX-RI.widgets.admin"
+              "nrs:widgets:admin"
             ]
           }
         ],

@@ -47,7 +47,7 @@ describe('JwtAuthGuard', () => {
   it('rejects a bearer token without a sub claim', () => {
     const request: AuthenticatedRequest = {
       headers: {
-        authorization: `Bearer ${tokenFor({ scope: 'SDX-RI.widgets.read' })}`,
+        authorization: `Bearer ${tokenFor({ scope: 'nrs:widgets:read' })}`,
       },
     }
 

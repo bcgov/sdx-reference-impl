@@ -308,7 +308,7 @@ export class WidgetsController {
   }
 
   @Get()
-  @ApiSecurity('openId', ['SDX-RI.widgets.read'])
+  @ApiSecurity('openId', ['nrs:widgets:read'])
   @ApiOperation({
     operationId: 'listWidgets',
     summary: 'List Widgets owned by the authenticated subject.',
@@ -399,7 +399,7 @@ export class WidgetsController {
   }
 
   @Post()
-  @ApiSecurity('openId', ['SDX-RI.widgets.create'])
+  @ApiSecurity('openId', ['nrs:widgets:create'])
   @ApiOperation({
     operationId: 'createWidget',
     summary: 'Create a Widget for the authenticated subject.',
@@ -450,7 +450,7 @@ export class WidgetsController {
   }
 
   @Get(':widgetId')
-  @ApiSecurity('openId', ['SDX-RI.widgets.read'])
+  @ApiSecurity('openId', ['nrs:widgets:read'])
   @ApiOperation({
     operationId: 'getWidget',
     summary: 'Get a Widget owned by the authenticated subject.',
@@ -486,7 +486,7 @@ export class WidgetsController {
   }
 
   @Put(':widgetId')
-  @ApiSecurity('openId', ['SDX-RI.widgets.update'])
+  @ApiSecurity('openId', ['nrs:widgets:update'])
   @ApiOperation({
     operationId: 'replaceWidget',
     summary: 'Replace a Widget for the authenticated subject.',
@@ -538,7 +538,7 @@ export class WidgetsController {
   }
 
   @Patch(':widgetId')
-  @ApiSecurity('openId', ['SDX-RI.widgets.update'])
+  @ApiSecurity('openId', ['nrs:widgets:update'])
   @ApiOperation({
     operationId: 'updateWidget',
     summary: 'Partially update a Widget for the authenticated subject.',
@@ -591,7 +591,7 @@ export class WidgetsController {
 
   @Delete(':widgetId')
   @HttpCode(204)
-  @ApiSecurity('openId', ['SDX-RI.widgets.delete'])
+  @ApiSecurity('openId', ['nrs:widgets:delete'])
   @ApiOperation({
     operationId: 'deleteWidget',
     summary: 'Delete a Widget owned by the authenticated subject.',
@@ -638,7 +638,7 @@ export class AdminWidgetsController {
   }
 
   @Get('subjects/:subject/widgets')
-  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
+  @ApiSecurity('openId', ['nrs:widgets:admin'])
   @ApiOperation({
     operationId: 'adminListSubjectWidgets',
     summary: 'List Widgets for the requested subject.',
@@ -738,7 +738,7 @@ export class AdminWidgetsController {
   }
 
   @Post('subjects/:subject/widgets')
-  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
+  @ApiSecurity('openId', ['nrs:widgets:admin'])
   @ApiOperation({
     operationId: 'adminCreateSubjectWidget',
     summary: 'Create a Widget for the requested subject.',
@@ -798,7 +798,7 @@ export class AdminWidgetsController {
   }
 
   @Get('widgets/:widgetId')
-  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
+  @ApiSecurity('openId', ['nrs:widgets:admin'])
   @ApiOperation({
     operationId: 'adminGetWidget',
     summary: 'Get a Widget by ID across subjects.',
@@ -832,7 +832,7 @@ export class AdminWidgetsController {
   }
 
   @Put('widgets/:widgetId')
-  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
+  @ApiSecurity('openId', ['nrs:widgets:admin'])
   @ApiOperation({
     operationId: 'adminReplaceWidget',
     summary: 'Replace any Widget by ID.',
@@ -883,7 +883,7 @@ export class AdminWidgetsController {
   }
 
   @Patch('widgets/:widgetId')
-  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
+  @ApiSecurity('openId', ['nrs:widgets:admin'])
   @ApiOperation({
     operationId: 'adminUpdateWidget',
     summary: 'Partially update a Widget by ID across subjects.',
@@ -935,7 +935,7 @@ export class AdminWidgetsController {
 
   @Delete('widgets/:widgetId')
   @HttpCode(204)
-  @ApiSecurity('openId', ['SDX-RI.widgets.admin'])
+  @ApiSecurity('openId', ['nrs:widgets:admin'])
   @ApiOperation({
     operationId: 'adminDeleteWidget',
     summary: 'Delete a Widget by ID across subjects.',
