@@ -150,11 +150,10 @@ class FakePrismaService {
   $transaction = async <T>(fn: (tx: this) => Promise<T>) => fn(this)
 }
 
-const tokenFor = (subject: string, scopes: string[]) => {
+const tokenFor = (subject: string, scopes?: string[]) => {
   const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
-  const payload = Buffer.from(JSON.stringify({ sub: subject, scope: scopes.join(' ') })).toString(
-    'base64url',
-  )
+  const claims = scopes ? { sub: subject, scope: scopes.join(' ') } : { sub: subject }
+  const payload = Buffer.from(JSON.stringify(claims)).toString('base64url')
   return `${header}.${payload}.`
 }
 
@@ -192,6 +191,14 @@ describe('SdxWidgetsController', () => {
 
     expect(response.body.subject).toBe('alice')
     expect(response.body.name).toBe('Alpha')
+  })
+
+  it('does not enforce operation scopes after the gateway forwards a request', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/sdx-widgets')
+      .set('authorization', `Bearer ${tokenFor('alice')}`)
+      .send({ name: 'Gateway-authorized widget' })
+      .expect(201)
   })
 
   it('lists only SDX Widgets for the authenticated subject', async () => {

@@ -1,6 +1,5 @@
 export interface AuthenticatedUser {
   subject: string
-  scopes: string[]
   claims: Record<string, unknown>
 }
 

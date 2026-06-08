@@ -37,8 +37,6 @@ import {
 import type { Response } from 'express'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
-import { RequireScopes } from '../auth/scopes.decorator'
-import { ScopesGuard } from '../auth/scopes.guard'
 import type { AuthenticatedUser } from '../auth/auth.types'
 import { CreateSdxWidgetDto } from './dto/create-sdx-widget.dto'
 import {
@@ -300,7 +298,7 @@ const UNPROCESSABLE_ENTITY_RESPONSE = {
 @ApiTags('SDX Widgets')
 @ApiTooManyRequestsResponse(TOO_MANY_REQUESTS_RESPONSE)
 @ApiInternalServerErrorResponse(INTERNAL_SERVER_ERROR_RESPONSE)
-@UseGuards(JwtAuthGuard, ScopesGuard)
+@UseGuards(JwtAuthGuard)
 @Controller({ path: 'sdx-widgets', version: '1' })
 export class SdxWidgetsController {
   constructor(private readonly widgetsService: SdxWidgetsService) {}
@@ -310,7 +308,6 @@ export class SdxWidgetsController {
   }
 
   @Get()
-  @RequireScopes('SDX-RI.sdx-widgets.read')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.read'])
   @ApiOperation({
     operationId: 'listSdxWidgets',
@@ -402,7 +399,6 @@ export class SdxWidgetsController {
   }
 
   @Post()
-  @RequireScopes('SDX-RI.sdx-widgets.create')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.create'])
   @ApiOperation({
     operationId: 'createSdxWidget',
@@ -454,7 +450,6 @@ export class SdxWidgetsController {
   }
 
   @Get(':widgetId')
-  @RequireScopes('SDX-RI.sdx-widgets.read')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.read'])
   @ApiOperation({
     operationId: 'getSdxWidget',
@@ -491,7 +486,6 @@ export class SdxWidgetsController {
   }
 
   @Put(':widgetId')
-  @RequireScopes('SDX-RI.sdx-widgets.update')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.update'])
   @ApiOperation({
     operationId: 'replaceSdxWidget',
@@ -544,7 +538,6 @@ export class SdxWidgetsController {
   }
 
   @Patch(':widgetId')
-  @RequireScopes('SDX-RI.sdx-widgets.update')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.update'])
   @ApiOperation({
     operationId: 'updateSdxWidget',
@@ -598,7 +591,6 @@ export class SdxWidgetsController {
 
   @Delete(':widgetId')
   @HttpCode(204)
-  @RequireScopes('SDX-RI.sdx-widgets.delete')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.delete'])
   @ApiOperation({
     operationId: 'deleteSdxWidget',
@@ -636,7 +628,7 @@ export class SdxWidgetsController {
 @ApiTags('Admin SDX Widgets')
 @ApiTooManyRequestsResponse(TOO_MANY_REQUESTS_RESPONSE)
 @ApiInternalServerErrorResponse(INTERNAL_SERVER_ERROR_RESPONSE)
-@UseGuards(JwtAuthGuard, ScopesGuard)
+@UseGuards(JwtAuthGuard)
 @Controller({ path: 'admin', version: '1' })
 export class AdminSdxWidgetsController {
   constructor(private readonly widgetsService: SdxWidgetsService) {}
@@ -646,13 +638,11 @@ export class AdminSdxWidgetsController {
   }
 
   @Get('subjects/:subject/sdx-widgets')
-  @RequireScopes('SDX-RI.sdx-widgets.admin')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
   @ApiOperation({
     operationId: 'adminListSubjectSdxWidgets',
     summary: 'List SDX Widgets for the requested subject.',
-    description:
-      'Returns the SDX Widgets owned by the subject identified in the path. This operation requires the SDX-RI.sdx-widgets.admin scope.',
+    description: 'Returns the SDX Widgets owned by the subject identified in the path.',
   })
   @ApiQuery({
     name: 'status',
@@ -748,13 +738,11 @@ export class AdminSdxWidgetsController {
   }
 
   @Post('subjects/:subject/sdx-widgets')
-  @RequireScopes('SDX-RI.sdx-widgets.admin')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
   @ApiOperation({
     operationId: 'adminCreateSubjectSdxWidget',
     summary: 'Create a SDX Widget for the requested subject.',
-    description:
-      'Creates a new SDX Widget for the subject identified in the path. This operation requires the SDX-RI.sdx-widgets.admin scope.',
+    description: 'Creates a new SDX Widget for the subject identified in the path.',
   })
   @ApiParam({
     name: 'subject',
@@ -810,13 +798,11 @@ export class AdminSdxWidgetsController {
   }
 
   @Get('sdx-widgets/:widgetId')
-  @RequireScopes('SDX-RI.sdx-widgets.admin')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
   @ApiOperation({
     operationId: 'adminGetSdxWidget',
     summary: 'Get a SDX Widget by ID across subjects.',
-    description:
-      'Returns the SDX Widget identified by the path parameter across all subjects. This operation requires the SDX-RI.sdx-widgets.admin scope.',
+    description: 'Returns the SDX Widget identified by the path parameter across all subjects.',
   })
   @ApiParam({
     name: 'widgetId',
@@ -846,7 +832,6 @@ export class AdminSdxWidgetsController {
   }
 
   @Put('sdx-widgets/:widgetId')
-  @RequireScopes('SDX-RI.sdx-widgets.admin')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
   @ApiOperation({
     operationId: 'adminReplaceSdxWidget',
@@ -898,7 +883,6 @@ export class AdminSdxWidgetsController {
   }
 
   @Patch('sdx-widgets/:widgetId')
-  @RequireScopes('SDX-RI.sdx-widgets.admin')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
   @ApiOperation({
     operationId: 'adminUpdateSdxWidget',
@@ -951,13 +935,11 @@ export class AdminSdxWidgetsController {
 
   @Delete('sdx-widgets/:widgetId')
   @HttpCode(204)
-  @RequireScopes('SDX-RI.sdx-widgets.admin')
   @ApiSecurity('openId', ['SDX-RI.sdx-widgets.admin'])
   @ApiOperation({
     operationId: 'adminDeleteSdxWidget',
     summary: 'Delete a SDX Widget by ID across subjects.',
-    description:
-      'Deletes the SDX Widget identified by the path parameter across all subjects. This operation requires the SDX-RI.sdx-widgets.admin scope.',
+    description: 'Deletes the SDX Widget identified by the path parameter across all subjects.',
   })
   @ApiParam({
     name: 'widgetId',

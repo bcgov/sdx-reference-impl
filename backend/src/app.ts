@@ -9,17 +9,13 @@ import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
 import { SdxWidgetsModule } from './sdx-widgets/sdx-widgets.module'
 
-const apiDescription = `Reference Resource Server API for managing SDX Widgets.
+const apiDescription = `Reference API for managing SDX Widgets.
 
 Normal user endpoints derive widget ownership from the authenticated subject in the JWT \`sub\` claim. Callers cannot set or change the subject through user-facing paths or request bodies.
 
-Authorization is layered. OAuth2 scopes authorize the client/token to invoke API operations, while the Resource Server separately enforces subject, tenant, resource ownership, delegation, role, ACL, or policy-based access rules.
-
 Scope names use the format \`<PrivacyZone>.<resource-type>.<action>\`. For this reference implementation, the privacy zone is \`SDX-RI\`, the resource type is \`sdx-widgets\`, and standard actions are \`read\`, \`create\`, \`update\`, and \`delete\`. Administrative operations are consolidated under the \`admin\` action.
 
-The SDX Widget scopes are \`SDX-RI.sdx-widgets.read\`, \`SDX-RI.sdx-widgets.create\`, \`SDX-RI.sdx-widgets.update\`, \`SDX-RI.sdx-widgets.delete\`, and \`SDX-RI.sdx-widgets.admin\`.
-
-Future implementations may use CSTAR as an authorization facts provider and a policy engine as a policy decision point, with the Resource Server remaining the policy enforcement point.`
+The SDX Widget scopes are \`SDX-RI.sdx-widgets.read\`, \`SDX-RI.sdx-widgets.create\`, \`SDX-RI.sdx-widgets.update\`, \`SDX-RI.sdx-widgets.delete\`, and \`SDX-RI.sdx-widgets.admin\`.`
 
 /**
  *
@@ -56,7 +52,7 @@ export async function bootstrap() {
     )
     .addSecurity('openId', {
       type: 'openIdConnect',
-      description: 'Access token required with the scope specified by each operation.',
+      description: 'Access token with the scope specified by each operation.',
       openIdConnectUrl: undefined as any,
     })
     .addSecurityRequirements('openId', ['SDX-RI.sdx-widgets.read'])
@@ -349,13 +345,13 @@ function alignGeneratedResponses(document: OpenAPIObject): void {
     },
     '403': {
       name: 'Forbidden',
-      description: 'Authenticated caller does not have the required scope.',
+      description: 'The authenticated caller does not have the required authorization.',
       mediaType: 'application/json',
       schema: 'ErrorResponse',
       examples: {
         missingScope: {
           summary: 'Required scope is missing',
-          value: errorExample('forbidden', 'Authenticated caller does not have the required scope'),
+          value: errorExample('forbidden', 'Required scope is missing'),
         },
       },
     },

@@ -2,18 +2,12 @@ openapi: 3.0.0
 info:
   title: SDX Reference Implementation API - SDX Widgets
   description: >-
-    Reference Resource Server API for managing SDX Widgets.
+    Reference API for managing SDX Widgets.
 
 
     Normal user endpoints derive widget ownership from the authenticated subject
     in the JWT `sub` claim. Callers cannot set or change the subject through
     user-facing paths or request bodies.
-
-
-    Authorization is layered. OAuth2 scopes authorize the client/token to invoke
-    API operations, while the Resource Server separately enforces subject,
-    tenant, resource ownership, delegation, role, ACL, or policy-based access
-    rules.
 
 
     Scope names use the format `<PrivacyZone>.<resource-type>.<action>`. For
@@ -26,11 +20,6 @@ info:
     The SDX Widget scopes are `SDX-RI.sdx-widgets.read`,
     `SDX-RI.sdx-widgets.create`, `SDX-RI.sdx-widgets.update`,
     `SDX-RI.sdx-widgets.delete`, and `SDX-RI.sdx-widgets.admin`.
-
-
-    Future implementations may use CSTAR as an authorization facts provider and
-    a policy engine as a policy decision point, with the Resource Server
-    remaining the policy enforcement point.
   version: 0.1.0
   contact:
     name: SDX Reference Implementation Maintainers
@@ -503,9 +492,7 @@ paths:
   '/admin/subjects/{subject}/sdx-widgets':
     summary: Administer SDX Widgets for one subject.
     get:
-      description: >-
-        Returns the SDX Widgets owned by the subject identified in the path.
-        This operation requires the SDX-RI.sdx-widgets.admin scope.
+      description: Returns the SDX Widgets owned by the subject identified in the path.
       operationId: adminListSubjectSdxWidgets
       parameters:
         - name: subject
@@ -612,9 +599,7 @@ paths:
       tags:
         - Admin SDX Widgets
     post:
-      description: >-
-        Creates a new SDX Widget for the subject identified in the path. This
-        operation requires the SDX-RI.sdx-widgets.admin scope.
+      description: Creates a new SDX Widget for the subject identified in the path.
       operationId: adminCreateSubjectSdxWidget
       parameters:
         - name: subject
@@ -701,7 +686,7 @@ paths:
     get:
       description: >-
         Returns the SDX Widget identified by the path parameter across all
-        subjects. This operation requires the SDX-RI.sdx-widgets.admin scope.
+        subjects.
       operationId: adminGetSdxWidget
       parameters:
         - name: widgetId
@@ -924,7 +909,7 @@ paths:
     delete:
       description: >-
         Deletes the SDX Widget identified by the path parameter across all
-        subjects. This operation requires the SDX-RI.sdx-widgets.admin scope.
+        subjects.
       operationId: adminDeleteSdxWidget
       parameters:
         - name: widgetId
@@ -971,7 +956,7 @@ components:
   securitySchemes:
     openId:
       type: openIdConnect
-      description: Access token required with the scope specified by each operation.
+      description: Access token with the scope specified by each operation.
   headers:
     ETag:
       required: true
@@ -1018,7 +1003,7 @@ components:
                 details:
                   correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     Forbidden:
-      description: Authenticated caller does not have the required scope.
+      description: The authenticated caller does not have the required authorization.
       content:
         application/json:
           schema:
@@ -1028,7 +1013,7 @@ components:
               summary: Required scope is missing
               value:
                 error: forbidden
-                message: Authenticated caller does not have the required scope
+                message: Required scope is missing
                 details:
                   correlationId: sdxw-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
     TooManyRequests:

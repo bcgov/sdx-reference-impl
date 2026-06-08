@@ -8,13 +8,14 @@ export class JwtAuthGuard implements CanActivate {
     const claims = this.getClaims(request)
     const subject = this.readStringClaim(claims, 'sub')
 
+    // The gateway validates the token and enforces OAS scopes before forwarding
+    // the request. This API only requires the subject claim used for ownership.
     if (!subject) {
       throw new UnauthorizedException('JWT sub claim is required')
     }
 
     request.user = {
       subject,
-      scopes: this.readScopes(claims),
       claims,
     }
     return true
@@ -29,10 +30,7 @@ export class JwtAuthGuard implements CanActivate {
     if (this.allowMockClaims()) {
       const subject = this.readHeader(request, 'x-sdx-sub')
       if (subject) {
-        return {
-          sub: subject,
-          scope: this.readHeader(request, 'x-sdx-scopes') || '',
-        }
+        return { sub: subject }
       }
     }
 
@@ -50,28 +48,6 @@ export class JwtAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('JWT payload could not be decoded')
     }
-  }
-
-  private readScopes(claims: Record<string, unknown>): string[] {
-    const scope = claims.scope
-    const scp = claims.scp
-    const roles = claims.roles
-    const values: string[] = []
-
-    if (typeof scope === 'string') {
-      values.push(...scope.split(' '))
-    }
-    if (typeof scp === 'string') {
-      values.push(...scp.split(' '))
-    }
-    if (Array.isArray(scp)) {
-      values.push(...scp.filter((value): value is string => typeof value === 'string'))
-    }
-    if (Array.isArray(roles)) {
-      values.push(...roles.filter((value): value is string => typeof value === 'string'))
-    }
-
-    return [...new Set(values.filter(Boolean))]
   }
 
   private readStringClaim(claims: Record<string, unknown>, name: string): string | undefined {
