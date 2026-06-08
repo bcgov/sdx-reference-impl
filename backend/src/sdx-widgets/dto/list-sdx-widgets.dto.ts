@@ -57,7 +57,10 @@ export class ListSdxWidgetsQueryDto {
   sortOrder?: string
 }
 
-@ApiSchema({ name: 'SdxWidgetListResponse' })
+@ApiSchema({
+  name: 'SdxWidgetListResponse',
+  description: 'A paginated list of SDX Widgets with an optional cursor for the next page.',
+})
 export class SdxWidgetListResponseDto {
   @ApiProperty({
     type: SdxWidgetDto,

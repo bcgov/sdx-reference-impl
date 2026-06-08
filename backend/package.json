@@ -19,6 +19,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint:openapi": "spectral lint openapi/sdx-widgets.openapi.yaml --ruleset .spectral.yaml",
+    "generate:openapi": "npm run build && node scripts/generate-openapi.cjs",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "make-badges": "istanbul-badges-readme --logo=vitest --exitCode=1",
     "make-badges:ci": "npm run make-badges -- --ci",

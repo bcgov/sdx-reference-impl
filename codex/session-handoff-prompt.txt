@@ -1,0 +1,67 @@
+You are Codex working in the Git repository `sdx-reference-impl`.
+
+Use this file as the session handoff prompt. Keep it up to date whenever you make meaningful changes, discover new blockers, or resolve known issues.
+
+Current project goal:
+Implement the initial SDX Reference Implementation Resource Server using a SDX Widgets API, following the existing bcgov/quickstart-openshift NestJS/PostgreSQL/Prisma/OpenShift template conventions.
+
+Current state:
+- Backend is NestJS with Prisma 7 and PostgreSQL/Flyway.
+- Static OpenAPI contract exists at `backend/openapi/sdx-widgets.openapi.yaml`.
+- Spectral config exists at `backend/.spectral.yaml` and points at:
+  `https://raw.githubusercontent.com/bcgov/csit-api-governance-spectral-style-guide/refs/heads/main/dist/spectral/strict-ruleset.yaml`
+- SDX Widgets API implementation exists under `backend/src/sdx-widgets/`.
+- Auth helpers exist under `backend/src/auth/`.
+- Global error filter exists at `backend/src/common/http-exception.filter.ts` and is registered in `backend/src/app.module.ts`.
+- Widget create/update/patch service methods validate runtime input types, string sizes, enum values, UUID path params, and JSON-compatible metadata before calling Prisma.
+- Widget create supports optional `Idempotency-Key` header on both user and admin create operations. Reusing the key with the same request body returns the original created widget; reusing it with a different body returns `409 Conflict`.
+- Single-widget create, get, replace, and patch responses return an `ETag` header derived from widget `id` and `updatedAt`. User and admin replace, patch, and delete operations accept optional `If-Match`; stale values return `412 Precondition Failed`.
+- Widget validation now distinguishes malformed requests (`400 Bad Request`) from semantic Widget validation failures (`422 Unprocessable Entity`). Both use BCGov Problem Details; non-validation errors use BCGov ErrorResponse.
+- OpenAPI documents `409 Conflict` for write conflicts, `429 Too Many Requests` with `Retry-After`, and `500 Internal Server Error` with a correlation ID. The global error filter preserves inbound `x-request-id` or `x-correlation-id`; when this API generates a value, it uses `sdxw-<uuid>`.
+- Static OpenAPI includes operation-level named request/response examples for SDX Widget create, replace, patch, list, get, and reusable error responses.
+- Generated OpenAPI can be refreshed with `cd backend && npm run generate:openapi`. The export script starts the built Nest app on a temporary local port, fetches `/api/docs-json`, and writes both `backend/openapi/sdx-widgets.generated.openapi.json` and `backend/openapi/sdx-widgets.generated.openapi.yaml`. `alignGeneratedSdxWidgetSpec()` normalizes path/component/key ordering to make comparison with the static spec easier.
+- Prisma widget model exists in `backend/prisma/schema.prisma`.
+- Initial Flyway SDX Widgets migration exists at `migrations/sql/V1.0.0__create_sdx_widgets.sql` and creates both the widget and idempotency tables.
+- Simple client exists at `backend/src/client/sdx-widgets-client.ts`.
+- README has local validation/run/test notes and future SDX TODOs.
+
+Important local environment note:
+- Use Node.js 22.13+ going forward. The repo has `.nvmrc`.
+- In Codex non-interactive shells, initialize nvm explicitly before backend Node commands:
+  `bash -lc 'export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 22.13.0; <command>'`
+- If 22.13.0 is not installed yet, the user can run `nvm install` from the repo root. Node 22.12.0 was sufficient for the latest successful verification, but ESLint packages warn that they prefer 22.13+.
+
+Useful commands:
+- OpenAPI validation:
+  `cd backend && npm run lint:openapi`
+- Generate Prisma client:
+  `cd backend && npm run prisma-generate`
+- Type check:
+  `cd backend && npm exec tsc -- --noEmit --pretty false`
+- Focused tests:
+  `cd backend && npm run test -- metrics.controller.spec.ts sdx-sdx-widgets.controller.spec.ts`
+- Local stack:
+  `docker compose up database migrations backend frontend`
+
+Latest verification:
+- `PATH=$HOME/.nvm/versions/node/v22.12.0/bin:$PATH npm run build` succeeded.
+- `npm run lint:openapi` may fail in sandboxed environments without network access because the ruleset is fetched from GitHub at runtime.
+- Controller tests using `supertest` may fail in the Codex sandbox with `listen EPERM` because binding local ports is not permitted.
+
+Known remaining Spectral findings:
+- Static and generated OpenAPI security now use an OAuth2 authorization-code scheme named `oidc`, with `SDX-RI.sdx-widgets.read`, `SDX-RI.sdx-widgets.create`, `SDX-RI.sdx-widgets.update`, `SDX-RI.sdx-widgets.delete`, and `SDX-RI.sdx-widgets.admin` scopes declared in the scheme.
+- Error responses now use the BCGov OAS 3.0 `ErrorResponse` and `ProblemDetailResponse` structures from `bcgov/csit-api-governance-spectral-style-guide`.
+- Bad request and unprocessable entity responses use `ProblemDetailResponse` with `application/problem+json`; general authentication, authorization, not found, and server-side errors use `ErrorResponse`.
+- Short summary/description warnings were fixed.
+- The static spec no longer uses `allOf`.
+
+User preferences and constraints:
+- Keep the API spec generated in the app; do not replace generated Swagger with the static file.
+- If generated and static specs mismatch, call out mismatches.
+- Do not make ruleset-driven OpenAPI changes unless the user asks.
+- Keep changes small and aligned with the quickstart template.
+- Avoid unrelated formatting or refactors.
+
+Suggested next steps:
+1. If parity matters further, compare generated Swagger output from `/api/docs-json` with `backend/openapi/sdx-widgets.openapi.yaml` and call out concrete deltas.
+2. Run the full backend test suite under Node 22.13+ after installing that version.
