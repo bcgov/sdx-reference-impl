@@ -1,6 +1,6 @@
 generator client {
   provider     = "prisma-client"
-  output       = "../generated/prisma"
+  output       = "../src/generated/prisma"
   moduleFormat = "cjs"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
@@ -25,7 +25,7 @@ model Widget {
   idempotencyRecords WidgetIdempotency[]
 
   @@index([subject], map: "WIDGET_SUBJECT_IDX")
-  @@map("WIDGETS")
+  @@map("widgets")
   @@schema("widgets")
 }
 
@@ -41,6 +41,6 @@ model WidgetIdempotency {
 
   @@unique([subject, idempotencyKey], map: "WIDGET_IDEMPOTENCY_UQ")
   @@index([widgetId], map: "WIDGET_IDEMPOTENCY_WIDGET_ID_IDX")
-  @@map("WIDGET_IDEMPOTENCY")
+  @@map("widget_idempotency")
   @@schema("widgets")
 }
