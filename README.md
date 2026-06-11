@@ -37,6 +37,126 @@ This repository provides a template to rapidly deploy a modern web application s
 
 Initial setup is intended to take an hour or less.  This depends greatly on intended complexity, features selected/excluded and outside cooperation.
 
+## Widgets API OpenAPI Validation
+
+The initial SDX Reference Implementation API contract is defined in `backend/openapi/widgets.openapi.yaml`.
+
+Validate the OpenAPI 3.0.3 contract locally with:
+
+```sh
+cd backend
+npm run lint:openapi
+```
+
+The API contract is checked against the
+[Connected Services Integration Toolkit API Governance Style Guide](https://github.com/bcgov/csit-api-governance-spectral-style-guide/blob/main/dist/spectral/STRICT_STYLE_GUIDE.md).
+The local configuration in `backend/.spectral.yaml` extends the corresponding
+shared strict Spectral ruleset to enforce the guide during linting.
+
+## Widgets API Local Development
+
+The Widgets API is implemented in the NestJS backend and uses the existing PostgreSQL/Flyway/Prisma approach from this template.
+
+Use Node.js 22.13 or newer for backend commands. The repo includes `.nvmrc`, so with nvm you can run:
+
+```sh
+nvm use
+```
+
+Start the local database, migrations, backend, and frontend with:
+
+```sh
+docker compose up database migrations backend frontend
+```
+
+The backend is exposed on `http://localhost:3001`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3001/api/docs`.
+The frontend is exposed on `http://localhost:3000`.
+
+### Frontend OIDC configuration
+
+The frontend uses the OIDC authorization code flow with PKCE. Configure the
+provider before starting the frontend:
+
+See [KEYCLOAK_OIDC_SETUP.md](KEYCLOAK_OIDC_SETUP.md) for the complete Keycloak
+realm, client, token, and backend validation configuration.
+
+```sh
+export OIDC_AUTHORITY=https://identity.example.com/realms/sdx
+export OIDC_CLIENT_ID=widget-ui-sdx-reference-implementation-21920
+export OIDC_SCOPE="openid profile"
+docker compose up database migrations backend frontend
+```
+
+Register these browser redirect URIs with the OIDC provider:
+
+- `http://localhost:3000/auth/callback`
+- `http://localhost:3000/auth/silent-callback`
+- `http://localhost:3000/login` as the post-logout redirect URI
+
+DEV uses:
+
+- UI: `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca`
+- API base URL: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1`
+- UI container `API_BASE_URL`: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1`
+
+The frontend accepts these runtime settings:
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `API_BASE_URL` | No | `/api/v1` | Root-relative or absolute HTTP(S) API base URL |
+| `OIDC_AUTHORITY` | Yes | | OIDC issuer/authority URL |
+| `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` | Public browser client ID |
+| `OIDC_SCOPE` | No | `openid profile` | Space-delimited scopes |
+| `OIDC_DISPLAY_NAME_CLAIM` | No | `name` | Dot-delimited display-name claim path |
+| `OIDC_REDIRECT_URI` | No | `<origin>/auth/callback` | Login callback URI |
+| `OIDC_SILENT_REDIRECT_URI` | No | `<origin>/auth/silent-callback` | Silent token renewal callback URI |
+| `OIDC_POST_LOGOUT_REDIRECT_URI` | No | `<origin>/login` | Post-logout redirect URI |
+
+The Caddy image serves these values from `/config.json`, so one image can be
+configured differently in each environment. Vite development reads
+`API_BASE_URL` and the same `OIDC_*` variables. `VITE_API_BASE_URL` and
+corresponding `VITE_OIDC_*` variables are also supported as local fallbacks.
+
+When `API_BASE_URL` is the default `/api/v1`, the browser uses the frontend
+origin and Caddy proxies `/api/*` through `BACKEND_URL`. An absolute
+`API_BASE_URL` sends browser requests directly to that origin, which must allow
+the UI origin through CORS.
+
+The provider must issue a JWT access token containing a `sub` claim because the
+reference backend derives Widget ownership directly from that claim. The access
+token is sent as a bearer token on every API request. During this reference
+implementation phase, every authenticated user can access the admin screens and
+the frontend does not require a role claim.
+
+The backend derives the authenticated subject from the bearer token's JWT `sub`
+claim. The current backend guard assumes that a trusted gateway has already
+validated the token. Do not expose it through the frontend proxy without either
+that gateway or backend JWT signature and issuer validation.
+
+Example request:
+
+```sh
+curl \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  http://localhost:3001/api/v1/widgets
+```
+
+Run backend tests with Node 22 or newer:
+
+```sh
+cd backend
+npm run test
+```
+
+Future SDX examples intentionally left as TODOs:
+
+- Token exchange
+- Delegation tokens
+- Signed JWT confidential client authentication
+- Event publishing
+- Webhook subscriptions
+- Policy engine and policy enforcement examples
+
 ## ✅ Prerequisites
 
 The following are required for all users:

@@ -1,4 +1,5 @@
 {
+  "name": "backend",
   "author": "NRIDS",
   "license": "Apache-2.0",
   "main": "index.js",
@@ -6,20 +7,26 @@
     "prisma-generate": "prisma generate",
     "prebuild": "rimraf dist",
     "build": "prisma generate && nest build",
-    "postbuild": "npx swc generated/prisma -d dist/generated/prisma -C module.type=commonjs && find dist/generated/prisma/generated/prisma -name '*.js' -type f -exec sh -c 'relpath=\"${1#dist/generated/prisma/generated/prisma/}\"; target=\"generated/prisma/$relpath\"; mkdir -p \"$(dirname \"$target\")\"; cp \"$1\" \"$target\"' _ {} \\; && mkdir -p dist/generated && cp -r generated/prisma dist/generated/",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "deploy": "npm ci --ignore-scripts --no-update-notifier && npm run build",
+    "prestart": "prisma generate",
     "start": "nest start",
+    "prestart:dev": "prisma generate",
     "start:dev": "nest start --watch",
+    "prestart:debug": "prisma generate",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint:openapi": "spectral lint openapi/widgets.openapi.yaml --ruleset .spectral.yaml",
+    "generate:openapi": "npm run build && node scripts/generate-openapi.cjs",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "make-badges": "istanbul-badges-readme --logo=vitest --exitCode=1",
     "make-badges:ci": "npm run make-badges -- --ci",
+    "pretest": "prisma generate",
     "test": "vitest --dir src",
     "test:cov": "prisma generate && vitest run --coverage",
+    "pretest:e2e": "prisma generate",
     "test:e2e": "vitest --dir test"
   },
   "dependencies": {
@@ -47,10 +54,11 @@
     "winston": "^3.17.0"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@stoplight/spectral-cli": "^6.16.0",
     "@swc/cli": "^0.8.0",
     "@swc/core": "^1.10.12",
     "@types/express": "^5.0.0",

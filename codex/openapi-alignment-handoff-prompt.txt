@@ -1,0 +1,79 @@
+You are Codex working in the Git repository `sdx-reference-impl`.
+
+We are aligning:
+- Static contract: `backend/openapi/widgets.openapi.yaml`
+- API-generated contract: `backend/openapi/widgets.generated.openapi.yaml`
+- Generated JSON: `backend/openapi/widgets.generated.openapi.json`
+
+Primary working rule:
+- Keep changes to the static contract minimal.
+- Prefer changing NestJS Swagger decorators, DTO metadata, or
+  `alignGeneratedWidgetSpec()` when generated output can reasonably be made to match.
+- When explicitly asked to update the static document, change only the requested content.
+- Do not replace generated Swagger with the static document.
+
+Current state:
+- Static and generated documents both use OpenAPI `3.0.0`.
+- A recursive parsed-document comparison currently reports zero semantic differences.
+- Operation parameters, request bodies, responses, security arrays, headers, components,
+  schemas, descriptions, examples, constraints, defaults, and readOnly markers currently match.
+- Mapping/property order has also been aligned with the generated YAML.
+- The static document does not use reusable `components.parameters` or path-item-level
+  parameters. Parameters are declared on individual operations.
+- Generated output uses reusable response components, reusable `ETag`, `WidgetStatus`,
+  and `ProblemDetailErrorLocation`.
+
+Important editing constraint:
+- Preserve the static YAML source as much as possible.
+- Do not parse and reserialize the entire static YAML merely to reorder properties. That creates a
+  large misleading diff by changing wrapping, quoting, blank lines, and path formatting.
+- For ordering-only changes, move the existing raw YAML blocks without rewriting their content.
+- Before claiming a property was only moved, verify:
+  1. Parsed documents before and after are deeply equal.
+  2. Object/key/scalar counts are unchanged.
+  3. The multiset of trimmed nonblank source lines is unchanged.
+- Remember that YAML mapping order has no OAS semantic meaning. Fields such as `summary` and `tags`
+  may appear at the bottom of an Operation Object and remain valid, but preserve user-requested
+  ordering when making comparison-oriented edits.
+
+Generation workflow:
+1. Use Node.js 22.13:
+   `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 22.13.0`
+2. From `backend`:
+   `npm run generate:openapi`
+3. The generator builds the Nest app, starts it on a temporary local port, fetches
+   `/api/docs-json`, and writes the generated JSON and YAML files.
+4. In a sandbox, binding port 3107 may fail with `listen EPERM`; rerun with the required approval.
+
+Relevant implementation files:
+- `backend/src/app.ts`
+- `backend/src/widgets/widgets.controller.ts`
+- `backend/src/widgets/dto/widget.dto.ts`
+- `backend/src/widgets/dto/create-widget.dto.ts`
+- `backend/src/widgets/dto/list-widgets.dto.ts`
+- `backend/src/widgets/dto/update-widget.dto.ts`
+- `backend/scripts/generate-openapi.cjs`
+
+Verification that passed during the previous session:
+- Backend build under Node 22.13.
+- TypeScript `--noEmit`.
+- ESLint.
+- Generated JSON and YAML are semantically equal.
+- Static and generated parsed documents are deeply equal.
+- Spectral lint passed when network access was available.
+
+Network caveat:
+- `npm run lint:openapi` loads the BCGov strict ruleset from GitHub.
+- It can fail with `EAI_AGAIN` in a network-restricted sandbox. That is an environment failure, not
+  necessarily an OpenAPI validation failure.
+
+Working tree:
+- There are existing staged/modified OpenAPI-generation changes. Do not revert them.
+- Read `git status` before editing and work with the current changes.
+- The old `tmp.yaml` and `updated.yaml` experiments were deleted; an IDE tab may still display a
+  stale `tmp.yaml` tab.
+
+Task for this new chat:
+Help me make further adjustments to the static OpenAPI document based on the generated document.
+First inspect and report the exact requested differences. Then make narrowly scoped,
+source-preserving edits. Do not broadly normalize or reserialize the static YAML.

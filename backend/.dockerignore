@@ -12,6 +12,7 @@ SECURITY*
 
 # Node exclusions
 dist
+generated
 node_modules
 
 # App-specific exclusions

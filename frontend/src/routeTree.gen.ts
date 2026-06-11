@@ -9,38 +9,121 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WidgetsRouteImport } from './routes/widgets'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthSilentCallbackRouteImport } from './routes/auth.silent-callback'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AdminWidgetsRouteImport } from './routes/admin.widgets'
 
+const WidgetsRoute = WidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthSilentCallbackRoute = AuthSilentCallbackRouteImport.update({
+  id: '/auth/silent-callback',
+  path: '/auth/silent-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminWidgetsRoute = AdminWidgetsRouteImport.update({
+  id: '/admin/widgets',
+  path: '/admin/widgets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/widgets': typeof WidgetsRoute
+  '/admin/widgets': typeof AdminWidgetsRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/silent-callback': typeof AuthSilentCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/widgets': typeof WidgetsRoute
+  '/admin/widgets': typeof AdminWidgetsRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/silent-callback': typeof AuthSilentCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/widgets': typeof WidgetsRoute
+  '/admin/widgets': typeof AdminWidgetsRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/silent-callback': typeof AuthSilentCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/widgets'
+    | '/admin/widgets'
+    | '/auth/callback'
+    | '/auth/silent-callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/widgets'
+    | '/admin/widgets'
+    | '/auth/callback'
+    | '/auth/silent-callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/widgets'
+    | '/admin/widgets'
+    | '/auth/callback'
+    | '/auth/silent-callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  WidgetsRoute: typeof WidgetsRoute
+  AdminWidgetsRoute: typeof AdminWidgetsRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthSilentCallbackRoute: typeof AuthSilentCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/widgets': {
+      id: '/widgets'
+      path: '/widgets'
+      fullPath: '/widgets'
+      preLoaderRoute: typeof WidgetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +131,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/silent-callback': {
+      id: '/auth/silent-callback'
+      path: '/auth/silent-callback'
+      fullPath: '/auth/silent-callback'
+      preLoaderRoute: typeof AuthSilentCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/widgets': {
+      id: '/admin/widgets'
+      path: '/admin/widgets'
+      fullPath: '/admin/widgets'
+      preLoaderRoute: typeof AdminWidgetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  WidgetsRoute: WidgetsRoute,
+  AdminWidgetsRoute: AdminWidgetsRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthSilentCallbackRoute: AuthSilentCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

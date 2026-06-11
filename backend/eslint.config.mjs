@@ -16,6 +16,7 @@ const baseIgnores = [
   '**/dist/**',
   '**/node_modules/**',
   '**/coverage/**',
+  '**/src/generated/**',
 ];
 
 /**
@@ -58,4 +59,3 @@ export default tseslint.config(
     },
   },
 );
-

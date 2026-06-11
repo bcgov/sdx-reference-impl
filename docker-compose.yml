@@ -32,7 +32,7 @@ services:
       FLYWAY_USER: *POSTGRES_USER
       FLYWAY_PASSWORD: *POSTGRES_PASSWORD
       FLYWAY_BASELINE_ON_MIGRATE: true
-      FLYWAY_DEFAULT_SCHEMA: users
+      FLYWAY_DEFAULT_SCHEMA: widgets
     depends_on:
       database:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
     image: schemaspy/schemaspy:7.0.2
     profiles: ["schemaspy"]
     container_name: schemaspy
-    command: -t pgsql11 -db postgres -host database -port 5432 -u postgres -p default -schemas users
+    command: -t pgsql11 -db postgres -host database -port 5432 -u postgres -p default -schemas widgets
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -61,13 +61,25 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
     working_dir: "/app"
-    volumes: ["./backend:/app", "/app/node_modules"]
+    volumes:
+      - "./backend:/app"
+      - "/app/node_modules"
+      - "/app/src/generated"
+      - "/app/dist"
 
   frontend:
     container_name: frontend
     entrypoint: sh -c "npm ci --ignore-scripts && npm run dev"
     environment:
+      API_BASE_URL: ${API_BASE_URL:-/api/v1}
       BACKEND_URL: http://backend:3000
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-widget-ui-sdx-reference-implementation-21920}
+      OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
+      OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile}
+      OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
       PORT: 3000
       NODE_ENV: development
     image: *node-image
@@ -87,8 +99,16 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      API_BASE_URL: ${API_BASE_URL:-/api/v1}
       BACKEND_URL: http://backend:3000
       LOG_LEVEL: info
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-widget-ui-sdx-reference-implementation-21920}
+      OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
+      OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile}
+      OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
     ports: ["3005:3000"]
     volumes: ["./frontend/Caddyfile:/etc/caddy/Caddyfile"]
     healthcheck:
