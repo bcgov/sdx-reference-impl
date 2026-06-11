@@ -19,11 +19,28 @@
 		`
 	}
 
+	@runtime_config path /config.json
+	header @runtime_config Content-Type application/json
+	respond @runtime_config `{
+		"api": {
+			"baseUrl": "{$API_BASE_URL:/api/v1}"
+		},
+		"oidc": {
+			"authority": "{$OIDC_AUTHORITY}",
+			"clientId": "{$OIDC_CLIENT_ID:widget-ui-sdx-reference-implementation-21920}",
+			"scope": "{$OIDC_SCOPE:openid profile}",
+			"displayNameClaim": "{$OIDC_DISPLAY_NAME_CLAIM:name}",
+			"redirectUri": "{$OIDC_REDIRECT_URI}",
+			"silentRedirectUri": "{$OIDC_SILENT_REDIRECT_URI}",
+			"postLogoutRedirectUri": "{$OIDC_POST_LOGOUT_REDIRECT_URI}"
+		}
+	}` 200
+
 	root * /srv
 	encode zstd gzip
 	file_server
 	@spa_router {
-		not path /api*
+		not path /api* /config.json
 		file {
 			try_files {path} /index.html
 		}
@@ -41,15 +58,16 @@
 		Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate"
 		X-Content-Type-Options "nosniff"
 		Strict-Transport-Security "max-age=31536000"
-		Content-Security-Policy "default-src 'self' https://*.gov.bc.ca;; 
+		Content-Security-Policy "default-src 'self' https://*.gov.bc.ca;
 			script-src 'self'  https://*.gov.bc.ca ;
 			style-src 'self' https://fonts.googleapis.com https://use.fontawesome.com 'unsafe-inline'; 
 			font-src 'self' https://fonts.gstatic.com; 
 			img-src 'self' data: https://fonts.googleapis.com https://www.w3.org https://*.gov.bc.ca https://*.tile.openstreetmap.org;
-			frame-ancestors 'self'; 
+			frame-ancestors 'self';
+			frame-src 'self' {$OIDC_AUTHORITY};
 			form-action 'self';
 			block-all-mixed-content;
-			connect-src 'self' https://*.gov.bc.ca wss://*.gov.bc.ca;"
+			connect-src 'self' {$API_BASE_URL:/api/v1} {$API_BASE_URL:/api/v1}/ {$OIDC_AUTHORITY} https://*.gov.bc.ca wss://*.gov.bc.ca;"
 		Referrer-Policy "same-origin"
 		Permissions-Policy "fullscreen=(self), camera=(), microphone=()"
 		Cross-Origin-Resource-Policy "cross-origin"

@@ -1,10 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import Dashboard from '@/components/Dashboard'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { getAppUser } from '@/auth/oidc'
 
 export const Route = createFileRoute('/')({
-  component: Index,
+  beforeLoad: async () => {
+    throw redirect({ to: (await getAppUser()) ? '/widgets' : '/login' })
+  },
 })
-
-function Index() {
-  return <Dashboard />
-}

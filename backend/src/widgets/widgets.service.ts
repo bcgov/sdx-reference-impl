@@ -7,7 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
-import { Prisma } from '../../generated/prisma/client.js'
+import { Prisma } from '../generated/prisma/client.js'
 import type { InputJsonValue } from '@prisma/client/runtime/client'
 import { createHash } from 'crypto'
 import { CreateWidgetDto } from './dto/create-widget.dto'

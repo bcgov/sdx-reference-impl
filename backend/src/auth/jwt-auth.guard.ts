@@ -8,8 +8,8 @@ export class JwtAuthGuard implements CanActivate {
     const claims = this.getClaims(request)
     const subject = this.readStringClaim(claims, 'sub')
 
-    // The gateway validates the token and enforces OAS scopes before forwarding
-    // the request. This API only requires the subject claim used for ownership.
+    // A trusted gateway must validate the token before forwarding the request.
+    // This API currently uses only the subject claim for ownership.
     if (!subject) {
       throw new UnauthorizedException('JWT sub claim is required')
     }
