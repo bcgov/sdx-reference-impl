@@ -88,7 +88,9 @@ export async function loadRuntimeConfig(): Promise<void> {
     clientId:
       configured(oidc.clientId, import.meta.env.VITE_OIDC_CLIENT_ID) ??
       'widget-ui-sdx-reference-implementation-21920',
-    scope: configured(oidc.scope, import.meta.env.VITE_OIDC_SCOPE) ?? 'openid profile',
+    scope:
+      configured(oidc.scope, import.meta.env.VITE_OIDC_SCOPE) ??
+      'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin',
     displayNameClaim:
       configured(oidc.displayNameClaim, import.meta.env.VITE_OIDC_DISPLAY_NAME_CLAIM) ?? 'name',
     redirectUri:

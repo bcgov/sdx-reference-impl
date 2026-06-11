@@ -9,6 +9,7 @@ import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
 import { WidgetsModule } from './widgets/widgets.module'
 import { UsersModule } from './users/users.module'
+import type { Response } from 'express'
 
 const apiDescription = `Reference API for managing fictional Natural Resources widgets.
 
@@ -18,14 +19,74 @@ Scope names use the format \`<namespace>:<resource>:<action>\`. For this API, th
 
 The Widget scopes are \`nrs:widgets:read\`, \`nrs:widgets:create\`, \`nrs:widgets:update\`, \`nrs:widgets:delete\`, and \`nrs:widgets:admin\`.`
 
+const DEFAULT_OIDC_AUTHORITY = 'https://identity.example.com/realms/sdx'
+const DEFAULT_SWAGGER_CLIENT_ID = 'widget-ui-sdx-reference-implementation-21920'
+const DEFAULT_OIDC_SCOPES =
+  'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin'
+const OAUTH_SCOPE_DESCRIPTIONS: Record<string, string> = {
+  openid: 'Authenticate the user with OpenID Connect.',
+  profile: "Read the user's basic profile claims.",
+  'nrs:widgets:read': 'Read widgets.',
+  'nrs:widgets:create': 'Create widgets.',
+  'nrs:widgets:update': 'Update widgets.',
+  'nrs:widgets:delete': 'Delete widgets.',
+  'nrs:widgets:admin': 'Administer widgets across users.',
+}
+const SWAGGER_OAUTH_POPUP_SCRIPT_PATH = '/api/docs/swagger-oauth-popup.js'
+const SWAGGER_OAUTH_REDIRECT_PATH = '/api/docs/oauth2-redirect.html'
+const SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH = '/api/docs/swagger-oauth-callback.js'
+const SWAGGER_OAUTH_CHANNEL = 'swagger-oauth2'
+
 /**
  *
  */
 export async function bootstrap() {
+  const oidcAuthority = process.env.OIDC_AUTHORITY?.trim() || DEFAULT_OIDC_AUTHORITY
+  const openIdConnectUrl =
+    process.env.OIDC_OPENID_CONNECT_URL?.trim() ||
+    `${oidcAuthority.replace(/\/$/, '')}/.well-known/openid-configuration`
+  const swaggerClientId =
+    process.env.SWAGGER_OAUTH_CLIENT_ID?.trim() ||
+    process.env.OIDC_CLIENT_ID?.trim() ||
+    DEFAULT_SWAGGER_CLIENT_ID
+  const swaggerOAuthRedirectUrl = process.env.SWAGGER_OAUTH_REDIRECT_URL?.trim()
+  const swaggerOAuthScopes = (
+    process.env.SWAGGER_OAUTH_SCOPES?.trim() ||
+    process.env.OIDC_SCOPE?.trim() ||
+    DEFAULT_OIDC_SCOPES
+  )
+    .split(/\s+/)
+    .filter(Boolean)
+  const oidcDiscovery = await loadOidcDiscovery(openIdConnectUrl)
+  const oauthScopes = Object.fromEntries(
+    swaggerOAuthScopes.map((scope) => [scope, OAUTH_SCOPE_DESCRIPTIONS[scope] || scope]),
+  )
+  const oidcOrigins = [
+    ...new Set(
+      [oidcDiscovery.authorization_endpoint, oidcDiscovery.token_endpoint].map(
+        (endpoint) => new URL(endpoint).origin,
+      ),
+    ),
+  ]
+  const oidcAuthorizationOrigin = new URL(oidcDiscovery.authorization_endpoint).origin
+  const swaggerOAuthPopupScript = createSwaggerOAuthPopupScript(oidcAuthorizationOrigin)
+  const swaggerOAuthCallbackScript = createSwaggerOAuthCallbackScript()
+
   const app: NestExpressApplication = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: customLogger,
   })
-  app.use(helmet())
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          connectSrc: ["'self'", ...oidcOrigins],
+        },
+      },
+      crossOriginOpenerPolicy: {
+        policy: 'same-origin-allow-popups',
+      },
+    }),
+  )
   app.enableCors()
   app.set('trust proxy', 1)
   app.use(metricsMiddleware)
@@ -35,6 +96,19 @@ export async function bootstrap() {
     type: VersioningType.URI,
     prefix: 'v',
   })
+  app
+    .getHttpAdapter()
+    .get(SWAGGER_OAUTH_POPUP_SCRIPT_PATH, (_request: unknown, response: Response) => {
+      response.type('application/javascript').send(swaggerOAuthPopupScript)
+    })
+  app
+    .getHttpAdapter()
+    .get(SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH, (_request: unknown, response: Response) => {
+      response.type('application/javascript').send(swaggerOAuthCallbackScript)
+    })
+  app.getHttpAdapter().get(SWAGGER_OAUTH_REDIRECT_PATH, (_request: unknown, response: Response) => {
+    response.type('text/html').send(createSwaggerOAuthRedirectHtml())
+  })
   const config = new DocumentBuilder()
     .setTitle('SDX Reference Implementation API - Widgets')
     .setDescription(apiDescription)
@@ -42,7 +116,7 @@ export async function bootstrap() {
     .setContact('SDX Reference Implementation Maintainers', undefined as any, undefined as any)
     .setLicense('Apache-2.0', undefined as any)
 
-    .addServer('http://localhost:3000/api/v1', 'Local development server for the Widgets API')
+    .addServer('/api/v1', 'Widgets API on the same origin as this documentation')
     .addTag('Admin Users', 'Administrative discovery of users that own Widgets.')
     .addTag('Admin Widgets', 'Administrative Widget operations that can act across subjects.')
     .addTag(
@@ -50,9 +124,15 @@ export async function bootstrap() {
       'Widget operations that act on resources owned by the authenticated subject.',
     )
     .addSecurity('openId', {
-      type: 'openIdConnect',
+      type: 'oauth2',
       description: 'Access token with the scope specified by each operation.',
-      openIdConnectUrl: undefined as any,
+      flows: {
+        authorizationCode: {
+          authorizationUrl: oidcDiscovery.authorization_endpoint,
+          tokenUrl: oidcDiscovery.token_endpoint,
+          scopes: oauthScopes,
+        },
+      },
     })
     .build()
 
@@ -60,8 +140,190 @@ export async function bootstrap() {
     include: [WidgetsModule, UsersModule],
   })
   alignGeneratedWidgetSpec(document)
-  SwaggerModule.setup('/api/docs', app, document)
+  SwaggerModule.setup('/api/docs', app, document, {
+    customJs: SWAGGER_OAUTH_POPUP_SCRIPT_PATH,
+    swaggerOptions: {
+      persistAuthorization: true,
+      ...(swaggerOAuthRedirectUrl ? { oauth2RedirectUrl: swaggerOAuthRedirectUrl } : {}),
+      initOAuth: {
+        clientId: swaggerClientId,
+        usePkceWithAuthorizationCodeGrant: true,
+        scopes: swaggerOAuthScopes,
+      },
+    },
+  })
   return app
+}
+
+type OidcDiscovery = {
+  authorization_endpoint: string
+  token_endpoint: string
+}
+
+async function loadOidcDiscovery(openIdConnectUrl: string): Promise<OidcDiscovery> {
+  const response = await fetch(openIdConnectUrl)
+  if (!response.ok) {
+    throw new Error(
+      `Unable to load OIDC discovery document from ${openIdConnectUrl}: ${response.status} ${response.statusText}`,
+    )
+  }
+
+  const discovery = (await response.json()) as Partial<OidcDiscovery>
+  if (!discovery.authorization_endpoint || !discovery.token_endpoint) {
+    throw new Error(
+      `OIDC discovery document at ${openIdConnectUrl} must define authorization_endpoint and token_endpoint`,
+    )
+  }
+
+  new URL(discovery.authorization_endpoint)
+  new URL(discovery.token_endpoint)
+  return discovery as OidcDiscovery
+}
+
+function createSwaggerOAuthPopupScript(oidcOrigin: string) {
+  return `(() => {
+  const oidcOrigin = ${JSON.stringify(oidcOrigin)};
+  const channel = new BroadcastChannel(${JSON.stringify(SWAGGER_OAUTH_CHANNEL)});
+  const openWindow = window.open.bind(window);
+  let authorizationCompleted = false;
+
+  channel.addEventListener('message', (event) => {
+    if (event.data?.type !== 'swagger-oauth-response' || authorizationCompleted) {
+      return;
+    }
+
+    const oauth = window.swaggerUIRedirectOauth2;
+    if (!oauth) {
+      return;
+    }
+    authorizationCompleted = true;
+
+    const responseUrl = new URL(event.data.url);
+    const responseParams = new URLSearchParams(
+      /code|token|error/.test(responseUrl.hash)
+        ? responseUrl.hash.substring(1).replace('?', '&')
+        : responseUrl.search.substring(1)
+    );
+    const token = Object.fromEntries(responseParams);
+    const isValid = token.state === oauth.state;
+    const flow = oauth.auth.schema.get('flow');
+    const isAuthorizationCodeFlow =
+      flow === 'accessCode' || flow === 'authorizationCode' || flow === 'authorization_code';
+
+    if (!isAuthorizationCodeFlow || oauth.auth.code) {
+      oauth.callback({
+        auth: oauth.auth,
+        token,
+        isValid,
+        redirectUrl: oauth.redirectUrl
+      });
+    } else {
+      if (!isValid) {
+        oauth.errCb({
+          authId: oauth.auth.name,
+          source: 'auth',
+          level: 'warning',
+          message:
+            "Authorization may be unsafe, passed state was changed in server. " +
+            "Passed state wasn't returned from auth server."
+        });
+      }
+
+      if (token.code) {
+        delete oauth.state;
+        oauth.auth.code = token.code;
+        oauth.callback({ auth: oauth.auth, redirectUrl: oauth.redirectUrl });
+      } else {
+        const message = token.error
+          ? '[' + token.error + ']: ' +
+            (token.error_description
+              ? token.error_description + '. '
+              : 'no accessCode received from the server. ') +
+            (token.error_uri ? 'More info: ' + token.error_uri : '')
+          : '[Authorization failed]: no accessCode received from the server';
+        oauth.errCb({
+          authId: oauth.auth.name,
+          source: 'auth',
+          level: 'error',
+          message
+        });
+      }
+    }
+
+    channel.postMessage({ type: 'swagger-oauth-complete' });
+  });
+
+  window.open = (url, target, features) => {
+    let destination;
+    try {
+      destination = new URL(String(url), window.location.href);
+    } catch {
+      return openWindow(url, target, features);
+    }
+
+    if (destination.origin !== oidcOrigin) {
+      return openWindow(url, target, features);
+    }
+
+    const oauthWindow = openWindow(
+      '',
+      'swagger-oauth2',
+      'popup=yes,width=700,height=800,resizable=yes,scrollbars=yes'
+    );
+    if (!oauthWindow) {
+      return null;
+    }
+
+    try {
+      oauthWindow.opener = window;
+    } catch {
+      // The opener is already established by window.open in normal browser configurations.
+    }
+    oauthWindow.location.href = destination.href;
+    oauthWindow.focus();
+    return oauthWindow;
+  };
+})();`
+}
+
+function createSwaggerOAuthCallbackScript() {
+  return `(() => {
+  const channel = new BroadcastChannel(${JSON.stringify(SWAGGER_OAUTH_CHANNEL)});
+  let attempts = 0;
+
+  channel.addEventListener('message', (event) => {
+    if (event.data?.type === 'swagger-oauth-complete') {
+      window.close();
+    }
+  });
+
+  const sendResponse = () => {
+    channel.postMessage({
+      type: 'swagger-oauth-response',
+      url: window.location.href
+    });
+    attempts += 1;
+    if (attempts < 10) {
+      window.setTimeout(sendResponse, 250);
+    }
+  };
+
+  sendResponse();
+})();`
+}
+
+function createSwaggerOAuthRedirectHtml() {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Completing authorization</title>
+  </head>
+  <body>
+    <p>Completing authorization...</p>
+    <script src="${SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH}"></script>
+  </body>
+</html>`
 }
 
 function alignGeneratedWidgetSpec(document: OpenAPIObject) {

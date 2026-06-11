@@ -564,7 +564,7 @@ export class WidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The updated Widget.',
+    description: 'The partially updated Widget.',
     type: WidgetDto,
     examples: UPDATED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,
@@ -909,7 +909,7 @@ export class AdminWidgetsController {
     },
   })
   @ApiOkResponse({
-    description: 'The updated Widget.',
+    description: 'The partially updated Widget.',
     type: WidgetDto,
     examples: ADMIN_UPDATED_WIDGET_EXAMPLES,
     headers: ETAG_RESPONSE_HEADER,

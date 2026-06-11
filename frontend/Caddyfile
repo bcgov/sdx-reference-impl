@@ -28,7 +28,7 @@
 		"oidc": {
 			"authority": "{$OIDC_AUTHORITY}",
 			"clientId": "{$OIDC_CLIENT_ID:widget-ui-sdx-reference-implementation-21920}",
-			"scope": "{$OIDC_SCOPE:openid profile}",
+			"scope": "{$OIDC_SCOPE:openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}",
 			"displayNameClaim": "{$OIDC_DISPLAY_NAME_CLAIM:name}",
 			"redirectUri": "{$OIDC_REDIRECT_URI}",
 			"silentRedirectUri": "{$OIDC_SILENT_REDIRECT_URI}",

@@ -2,7 +2,13 @@ const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
 const yaml = require('@stoplight/yaml')
-const { bootstrap } = require('../dist/app.js')
+
+if (process.env.OPENAPI_OIDC_AUTHORITY) {
+  process.env.OIDC_AUTHORITY = process.env.OPENAPI_OIDC_AUTHORITY
+  delete process.env.OIDC_OPENID_CONNECT_URL
+}
+
+const { bootstrap } = require('../dist/src/app.js')
 
 const port = Number.parseInt(process.env.OPENAPI_EXPORT_PORT || '3107', 10)
 const host = process.env.OPENAPI_EXPORT_HOST || '127.0.0.1'

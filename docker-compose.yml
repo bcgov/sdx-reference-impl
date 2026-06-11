@@ -56,6 +56,12 @@ services:
     environment:
       <<: *postgres-vars
       NODE_ENV: development
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-widget-ui-sdx-reference-implementation-21920}
+      OIDC_OPENID_CONNECT_URL: ${OIDC_OPENID_CONNECT_URL:-}
+      SWAGGER_OAUTH_CLIENT_ID: ${SWAGGER_OAUTH_CLIENT_ID:-}
+      SWAGGER_OAUTH_REDIRECT_URL: ${SWAGGER_OAUTH_REDIRECT_URL:-http://localhost:3001/api/docs/oauth2-redirect.html}
+      SWAGGER_OAUTH_SCOPES: ${SWAGGER_OAUTH_SCOPES:-${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}}
     image: *node-image
     ports: ["3001:3000"]
     healthcheck:
@@ -78,7 +84,7 @@ services:
       OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
       OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}
       OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
       PORT: 3000
       NODE_ENV: development
@@ -107,7 +113,7 @@ services:
       OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
       OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}
       OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
     ports: ["3005:3000"]
     volumes: ["./frontend/Caddyfile:/etc/caddy/Caddyfile"]

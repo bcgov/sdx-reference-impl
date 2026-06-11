@@ -24,8 +24,8 @@ info:
   license:
     name: Apache-2.0
 servers:
-  - url: 'http://localhost:3000/api/v1'
-    description: Local development server for the Widgets API
+  - url: /api/v1
+    description: Widgets API on the same origin as this documentation
 tags:
   - name: Admin Users
     description: Administrative discovery of users that own Widgets.
@@ -394,7 +394,7 @@ paths:
                   status: archived
       responses:
         '200':
-          description: The updated Widget.
+          description: The partially updated Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
@@ -856,7 +856,7 @@ paths:
                   status: archived
       responses:
         '200':
-          description: The updated Widget.
+          description: The partially updated Widget.
           headers:
             ETag:
               $ref: '#/components/headers/ETag'
@@ -980,8 +980,22 @@ paths:
 components:
   securitySchemes:
     openId:
-      type: openIdConnect
+      type: oauth2
       description: Access token with the scope specified by each operation.
+      flows:
+        authorizationCode:
+          authorizationUrl: >-
+            https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx/protocol/openid-connect/auth
+          tokenUrl: >-
+            https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx/protocol/openid-connect/token
+          scopes:
+            openid: Authenticate the user with OpenID Connect.
+            profile: Read the user's basic profile claims.
+            'nrs:widgets:read': Read widgets.
+            'nrs:widgets:create': Create widgets.
+            'nrs:widgets:update': Update widgets.
+            'nrs:widgets:delete': Delete widgets.
+            'nrs:widgets:admin': Administer widgets across users.
   headers:
     ETag:
       required: true
