@@ -8,6 +8,7 @@ import helmet from 'helmet'
 import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
 import { WidgetsModule } from './widgets/widgets.module'
+import { UsersModule } from './users/users.module'
 
 const apiDescription = `Reference API for managing fictional Natural Resources widgets.
 
@@ -42,6 +43,7 @@ export async function bootstrap() {
     .setLicense('Apache-2.0', undefined as any)
 
     .addServer('http://localhost:3000/api/v1', 'Local development server for the Widgets API')
+    .addTag('Admin Users', 'Administrative discovery of users that own Widgets.')
     .addTag('Admin Widgets', 'Administrative Widget operations that can act across subjects.')
     .addTag(
       'Widgets',
@@ -55,7 +57,7 @@ export async function bootstrap() {
     .build()
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [WidgetsModule],
+    include: [WidgetsModule, UsersModule],
   })
   alignGeneratedWidgetSpec(document)
   SwaggerModule.setup('/api/docs', app, document)
@@ -68,6 +70,7 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject) {
     '/widgets/{widgetId}': 'Manage one widget for the authenticated subject.',
     '/admin/subjects/{subject}/widgets': 'Administer widgets for one subject.',
     '/admin/widgets/{widgetId}': 'Administer one widget by ID.',
+    '/admin/users': 'Discover users that currently own widgets.',
   }
 
   const orderedPaths = [
@@ -75,6 +78,7 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject) {
     '/widgets/{widgetId}',
     '/admin/subjects/{subject}/widgets',
     '/admin/widgets/{widgetId}',
+    '/admin/users',
   ]
 
   const normalizedPaths = Object.fromEntries(
@@ -244,6 +248,15 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     example: {
       subject: 'user-456',
       status: 'archived',
+    },
+  })
+  Object.assign(schemas.UserSummary, {
+    additionalProperties: false,
+    example: {
+      subject: 'user-123',
+      displayName: 'Alex Smith',
+      widgetCount: 3,
+      lastSeenAt: '2026-06-11T15:00:00Z',
     },
   })
   Object.assign(schemas.ErrorResponse, {

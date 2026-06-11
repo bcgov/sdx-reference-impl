@@ -19,6 +19,10 @@
   ],
   "tags": [
     {
+      "name": "Admin Users",
+      "description": "Administrative discovery of users that own Widgets."
+    },
+    {
       "name": "Admin Widgets",
       "description": "Administrative Widget operations that can act across subjects."
     },
@@ -1323,6 +1327,54 @@
           "Admin Widgets"
         ]
       }
+    },
+    "/admin/users": {
+      "summary": "Discover users that currently own widgets.",
+      "get": {
+        "description": "Returns distinct widget owners with their most recently observed display name and current widget count.",
+        "operationId": "adminListUsersWithWidgets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Known users that currently own at least one widget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSummary"
+                  },
+                  "example": [
+                    {
+                      "subject": "user-123",
+                      "displayName": "Alex Smith",
+                      "widgetCount": 3,
+                      "lastSeenAt": "2026-06-11T15:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "openId": [
+              "nrs:widgets:admin"
+            ]
+          }
+        ],
+        "summary": "List known users that own widgets.",
+        "tags": [
+          "Admin Users"
+        ]
+      }
     }
   },
   "components": {
@@ -2107,6 +2159,46 @@
         "example": {
           "subject": "user-456",
           "status": "archived"
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "Immutable subject identifier from the access token.",
+            "example": "user-123"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Most recently observed display name from the user access token, or the subject identifier until a name is observed.",
+            "example": "Alex Smith"
+          },
+          "widgetCount": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of widgets currently owned by the subject.",
+            "example": 3
+          },
+          "lastSeenAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last time the user made an authenticated request to this API."
+          }
+        },
+        "description": "A known user that currently owns one or more widgets.",
+        "required": [
+          "subject",
+          "displayName",
+          "widgetCount",
+          "lastSeenAt"
+        ],
+        "additionalProperties": false,
+        "example": {
+          "subject": "user-123",
+          "displayName": "Alex Smith",
+          "widgetCount": 3,
+          "lastSeenAt": "2026-06-11T15:00:00Z"
         }
       }
     }
