@@ -410,5 +410,3 @@ specs
 # Prisma 7 generated client
 backend/generated/
 backend/src/generated/
-
-CREATE USER sdx reference.txt
