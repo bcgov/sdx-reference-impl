@@ -104,7 +104,7 @@ The frontend accepts these runtime settings:
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `API_BASE_URL` | No | `/api/v1` | Root-relative or absolute HTTP(S) API base URL |
+| `API_BASE_URL` | Yes | | Absolute HTTP(S) API base URL |
 | `OIDC_AUTHORITY` | Yes | | OIDC issuer/authority URL |
 | `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` | Public browser client ID |
 | `OIDC_SCOPE` | No | Widget scopes plus `openid profile` | Space-delimited scopes |
@@ -136,10 +136,8 @@ configured differently in each environment. Vite development reads
 `API_BASE_URL` and the same `OIDC_*` variables. `VITE_API_BASE_URL` and
 corresponding `VITE_OIDC_*` variables are also supported as local fallbacks.
 
-When `API_BASE_URL` is the default `/api/v1`, the browser uses the frontend
-origin and Caddy proxies `/api/*` through `BACKEND_URL`. An absolute
-`API_BASE_URL` sends browser requests directly to that origin, which must allow
-the UI origin through CORS.
+The browser sends API requests directly to `API_BASE_URL`; the frontend does not
+proxy backend paths. The API origin must allow the UI origin through CORS.
 
 The provider must issue a JWT access token containing a `sub` claim because the
 reference backend derives Widget ownership directly from that claim. The access

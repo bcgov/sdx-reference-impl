@@ -190,7 +190,7 @@ Supported frontend settings:
 
 | Variable | Required | Default |
 | --- | --- | --- |
-| `API_BASE_URL` | No | `/api/v1` |
+| `API_BASE_URL` | Yes | None |
 | `OIDC_AUTHORITY` | Yes | None |
 | `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` |
 | `OIDC_SCOPE` | No | `openid profile` |

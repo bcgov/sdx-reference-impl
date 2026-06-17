@@ -13,7 +13,7 @@ function runtimeConfig(mode: string): Plugin {
         response.end(
           JSON.stringify({
             api: {
-              baseUrl: env.API_BASE_URL || env.VITE_API_BASE_URL || '/api/v1',
+              baseUrl: env.API_BASE_URL || env.VITE_API_BASE_URL,
             },
             oidc: {
               authority: env.OIDC_AUTHORITY || env.VITE_OIDC_AUTHORITY,
@@ -27,6 +27,10 @@ function runtimeConfig(mode: string): Plugin {
             },
           }),
         )
+      })
+      server.middlewares.use('/api', (_request, response) => {
+        response.statusCode = 404
+        response.end()
       })
     },
   }
@@ -47,13 +51,6 @@ export default defineConfig(({ mode }) => ({
     fs: {
       // Allow serving files from one level up to the project root
       allow: ['..'],
-    },
-    proxy: {
-      // Proxy API requests to the backend
-      '/api': {
-        target: process.env.BACKEND_URL || 'http://localhost:3001',
-        changeOrigin: true,
-      },
     },
   },
   resolve: {

@@ -18,13 +18,11 @@ describe('runtime configuration', () => {
     vi.unstubAllGlobals()
   })
 
-  test('defaults the API base URL to /api/v1 when it is missing', async () => {
+  test('requires the API base URL', async () => {
     runtimeResponse({ oidc: oidcConfig })
-    const { getApiConfig, loadRuntimeConfig } = await import('./config')
+    const { loadRuntimeConfig } = await import('./config')
 
-    await loadRuntimeConfig()
-
-    expect(getApiConfig()).toEqual({ baseUrl: '/api/v1' })
+    await expect(loadRuntimeConfig()).rejects.toThrow('Missing required API configuration')
   })
 
   test('accepts an absolute API base URL', async () => {
@@ -47,6 +45,18 @@ describe('runtime configuration', () => {
     runtimeResponse({
       api: {
         baseUrl: 'widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1',
+      },
+      oidc: oidcConfig,
+    })
+    const { loadRuntimeConfig } = await import('./config')
+
+    await expect(loadRuntimeConfig()).rejects.toThrow('Invalid API configuration')
+  })
+
+  test('rejects a root-relative API base URL', async () => {
+    runtimeResponse({
+      api: {
+        baseUrl: '/api/v1',
       },
       oidc: oidcConfig,
     })

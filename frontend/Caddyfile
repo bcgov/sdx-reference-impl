@@ -23,7 +23,7 @@
 	header @runtime_config Content-Type application/json
 	respond @runtime_config `{
 		"api": {
-			"baseUrl": "{$API_BASE_URL:/api/v1}"
+			"baseUrl": "{$API_BASE_URL}"
 		},
 		"oidc": {
 			"authority": "{$OIDC_AUTHORITY}",
@@ -39,6 +39,8 @@
 	root * /srv
 	encode zstd gzip
 	file_server
+	@api path /api*
+	respond @api 404
 	@spa_router {
 		not path /api* /config.json
 		file {
@@ -46,11 +48,6 @@
 		}
 	}
 	rewrite @spa_router {http.matchers.file.relative}
-	# Proxy requests to API service
-	reverse_proxy /api* {$BACKEND_URL} {
-		header_up Host {http.reverse_proxy.upstream.hostport}
-		header_up X-Real-IP {remote_host}
-	}
 	header {
 		-Server
 		X-Frame-Options "SAMEORIGIN"
@@ -67,7 +64,7 @@
 			frame-src 'self' {$OIDC_AUTHORITY};
 			form-action 'self';
 			block-all-mixed-content;
-			connect-src 'self' {$API_BASE_URL:/api/v1} {$API_BASE_URL:/api/v1}/ {$OIDC_AUTHORITY} https://*.gov.bc.ca wss://*.gov.bc.ca;"
+			connect-src 'self' {$API_BASE_URL} {$API_BASE_URL}/ {$OIDC_AUTHORITY} https://*.gov.bc.ca wss://*.gov.bc.ca;"
 		Referrer-Policy "same-origin"
 		Permissions-Policy "fullscreen=(self), camera=(), microphone=()"
 		Cross-Origin-Resource-Policy "cross-origin"
