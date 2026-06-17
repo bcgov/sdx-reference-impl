@@ -1,17 +1,14 @@
 name: DEMO Route
 
-# Disabled because deployments are managed outside the Quickstart workflows.
-on: []
-# Previous triggers:
-# on:
-#   pull_request:
-#     types: [labeled]
-#   workflow_dispatch:
-#     inputs:
-#       target:
-#         description: "PR number to receive DEMO URL routing"
-#         required: true
-#         type: number
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "PR number to receive DEMO URL routing"
+        required: true
+        type: number
 
 concurrency:
   group: ${{ github.workflow }}
