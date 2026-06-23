@@ -25,9 +25,18 @@ type IdempotencyRow = {
   createdAt: Date
 }
 
+type UserRow = {
+  subject: string
+  displayName: string
+  lastSeenAt: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
 class FakePrismaService {
   private rows: WidgetRow[] = []
   private idempotencyRows: IdempotencyRow[] = []
+  private userRows: UserRow[] = []
 
   widget = {
     create: async ({ data }: { data: Partial<WidgetRow> }) => {
@@ -111,6 +120,44 @@ class FakePrismaService {
       const [row] = this.rows.splice(index, 1)
       return row
     },
+    groupBy: async () =>
+      [...new Set(this.rows.map((row) => row.subject))].sort().map((subject) => ({
+        subject,
+        _count: {
+          _all: this.rows.filter((row) => row.subject === subject).length,
+        },
+      })),
+  }
+
+  user = {
+    upsert: async ({
+      where,
+      create,
+      update,
+    }: {
+      where: { subject: string }
+      create: Pick<UserRow, 'subject' | 'displayName' | 'lastSeenAt'>
+      update: Partial<UserRow>
+    }) => {
+      const existing = this.userRows.find((row) => row.subject === where.subject)
+      if (existing) {
+        Object.assign(existing, update, { updatedAt: new Date() })
+        return existing
+      }
+
+      const now = new Date()
+      const row: UserRow = {
+        subject: create.subject,
+        displayName: create.displayName,
+        lastSeenAt: create.lastSeenAt,
+        createdAt: now,
+        updatedAt: now,
+      }
+      this.userRows.push(row)
+      return row
+    },
+    findMany: async ({ where }: { where: { subject: { in: string[] } } }) =>
+      this.userRows.filter((row) => where.subject.in.includes(row.subject)),
   }
 
   widgetIdempotency = {
@@ -150,9 +197,13 @@ class FakePrismaService {
   $transaction = async <T>(fn: (tx: this) => Promise<T>) => fn(this)
 }
 
-const tokenFor = (subject: string, scopes?: string[]) => {
+const tokenFor = (subject: string, scopes?: string[], name?: string) => {
   const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
-  const claims = scopes ? { sub: subject, scope: scopes.join(' ') } : { sub: subject }
+  const claims = {
+    sub: subject,
+    ...(scopes ? { scope: scopes.join(' ') } : {}),
+    ...(name ? { name } : {}),
+  }
   const payload = Buffer.from(JSON.stringify(claims)).toString('base64url')
   return `${header}.${payload}.`
 }
@@ -199,6 +250,45 @@ describe('WidgetsController', () => {
       .set('authorization', `Bearer ${tokenFor('alice')}`)
       .send({ name: 'Gateway-authorized widget' })
       .expect(201)
+  })
+
+  it('defaults a user name to the subject and updates it from a later token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
+      .send({ name: 'Alice widget' })
+      .expect(201)
+
+    const initialDirectory = await request(app.getHttpServer())
+      .get('/api/v1/admin/users')
+      .set('authorization', `Bearer ${tokenFor('admin', ['nrs:widgets:admin'], 'Admin User')}`)
+      .expect(200)
+
+    expect(initialDirectory.body).toEqual([
+      expect.objectContaining({
+        subject: 'alice',
+        displayName: 'alice',
+        widgetCount: 1,
+      }),
+    ])
+
+    await request(app.getHttpServer())
+      .get('/api/v1/widgets')
+      .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:read'], 'Alice Example')}`)
+      .expect(200)
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/admin/users')
+      .set('authorization', `Bearer ${tokenFor('admin', ['nrs:widgets:admin'], 'Admin User')}`)
+      .expect(200)
+
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        subject: 'alice',
+        displayName: 'Alice Example',
+        widgetCount: 1,
+      }),
+    ])
   })
 
   it('lists only Widgets for the authenticated subject', async () => {

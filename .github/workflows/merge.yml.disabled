@@ -1,17 +1,14 @@
 name: Merge
 
-# Disabled because Terraform manages environment deployments.
-on: []
-# Previous triggers:
-# on:
-#   push:
-#     branches: [main]
-#     paths-ignore:
-#       - '*.md'
-#       - '.github/**'
-#       - '.github/graphics/**'
-#       - '!.github/workflows/**'
-#   workflow_dispatch:
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '.github/**'
+      - '.github/graphics/**'
+      - '!.github/workflows/**'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}

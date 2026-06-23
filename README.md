@@ -83,7 +83,7 @@ realm, client, token, and backend validation configuration.
 ```sh
 export OIDC_AUTHORITY=https://identity.example.com/realms/sdx
 export OIDC_CLIENT_ID=widget-ui-sdx-reference-implementation-21920
-export OIDC_SCOPE="openid profile"
+export OIDC_SCOPE="openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin"
 docker compose up database migrations backend frontend
 ```
 
@@ -91,6 +91,7 @@ Register these browser redirect URIs with the OIDC provider:
 
 - `http://localhost:3000/auth/callback`
 - `http://localhost:3000/auth/silent-callback`
+- `http://localhost:3001/api/docs/oauth2-redirect.html` for Swagger UI
 - `http://localhost:3000/login` as the post-logout redirect URI
 
 DEV uses:
@@ -103,24 +104,40 @@ The frontend accepts these runtime settings:
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `API_BASE_URL` | No | `/api/v1` | Root-relative or absolute HTTP(S) API base URL |
+| `API_BASE_URL` | Yes | | Absolute HTTP(S) API base URL |
 | `OIDC_AUTHORITY` | Yes | | OIDC issuer/authority URL |
 | `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` | Public browser client ID |
-| `OIDC_SCOPE` | No | `openid profile` | Space-delimited scopes |
+| `OIDC_SCOPE` | No | Widget scopes plus `openid profile` | Space-delimited scopes |
 | `OIDC_DISPLAY_NAME_CLAIM` | No | `name` | Dot-delimited display-name claim path |
 | `OIDC_REDIRECT_URI` | No | `<origin>/auth/callback` | Login callback URI |
 | `OIDC_SILENT_REDIRECT_URI` | No | `<origin>/auth/silent-callback` | Silent token renewal callback URI |
 | `OIDC_POST_LOGOUT_REDIRECT_URI` | No | `<origin>/login` | Post-logout redirect URI |
+
+The backend uses `OIDC_AUTHORITY` to load
+`<authority>/.well-known/openid-configuration` during startup. Set
+`OIDC_OPENID_CONNECT_URL` only when the discovery URL cannot be derived from the
+authority. The live and generated OpenAPI documents use the discovered
+authorization and token endpoints to define only the OAuth2 authorization-code
+flow. Startup fails when discovery is unavailable or does not define both
+endpoints. Swagger UI uses `SWAGGER_OAUTH_CLIENT_ID`, falling back to
+`OIDC_CLIENT_ID`, as a public client with authorization code and PKCE. Set
+`SWAGGER_OAUTH_REDIRECT_URL` to the absolute callback URL registered with that
+client. Do not configure a client secret. `SWAGGER_OAUTH_SCOPES` controls the
+space-delimited scopes requested by Swagger and documented by the OAuth2 scheme;
+it defaults to `OIDC_SCOPE`, then the complete Widget scope set.
+
+Register the Swagger callback and API origin with the public OIDC client:
+
+- Callback: `<API origin>/api/docs/oauth2-redirect.html`
+- Web origin: `<API origin>`
 
 The Caddy image serves these values from `/config.json`, so one image can be
 configured differently in each environment. Vite development reads
 `API_BASE_URL` and the same `OIDC_*` variables. `VITE_API_BASE_URL` and
 corresponding `VITE_OIDC_*` variables are also supported as local fallbacks.
 
-When `API_BASE_URL` is the default `/api/v1`, the browser uses the frontend
-origin and Caddy proxies `/api/*` through `BACKEND_URL`. An absolute
-`API_BASE_URL` sends browser requests directly to that origin, which must allow
-the UI origin through CORS.
+The browser sends API requests directly to `API_BASE_URL`; the frontend does not
+proxy backend paths. The API origin must allow the UI origin through CORS.
 
 The provider must issue a JWT access token containing a `sub` claim because the
 reference backend derives Widget ownership directly from that claim. The access

@@ -1,11 +1,8 @@
 name: PR Closed
 
-# Disabled because Quickstart PR deployments are not being created.
-on: []
-# Previous triggers:
-# on:
-#   pull_request:
-#     types: [closed]
+on:
+  pull_request:
+    types: [closed]
 
 concurrency:
   # PR open and close use the same group, allowing only one at a time

@@ -77,8 +77,10 @@ Configure these local-development URLs:
 | Home URL | `http://localhost:3000` |
 | Valid redirect URIs | `http://localhost:3000/auth/callback` |
 | Valid redirect URIs | `http://localhost:3000/auth/silent-callback` |
+| Valid redirect URIs | `http://localhost:3001/api/docs/oauth2-redirect.html` |
 | Valid post logout redirect URIs | `http://localhost:3000/login` |
 | Web origins | `http://localhost:3000` |
+| Web origins | `http://localhost:3001` |
 
 Add the corresponding HTTPS URLs for DEV, TEST, and PROD. Prefer exact URLs over
 wildcards.
@@ -89,8 +91,10 @@ Configure these additional URLs for DEV:
 | --- | --- |
 | Valid redirect URIs | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca/auth/callback` |
 | Valid redirect URIs | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca/auth/silent-callback` |
+| Valid redirect URIs | `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/docs/oauth2-redirect.html` |
 | Valid post logout redirect URIs | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca/login` |
 | Web origins | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca` |
+| Web origins | `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca` |
 
 ## 3. Create the API Client
 
@@ -116,13 +120,9 @@ The API client is being created now for use in a later update. That update will:
 Until that update is implemented, do not configure an audience mapper or depend
 on the API client for token acquisition.
 
-## 4. Widget Scopes (Future)
+## 4. Widget Scopes
 
-The current reference implementation requests only `openid profile` and does
-not enforce operation scopes. No custom Widget client scopes are required for
-the current deployment.
-
-A later authorization update may create these OpenID Connect client scopes:
+Create these OpenID Connect client scopes:
 
 ```text
 nrs:widgets:read
@@ -132,9 +132,10 @@ nrs:widgets:delete
 nrs:widgets:admin
 ```
 
-At that time, assign them to
-`widget-ui-sdx-reference-implementation-21920` as optional client scopes and
-include them in `OIDC_SCOPE`.
+Assign all five to `widget-ui-sdx-reference-implementation-21920` under
+**Client scopes** as **Optional** assigned client scopes. Realm-level discovery
+does not make a scope requestable by a client. Include them in `OIDC_SCOPE` so
+both the UI and Swagger explicitly request them.
 
 The access token's standard `scope` claim should contain the granted scopes:
 
@@ -154,9 +155,9 @@ The intended future operation mapping is:
 | Delete subject Widgets | `nrs:widgets:delete` |
 | All `/api/v1/admin/*` operations | `nrs:widgets:admin` |
 
-For now, every authenticated user can access the admin screens and operations.
-No realm role, client role, role protocol mapper, or custom Widget scope is
-required.
+The current backend still assumes the gateway has authorized requests and does
+not enforce operation scopes itself. The scopes are requested now so access
+tokens are ready for gateway enforcement.
 
 This permissive administrative policy is intended for the current reference
 implementation only. Introduce role- or policy-based authorization before using
@@ -189,7 +190,7 @@ Supported frontend settings:
 
 | Variable | Required | Default |
 | --- | --- | --- |
-| `API_BASE_URL` | No | `/api/v1` |
+| `API_BASE_URL` | Yes | None |
 | `OIDC_AUTHORITY` | Yes | None |
 | `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` |
 | `OIDC_SCOPE` | No | `openid profile` |

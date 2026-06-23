@@ -34,6 +34,21 @@ parameters:
   - name: LOG_LEVEL
     description: Application log level (debug|info|warn|error)
     value: "info"
+  - name: OIDC_AUTHORITY
+    description: OIDC issuer URL used to derive the OpenID Connect discovery document
+    required: true
+  - name: OIDC_OPENID_CONNECT_URL
+    description: Optional explicit OpenID Connect discovery URL
+    value: ""
+  - name: SWAGGER_OAUTH_CLIENT_ID
+    description: Public OIDC client ID used by Swagger UI with authorization code and PKCE
+    value: widget-ui-sdx-reference-implementation-21920
+  - name: SWAGGER_OAUTH_REDIRECT_URL
+    description: Absolute Swagger UI OAuth callback URL registered with the OIDC client
+    required: true
+  - name: SWAGGER_OAUTH_SCOPES
+    description: Space-delimited OIDC scopes requested by Swagger UI
+    value: openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -94,6 +109,16 @@ objects:
               env:
                 - name: LOG_LEVEL
                   value: ${LOG_LEVEL}
+                - name: OIDC_AUTHORITY
+                  value: ${OIDC_AUTHORITY}
+                - name: OIDC_OPENID_CONNECT_URL
+                  value: ${OIDC_OPENID_CONNECT_URL}
+                - name: SWAGGER_OAUTH_CLIENT_ID
+                  value: ${SWAGGER_OAUTH_CLIENT_ID}
+                - name: SWAGGER_OAUTH_REDIRECT_URL
+                  value: ${SWAGGER_OAUTH_REDIRECT_URL}
+                - name: SWAGGER_OAUTH_SCOPES
+                  value: ${SWAGGER_OAUTH_SCOPES}
                 - name: POSTGRES_HOST
                   value: ${NAME}-${ZONE}-database
                 - name: POSTGRES_PORT

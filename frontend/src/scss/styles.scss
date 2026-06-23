@@ -138,8 +138,16 @@ body {
 }
 
 .subject-picker {
-  max-width: 34rem;
+  max-width: 42rem;
   margin-bottom: 2rem;
+}
+
+.user-directory-loading {
+  display: flex;
+  min-height: 2.4rem;
+  align-items: center;
+  gap: 0.65rem;
+  color: #68717e;
 }
 
 .filters {

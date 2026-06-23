@@ -32,15 +32,9 @@ function configured(...values: Array<string | undefined>): string | undefined {
 }
 
 function apiBaseUrl(value: string | undefined): string {
-  const candidate = value?.trim() || '/api/v1'
-  if (candidate.startsWith('/') && !candidate.startsWith('//')) {
-    const url = new URL(candidate, window.location.origin)
-    if (url.search || url.hash) {
-      throw new Error(
-        'Invalid API configuration: baseUrl must not include a query string or fragment',
-      )
-    }
-    return candidate.replace(/\/+$/, '') || '/'
+  const candidate = value?.trim()
+  if (!candidate) {
+    throw new Error('Missing required API configuration: baseUrl')
   }
 
   try {
@@ -57,7 +51,7 @@ function apiBaseUrl(value: string | undefined): string {
     return candidate.replace(/\/+$/, '')
   } catch {
     throw new Error(
-      'Invalid API configuration: baseUrl must be a root-relative path or an absolute HTTP(S) URL',
+      'Invalid API configuration: baseUrl must be an absolute HTTP(S) URL',
     )
   }
 }
@@ -88,7 +82,9 @@ export async function loadRuntimeConfig(): Promise<void> {
     clientId:
       configured(oidc.clientId, import.meta.env.VITE_OIDC_CLIENT_ID) ??
       'widget-ui-sdx-reference-implementation-21920',
-    scope: configured(oidc.scope, import.meta.env.VITE_OIDC_SCOPE) ?? 'openid profile',
+    scope:
+      configured(oidc.scope, import.meta.env.VITE_OIDC_SCOPE) ??
+      'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin',
     displayNameClaim:
       configured(oidc.displayNameClaim, import.meta.env.VITE_OIDC_DISPLAY_NAME_CLAIM) ?? 'name',
     redirectUri:

@@ -8,6 +8,13 @@ import helmet from 'helmet'
 import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
 import { WidgetsModule } from './widgets/widgets.module'
+import { UsersModule } from './users/users.module'
+import type { Response } from 'express'
+import {
+  createSwaggerOAuthCallbackScript,
+  createSwaggerOAuthPopupScript,
+  createSwaggerOAuthRedirectHtml,
+} from './swagger-oauth.scripts'
 
 const apiDescription = `Reference API for managing fictional Natural Resources widgets.
 
@@ -17,14 +24,73 @@ Scope names use the format \`<namespace>:<resource>:<action>\`. For this API, th
 
 The Widget scopes are \`nrs:widgets:read\`, \`nrs:widgets:create\`, \`nrs:widgets:update\`, \`nrs:widgets:delete\`, and \`nrs:widgets:admin\`.`
 
+const DEFAULT_OIDC_AUTHORITY = 'https://identity.example.com/realms/sdx'
+const DEFAULT_SWAGGER_CLIENT_ID = 'widget-ui-sdx-reference-implementation-21920'
+const DEFAULT_OIDC_SCOPES =
+  'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin'
+const OAUTH_SCOPE_DESCRIPTIONS: Record<string, string> = {
+  openid: 'Authenticate the user with OpenID Connect.',
+  profile: "Read the user's basic profile claims.",
+  'nrs:widgets:read': 'Read widgets.',
+  'nrs:widgets:create': 'Create widgets.',
+  'nrs:widgets:update': 'Update widgets.',
+  'nrs:widgets:delete': 'Delete widgets.',
+  'nrs:widgets:admin': 'Administer widgets across users.',
+}
+const SWAGGER_OAUTH_POPUP_SCRIPT_PATH = '/api/docs/swagger-oauth-popup.js'
+const SWAGGER_OAUTH_REDIRECT_PATH = '/api/docs/oauth2-redirect.html'
+const SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH = '/api/docs/swagger-oauth-callback.js'
+
 /**
  *
  */
 export async function bootstrap() {
+  const oidcAuthority = process.env.OIDC_AUTHORITY?.trim() || DEFAULT_OIDC_AUTHORITY
+  const openIdConnectUrl =
+    process.env.OIDC_OPENID_CONNECT_URL?.trim() ||
+    `${oidcAuthority.replace(/\/$/, '')}/.well-known/openid-configuration`
+  const swaggerClientId =
+    process.env.SWAGGER_OAUTH_CLIENT_ID?.trim() ||
+    process.env.OIDC_CLIENT_ID?.trim() ||
+    DEFAULT_SWAGGER_CLIENT_ID
+  const swaggerOAuthRedirectUrl = process.env.SWAGGER_OAUTH_REDIRECT_URL?.trim()
+  const swaggerOAuthScopes = (
+    process.env.SWAGGER_OAUTH_SCOPES?.trim() ||
+    process.env.OIDC_SCOPE?.trim() ||
+    DEFAULT_OIDC_SCOPES
+  )
+    .split(/\s+/)
+    .filter(Boolean)
+  const oidcDiscovery = await loadOidcDiscovery(openIdConnectUrl)
+  const oauthScopes = Object.fromEntries(
+    swaggerOAuthScopes.map((scope) => [scope, OAUTH_SCOPE_DESCRIPTIONS[scope] || scope]),
+  )
+  const oidcOrigins = [
+    ...new Set(
+      [oidcDiscovery.authorization_endpoint, oidcDiscovery.token_endpoint].map(
+        (endpoint) => new URL(endpoint).origin,
+      ),
+    ),
+  ]
+  const oidcAuthorizationOrigin = new URL(oidcDiscovery.authorization_endpoint).origin
+  const swaggerOAuthPopupScript = createSwaggerOAuthPopupScript(oidcAuthorizationOrigin)
+  const swaggerOAuthCallbackScript = createSwaggerOAuthCallbackScript()
+
   const app: NestExpressApplication = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: customLogger,
   })
-  app.use(helmet())
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          connectSrc: ["'self'", ...oidcOrigins],
+        },
+      },
+      crossOriginOpenerPolicy: {
+        policy: 'same-origin-allow-popups',
+      },
+    }),
+  )
   app.enableCors()
   app.set('trust proxy', 1)
   app.use(metricsMiddleware)
@@ -34,6 +100,21 @@ export async function bootstrap() {
     type: VersioningType.URI,
     prefix: 'v',
   })
+  app
+    .getHttpAdapter()
+    .get(SWAGGER_OAUTH_POPUP_SCRIPT_PATH, (_request: unknown, response: Response) => {
+      response.type('application/javascript').send(swaggerOAuthPopupScript)
+    })
+  app
+    .getHttpAdapter()
+    .get(SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH, (_request: unknown, response: Response) => {
+      response.type('application/javascript').send(swaggerOAuthCallbackScript)
+    })
+  app.getHttpAdapter().get(SWAGGER_OAUTH_REDIRECT_PATH, (_request: unknown, response: Response) => {
+    response
+      .type('text/html')
+      .send(createSwaggerOAuthRedirectHtml(SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH))
+  })
   const config = new DocumentBuilder()
     .setTitle('SDX Reference Implementation API - Widgets')
     .setDescription(apiDescription)
@@ -41,25 +122,68 @@ export async function bootstrap() {
     .setContact('SDX Reference Implementation Maintainers', undefined as any, undefined as any)
     .setLicense('Apache-2.0', undefined as any)
 
-    .addServer('http://localhost:3000/api/v1', 'Local development server for the Widgets API')
+    .addServer('/api/v1', 'Widgets API on the same origin as this documentation')
+    .addTag('Admin Users', 'Administrative discovery of users that own Widgets.')
     .addTag('Admin Widgets', 'Administrative Widget operations that can act across subjects.')
     .addTag(
       'Widgets',
       'Widget operations that act on resources owned by the authenticated subject.',
     )
     .addSecurity('openId', {
-      type: 'openIdConnect',
+      type: 'oauth2',
       description: 'Access token with the scope specified by each operation.',
-      openIdConnectUrl: undefined as any,
+      flows: {
+        authorizationCode: {
+          authorizationUrl: oidcDiscovery.authorization_endpoint,
+          tokenUrl: oidcDiscovery.token_endpoint,
+          scopes: oauthScopes,
+        },
+      },
     })
     .build()
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [WidgetsModule],
+    include: [WidgetsModule, UsersModule],
   })
   alignGeneratedWidgetSpec(document)
-  SwaggerModule.setup('/api/docs', app, document)
+  SwaggerModule.setup('/api/docs', app, document, {
+    customJs: SWAGGER_OAUTH_POPUP_SCRIPT_PATH,
+    swaggerOptions: {
+      persistAuthorization: true,
+      ...(swaggerOAuthRedirectUrl ? { oauth2RedirectUrl: swaggerOAuthRedirectUrl } : {}),
+      initOAuth: {
+        clientId: swaggerClientId,
+        usePkceWithAuthorizationCodeGrant: true,
+        scopes: swaggerOAuthScopes,
+      },
+    },
+  })
   return app
+}
+
+type OidcDiscovery = {
+  authorization_endpoint: string
+  token_endpoint: string
+}
+
+async function loadOidcDiscovery(openIdConnectUrl: string): Promise<OidcDiscovery> {
+  const response = await fetch(openIdConnectUrl)
+  if (!response.ok) {
+    throw new Error(
+      `Unable to load OIDC discovery document from ${openIdConnectUrl}: ${response.status} ${response.statusText}`,
+    )
+  }
+
+  const discovery = (await response.json()) as Partial<OidcDiscovery>
+  if (!discovery.authorization_endpoint || !discovery.token_endpoint) {
+    throw new Error(
+      `OIDC discovery document at ${openIdConnectUrl} must define authorization_endpoint and token_endpoint`,
+    )
+  }
+
+  new URL(discovery.authorization_endpoint)
+  new URL(discovery.token_endpoint)
+  return discovery as OidcDiscovery
 }
 
 function alignGeneratedWidgetSpec(document: OpenAPIObject) {
@@ -68,6 +192,7 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject) {
     '/widgets/{widgetId}': 'Manage one widget for the authenticated subject.',
     '/admin/subjects/{subject}/widgets': 'Administer widgets for one subject.',
     '/admin/widgets/{widgetId}': 'Administer one widget by ID.',
+    '/admin/users': 'Discover users that currently own widgets.',
   }
 
   const orderedPaths = [
@@ -75,6 +200,7 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject) {
     '/widgets/{widgetId}',
     '/admin/subjects/{subject}/widgets',
     '/admin/widgets/{widgetId}',
+    '/admin/users',
   ]
 
   const normalizedPaths = Object.fromEntries(
@@ -244,6 +370,15 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     example: {
       subject: 'user-456',
       status: 'archived',
+    },
+  })
+  Object.assign(schemas.UserSummary, {
+    additionalProperties: false,
+    example: {
+      subject: 'user-123',
+      displayName: 'Alex Smith',
+      widgetCount: 3,
+      lastSeenAt: '2026-06-11T15:00:00Z',
     },
   })
   Object.assign(schemas.ErrorResponse, {
