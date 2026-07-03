@@ -1,5 +1,4 @@
 import type { FC, ReactNode } from 'react'
-import { Footer, Header } from '@bcgov/design-system-react-components'
 import { Link } from '@tanstack/react-router'
 import { Button, Container, Nav, Navbar } from 'react-bootstrap'
 import { useAuth } from '@/auth/AuthContext'
@@ -15,10 +14,6 @@ const Layout: FC<Props> = ({ children }) => {
 
   return (
     <div className="app-shell">
-      <Header title="NRS Widget Application" />
-      <div className="app-subtitle">
-        <Container>SDX Reference Implementation</Container>
-      </div>
       {!auth.loading && auth.user && (
         <Navbar className="app-nav" expand="md">
           <Container>
@@ -44,7 +39,6 @@ const Layout: FC<Props> = ({ children }) => {
       <main className="app-main">
         <Container>{children}</Container>
       </main>
-      <Footer />
     </div>
   )
 }

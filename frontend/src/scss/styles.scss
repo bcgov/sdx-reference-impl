@@ -29,17 +29,8 @@ body {
   flex-direction: column;
 }
 
-.app-subtitle {
-  padding: 0.55rem 0;
-  border-top: 1px solid rgb(255 255 255 / 20%);
-  background: #234075;
-  color: #fff;
-  font-size: 0.95rem;
-}
-
 .app-nav {
   background: #234075;
-  border-top: 1px solid rgb(255 255 255 / 20%);
   padding: 0;
 
   .nav-link {
