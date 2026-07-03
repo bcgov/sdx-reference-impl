@@ -5,7 +5,6 @@ import type { Widget, WidgetInput, WidgetListResponse, WidgetStatus } from '@/in
 import WidgetFormModal from './WidgetFormModal'
 
 type Props = {
-  admin?: boolean
   subject: string
   title: string
 }
@@ -16,7 +15,7 @@ const statusVariant: Record<WidgetStatus, string> = {
   archived: 'dark',
 }
 
-export default function WidgetManager({ admin = false, subject, title }: Props) {
+export default function WidgetManager({ subject, title }: Props) {
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -26,9 +25,7 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
   const [editing, setEditing] = useState<Widget | null>(null)
   const [showForm, setShowForm] = useState(false)
 
-  const collectionPath = admin
-    ? `/admin/subjects/${encodeURIComponent(subject)}/widgets`
-    : '/widgets'
+  const collectionPath = '/widgets'
 
   const loadWidgets = useCallback(async () => {
     if (!subject) {
@@ -66,8 +63,7 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
     setError('')
     try {
       if (editing) {
-        const itemPath = admin ? `/admin/widgets/${editing.id}` : `/widgets/${editing.id}`
-        await apiService.getAxiosInstance().put(itemPath, input)
+        await apiService.getAxiosInstance().put(`/widgets/${editing.id}`, input)
       } else {
         await apiService.getAxiosInstance().post(collectionPath, input, {
           headers: { 'Idempotency-Key': crypto.randomUUID() },
@@ -89,8 +85,7 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
     }
     setError('')
     try {
-      const itemPath = admin ? `/admin/widgets/${widget.id}` : `/widgets/${widget.id}`
-      await apiService.getAxiosInstance().delete(itemPath)
+      await apiService.getAxiosInstance().delete(`/widgets/${widget.id}`)
       await loadWidgets()
     } catch (requestError) {
       setError(getApiErrorMessage(requestError))
@@ -111,7 +106,7 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
     <>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{admin ? 'Administrator workspace' : 'Subject workspace'}</p>
+          <p className="eyebrow">Subject workspace</p>
           <h1>{title}</h1>
           <p className="text-secondary mb-0">
             Managing widgets for <code>{subject}</code>
@@ -167,7 +162,6 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
                 <thead>
                   <tr>
                     <th>Name</th>
-                    {admin && <th>Subject</th>}
                     <th>Status</th>
                     <th>Updated</th>
                     <th className="text-end">Actions</th>
@@ -182,11 +176,6 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
                           {widget.description || 'No description'}
                         </div>
                       </td>
-                      {admin && (
-                        <td>
-                          <code>{widget.subject}</code>
-                        </td>
-                      )}
                       <td>
                         <Badge bg={statusVariant[widget.status]}>{widget.status}</Badge>
                       </td>
@@ -219,12 +208,10 @@ export default function WidgetManager({ admin = false, subject, title }: Props) 
 
       <WidgetFormModal
         key={`${editing?.id ?? 'new'}-${subject}-${showForm}`}
-        allowSubjectChange={admin && editing !== null}
         busy={busy}
         onHide={() => setShowForm(false)}
         onSubmit={saveWidget}
         show={showForm}
-        subject={subject}
         widget={editing}
       />
     </>

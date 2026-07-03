@@ -51,7 +51,7 @@ services:
     container_name: backend
     depends_on:
       migrations:
-        condition: service_started
+        condition: service_completed_successfully
     entrypoint: sh -c "npm i && npm run start:dev"
     environment:
       <<: *postgres-vars
@@ -83,7 +83,7 @@ services:
       OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
       OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete}
       OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
       PORT: 3000
       NODE_ENV: development
@@ -111,7 +111,7 @@ services:
       OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
       OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete}
       OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
     ports: ["3005:3000"]
     volumes: ["./frontend/Caddyfile:/etc/caddy/Caddyfile"]

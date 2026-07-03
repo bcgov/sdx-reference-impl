@@ -45,7 +45,7 @@ parameters:
     value: "widget-ui-sdx-reference-implementation-21920"
   - name: OIDC_SCOPE
     description: Space-delimited OIDC scopes requested by the frontend
-    value: "openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin"
+    value: "openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete"
   - name: OIDC_DISPLAY_NAME_CLAIM
     description: Dot-delimited ID token claim path used for the signed-in display name
     value: "name"

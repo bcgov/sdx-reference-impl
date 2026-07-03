@@ -8,29 +8,18 @@ import {
 } from '@/interfaces/Widget'
 
 type Props = {
-  allowSubjectChange?: boolean
   busy: boolean
   onHide: () => void
   onSubmit: (input: WidgetInput) => Promise<void>
   show: boolean
-  subject?: string
   widget?: Widget | null
 }
 
-export default function WidgetFormModal({
-  allowSubjectChange = false,
-  busy,
-  onHide,
-  onSubmit,
-  show,
-  subject = '',
-  widget,
-}: Props) {
+export default function WidgetFormModal({ busy, onHide, onSubmit, show, widget }: Props) {
   const [name, setName] = useState(widget?.name ?? '')
   const [description, setDescription] = useState(widget?.description ?? '')
   const [status, setStatus] = useState<WidgetStatus>(widget?.status ?? 'active')
   const [metadata, setMetadata] = useState(JSON.stringify(widget?.metadata ?? {}, null, 2))
-  const [widgetSubject, setWidgetSubject] = useState(widget?.subject ?? subject)
   const [error, setError] = useState('')
 
   const handleSubmit = async (event: FormEvent) => {
@@ -54,7 +43,6 @@ export default function WidgetFormModal({
       description: description || null,
       status,
       metadata: parsedMetadata,
-      ...(allowSubjectChange ? { subject: widgetSubject } : {}),
     })
   }
 
@@ -66,17 +54,6 @@ export default function WidgetFormModal({
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          {allowSubjectChange && (
-            <Form.Group className="mb-3" controlId="widget-subject">
-              <Form.Label>Subject ID</Form.Label>
-              <Form.Control
-                required
-                maxLength={255}
-                value={widgetSubject}
-                onChange={(event) => setWidgetSubject(event.target.value)}
-              />
-            </Form.Group>
-          )}
           <Form.Group className="mb-3" controlId="widget-name">
             <Form.Label>Name</Form.Label>
             <Form.Control

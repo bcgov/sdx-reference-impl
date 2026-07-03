@@ -50,9 +50,7 @@ function apiBaseUrl(value: string | undefined): string {
     }
     return candidate.replace(/\/+$/, '')
   } catch {
-    throw new Error(
-      'Invalid API configuration: baseUrl must be an absolute HTTP(S) URL',
-    )
+    throw new Error('Invalid API configuration: baseUrl must be an absolute HTTP(S) URL')
   }
 }
 
@@ -84,7 +82,7 @@ export async function loadRuntimeConfig(): Promise<void> {
       'widget-ui-sdx-reference-implementation-21920',
     scope:
       configured(oidc.scope, import.meta.env.VITE_OIDC_SCOPE) ??
-      'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin',
+      'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete',
     displayNameClaim:
       configured(oidc.displayNameClaim, import.meta.env.VITE_OIDC_DISPLAY_NAME_CLAIM) ?? 'name',
     redirectUri:

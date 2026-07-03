@@ -81,9 +81,9 @@ See [KEYCLOAK_OIDC_SETUP.md](KEYCLOAK_OIDC_SETUP.md) for the complete Keycloak
 realm, client, token, and backend validation configuration.
 
 ```sh
-export OIDC_AUTHORITY=https://identity.example.com/realms/sdx
+export OIDC_AUTHORITY=https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx
 export OIDC_CLIENT_ID=widget-ui-sdx-reference-implementation-21920
-export OIDC_SCOPE="openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin"
+export OIDC_SCOPE="openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete"
 docker compose up database migrations backend frontend
 ```
 
@@ -107,7 +107,7 @@ The frontend accepts these runtime settings:
 | `API_BASE_URL` | Yes | | Absolute HTTP(S) API base URL |
 | `OIDC_AUTHORITY` | Yes | | OIDC issuer/authority URL |
 | `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` | Public browser client ID |
-| `OIDC_SCOPE` | No | Widget scopes plus `openid profile` | Space-delimited scopes |
+| `OIDC_SCOPE` | No | Owner Widget scopes plus `openid profile` | Space-delimited scopes |
 | `OIDC_DISPLAY_NAME_CLAIM` | No | `name` | Dot-delimited display-name claim path |
 | `OIDC_REDIRECT_URI` | No | `<origin>/auth/callback` | Login callback URI |
 | `OIDC_SILENT_REDIRECT_URI` | No | `<origin>/auth/silent-callback` | Silent token renewal callback URI |
@@ -141,9 +141,10 @@ proxy backend paths. The API origin must allow the UI origin through CORS.
 
 The provider must issue a JWT access token containing a `sub` claim because the
 reference backend derives Widget ownership directly from that claim. The access
-token is sent as a bearer token on every API request. During this reference
-implementation phase, every authenticated user can access the admin screens and
-the frontend does not require a role claim.
+token is sent as a bearer token on every API request. The frontend currently
+supports owner access only through the authenticated subject and does not expose
+administrative screens. The backend still includes administrative endpoints for
+later reference implementation phases.
 
 The backend derives the authenticated subject from the bearer token's JWT `sub`
 claim. The current backend guard assumes that a trusted gateway has already

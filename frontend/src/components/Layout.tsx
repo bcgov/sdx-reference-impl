@@ -28,9 +28,6 @@ const Layout: FC<Props> = ({ children }) => {
                 <Nav.Link as={Link} to="/widgets">
                   My widgets
                 </Nav.Link>
-                <Nav.Link as={Link} to="/admin/widgets">
-                  Admin widgets
-                </Nav.Link>
               </Nav>
               <div className="session-summary">
                 <span>
