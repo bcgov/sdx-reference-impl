@@ -118,7 +118,7 @@ paths:
                         name: Intake form
                         description: Widget used for intake workflow testing.
                         status: active
-                        metadata:
+                        additionalData:
                           source: local-dev
                         createdAt: '2026-05-13T18:00:00Z'
                         updatedAt: '2026-05-13T18:00:00Z'
@@ -171,7 +171,7 @@ paths:
                   name: Intake form
                   description: Widget used for intake workflow testing.
                   status: active
-                  metadata:
+                  additionalData:
                     source: local-dev
       responses:
         '201':
@@ -192,7 +192,7 @@ paths:
                     name: Intake form
                     description: Widget used for intake workflow testing.
                     status: active
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
@@ -252,7 +252,7 @@ paths:
                     name: Intake form
                     description: Widget used for intake workflow testing.
                     status: active
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
@@ -309,7 +309,7 @@ paths:
                   name: Intake form v2
                   description: Updated widget used for intake workflow testing.
                   status: inactive
-                  metadata:
+                  additionalData:
                     source: local-dev
       responses:
         '200':
@@ -330,7 +330,7 @@ paths:
                     name: Intake form v2
                     description: Updated widget used for intake workflow testing.
                     status: inactive
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:30:00Z'
@@ -412,7 +412,7 @@ paths:
                     name: Intake form
                     description: Widget used for intake workflow testing.
                     status: archived
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:30:00Z'
@@ -575,7 +575,7 @@ paths:
                         name: Intake form
                         description: Widget used for intake workflow testing.
                         status: active
-                        metadata:
+                        additionalData:
                           source: local-dev
                         createdAt: '2026-05-13T18:00:00Z'
                         updatedAt: '2026-05-13T18:00:00Z'
@@ -634,7 +634,7 @@ paths:
                   name: Intake form
                   description: Widget used for intake workflow testing.
                   status: active
-                  metadata:
+                  additionalData:
                     source: local-dev
       responses:
         '201':
@@ -655,7 +655,7 @@ paths:
                     name: Intake form
                     description: Widget used for intake workflow testing.
                     status: active
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
@@ -712,7 +712,7 @@ paths:
                     name: Intake form
                     description: Widget used for intake workflow testing.
                     status: active
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:00:00Z'
@@ -770,7 +770,7 @@ paths:
                   name: Intake form v2
                   description: Updated widget used for intake workflow testing.
                   status: inactive
-                  metadata:
+                  additionalData:
                     source: local-dev
       responses:
         '200':
@@ -791,7 +791,7 @@ paths:
                     name: Intake form v2
                     description: Updated widget used for intake workflow testing.
                     status: inactive
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:30:00Z'
@@ -874,7 +874,7 @@ paths:
                     name: Intake form
                     description: Widget used for intake workflow testing.
                     status: archived
-                    metadata:
+                    additionalData:
                       source: local-dev
                     createdAt: '2026-05-13T18:00:00Z'
                     updatedAt: '2026-05-13T18:30:00Z'
@@ -1238,7 +1238,7 @@ components:
           example: Widget used for intake workflow testing.
         status:
           $ref: '#/components/schemas/WidgetStatus'
-        metadata:
+        additionalData:
           type: object
           additionalProperties: true
           example:
@@ -1260,7 +1260,7 @@ components:
         - name
         - description
         - status
-        - metadata
+        - additionalData
         - createdAt
         - updatedAt
       example:
@@ -1269,7 +1269,7 @@ components:
         name: Intake form
         description: Widget used for intake workflow testing.
         status: active
-        metadata:
+        additionalData:
           source: local-dev
         createdAt: '2026-05-13T18:00:00Z'
         updatedAt: '2026-05-13T18:00:00Z'
@@ -1283,7 +1283,7 @@ components:
               name: Intake form
               description: Widget used for intake workflow testing.
               status: active
-              metadata:
+              additionalData:
                 source: local-dev
               createdAt: '2026-05-13T18:00:00Z'
               updatedAt: '2026-05-13T18:00:00Z'
@@ -1307,7 +1307,7 @@ components:
             name: Intake form
             description: Widget used for intake workflow testing.
             status: active
-            metadata:
+            additionalData:
               source: local-dev
             createdAt: '2026-05-13T18:00:00Z'
             updatedAt: '2026-05-13T18:00:00Z'
@@ -1470,7 +1470,7 @@ components:
           example: Widget used for intake workflow testing.
         status:
           $ref: '#/components/schemas/WidgetStatus'
-        metadata:
+        additionalData:
           type: object
           additionalProperties: true
           example:
@@ -1478,7 +1478,7 @@ components:
       description: >-
         Request body for creating a widget. Subject is never accepted here. If
         status is omitted, the service creates the widget with status `active`.
-        If metadata is omitted, the service stores an empty metadata object.
+        If additionalData is omitted, the service stores an empty additional data object.
       required:
         - name
       additionalProperties: false
@@ -1486,7 +1486,7 @@ components:
         name: Intake form
         description: Widget used for intake workflow testing.
         status: active
-        metadata:
+        additionalData:
           source: local-dev
     UpdateWidgetRequest:
       type: object
@@ -1503,7 +1503,7 @@ components:
           example: Widget used for intake workflow testing.
         status:
           $ref: '#/components/schemas/WidgetStatus'
-        metadata:
+        additionalData:
           type: object
           additionalProperties: true
           example:
@@ -1512,7 +1512,7 @@ components:
         Request body for replacing a widget. Subject is never accepted here.
         This is a full replacement. Omitted optional fields are reset to their
         default values: description is set to null, status is set to active, and
-        metadata is set to an empty object.
+        additionalData is set to an empty object.
       required:
         - name
       additionalProperties: false
@@ -1520,7 +1520,7 @@ components:
         name: Intake form v2
         description: Updated widget used for intake workflow testing.
         status: inactive
-        metadata:
+        additionalData:
           source: local-dev
     PatchWidgetRequest:
       type: object
@@ -1537,7 +1537,7 @@ components:
           example: Widget used for intake workflow testing.
         status:
           $ref: '#/components/schemas/WidgetStatus'
-        metadata:
+        additionalData:
           type: object
           additionalProperties: true
           example:
@@ -1598,7 +1598,7 @@ components:
           example: Widget used for intake workflow testing.
         status:
           $ref: '#/components/schemas/WidgetStatus'
-        metadata:
+        additionalData:
           type: object
           additionalProperties: true
           example:
@@ -1612,7 +1612,7 @@ components:
         Request body for replacing a widget through an admin endpoint. This is a
         full replacement for widget fields. Omitted optional fields are reset to
         their default values: description is set to null, status is set to
-        active, and metadata is set to an empty object. If subject is omitted,
+        active, and additionalData is set to an empty object. If subject is omitted,
         the existing subject is preserved.
       required:
         - name
@@ -1622,7 +1622,7 @@ components:
         name: Intake form v2
         description: Updated widget used for intake workflow testing.
         status: inactive
-        metadata:
+        additionalData:
           source: local-dev
     AdminPatchWidgetRequest:
       type: object
@@ -1639,7 +1639,7 @@ components:
           example: Widget used for intake workflow testing.
         status:
           $ref: '#/components/schemas/WidgetStatus'
-        metadata:
+        additionalData:
           type: object
           additionalProperties: true
           example:

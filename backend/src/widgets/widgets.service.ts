@@ -35,7 +35,7 @@ type WidgetRecord = {
   name: string
   description: string | null
   status: string
-  metadata: unknown
+  additionalData: unknown
   createdAt: Date
   updatedAt: Date
 }
@@ -234,7 +234,7 @@ export class WidgetsService {
       name: dto.name.trim(),
       description: dto.description ?? null,
       status: dto.status ?? 'active',
-      metadata: this.metadataOrDefault(dto.metadata),
+      additionalData: this.additionalDataOrDefault(dto.additionalData),
     }
   }
 
@@ -257,7 +257,7 @@ export class WidgetsService {
       data.name = dto.name!.trim()
       data.description = dto.description ?? null
       data.status = dto.status ?? 'active'
-      data.metadata = this.metadataOrDefault(dto.metadata)
+      data.additionalData = this.additionalDataOrDefault(dto.additionalData)
     } else {
       if (dto.name !== undefined) {
         data.name = dto.name.trim()
@@ -268,8 +268,8 @@ export class WidgetsService {
       if (dto.status !== undefined) {
         data.status = dto.status
       }
-      if (dto.metadata !== undefined) {
-        data.metadata = this.metadataOrDefault(dto.metadata)
+      if (dto.additionalData !== undefined) {
+        data.additionalData = this.additionalDataOrDefault(dto.additionalData)
       }
     }
 
@@ -368,7 +368,7 @@ export class WidgetsService {
       name: data.name,
       description: data.description,
       status: data.status,
-      metadata: data.metadata,
+      additionalData: data.additionalData,
     })
     return createHash('sha256').update(canonical, 'utf8').digest('hex')
   }
@@ -390,15 +390,15 @@ export class WidgetsService {
     return `{${entries.join(',')}}`
   }
 
-  private metadataOrDefault(metadata: unknown): InputJsonValue {
-    if (metadata === undefined) {
+  private additionalDataOrDefault(additionalData: unknown): InputJsonValue {
+    if (additionalData === undefined) {
       return {}
     }
-    if (!metadata || Array.isArray(metadata) || typeof metadata !== 'object') {
-      throw new UnprocessableEntityException('metadata must be a JSON object')
+    if (!additionalData || Array.isArray(additionalData) || typeof additionalData !== 'object') {
+      throw new UnprocessableEntityException('additionalData must be a JSON object')
     }
-    this.validateJsonValue(metadata, 'metadata')
-    return metadata as InputJsonValue
+    this.validateJsonValue(additionalData, 'additionalData')
+    return additionalData as InputJsonValue
   }
 
   private validateJsonValue(value: unknown, path: string): void {
@@ -462,9 +462,11 @@ export class WidgetsService {
       name: widget.name,
       description: widget.description,
       status: widget.status as WidgetStatus,
-      metadata:
-        widget.metadata && typeof widget.metadata === 'object' && !Array.isArray(widget.metadata)
-          ? (widget.metadata as Record<string, unknown>)
+      additionalData:
+        widget.additionalData &&
+        typeof widget.additionalData === 'object' &&
+        !Array.isArray(widget.additionalData)
+          ? (widget.additionalData as Record<string, unknown>)
           : {},
       createdAt: widget.createdAt,
       updatedAt: widget.updatedAt,

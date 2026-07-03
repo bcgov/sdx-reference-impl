@@ -4,7 +4,7 @@ import { WidgetStatus, WIDGET_STATUSES } from './widget.dto'
 @ApiSchema({
   name: 'CreateWidgetRequest',
   description:
-    'Request body for creating a widget. Subject is never accepted here. If status is omitted, the service creates the widget with status `active`. If metadata is omitted, the service stores an empty metadata object.',
+    'Request body for creating a widget. Subject is never accepted here. If status is omitted, the service creates the widget with status `active`. If additionalData is omitted, the service stores an empty additional data object.',
 })
 export class CreateWidgetDto {
   @ApiProperty({
@@ -37,5 +37,5 @@ export class CreateWidgetDto {
       source: 'local-dev',
     },
   })
-  metadata?: Record<string, unknown>
+  additionalData?: Record<string, unknown>
 }

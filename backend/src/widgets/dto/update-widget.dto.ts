@@ -4,7 +4,7 @@ import { CreateWidgetDto } from './create-widget.dto'
 @ApiSchema({
   name: 'UpdateWidgetRequest',
   description:
-    'Request body for replacing a widget. Subject is never accepted here. This is a full replacement. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and metadata is set to an empty object.',
+    'Request body for replacing a widget. Subject is never accepted here. This is a full replacement. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and additionalData is set to an empty object.',
 })
 export class UpdateWidgetDto extends CreateWidgetDto {}
 
@@ -18,7 +18,7 @@ export class PatchWidgetDto extends PartialType(CreateWidgetDto) {}
 @ApiSchema({
   name: 'AdminUpdateWidgetRequest',
   description:
-    'Request body for replacing a widget through an admin endpoint. This is a full replacement for widget fields. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and metadata is set to an empty object. If subject is omitted, the existing subject is preserved.',
+    'Request body for replacing a widget through an admin endpoint. This is a full replacement for widget fields. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and additionalData is set to an empty object. If subject is omitted, the existing subject is preserved.',
 })
 export class AdminUpdateWidgetDto extends UpdateWidgetDto {
   @ApiPropertyOptional({

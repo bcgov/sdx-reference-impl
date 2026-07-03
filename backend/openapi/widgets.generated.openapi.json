@@ -134,7 +134,7 @@
                           "name": "Intake form",
                           "description": "Widget used for intake workflow testing.",
                           "status": "active",
-                          "metadata": {
+                          "additionalData": {
                             "source": "local-dev"
                           },
                           "createdAt": "2026-05-13T18:00:00Z",
@@ -207,7 +207,7 @@
                     "name": "Intake form",
                     "description": "Widget used for intake workflow testing.",
                     "status": "active",
-                    "metadata": {
+                    "additionalData": {
                       "source": "local-dev"
                     }
                   }
@@ -238,7 +238,7 @@
                       "name": "Intake form",
                       "description": "Widget used for intake workflow testing.",
                       "status": "active",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -324,7 +324,7 @@
                       "name": "Intake form",
                       "description": "Widget used for intake workflow testing.",
                       "status": "active",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -403,7 +403,7 @@
                     "name": "Intake form v2",
                     "description": "Updated widget used for intake workflow testing.",
                     "status": "inactive",
-                    "metadata": {
+                    "additionalData": {
                       "source": "local-dev"
                     }
                   }
@@ -434,7 +434,7 @@
                       "name": "Intake form v2",
                       "description": "Updated widget used for intake workflow testing.",
                       "status": "inactive",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -551,7 +551,7 @@
                       "name": "Intake form",
                       "description": "Widget used for intake workflow testing.",
                       "status": "archived",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -781,7 +781,7 @@
                           "name": "Intake form",
                           "description": "Widget used for intake workflow testing.",
                           "status": "active",
-                          "metadata": {
+                          "additionalData": {
                             "source": "local-dev"
                           },
                           "createdAt": "2026-05-13T18:00:00Z",
@@ -866,7 +866,7 @@
                     "name": "Intake form",
                     "description": "Widget used for intake workflow testing.",
                     "status": "active",
-                    "metadata": {
+                    "additionalData": {
                       "source": "local-dev"
                     }
                   }
@@ -897,7 +897,7 @@
                       "name": "Intake form",
                       "description": "Widget used for intake workflow testing.",
                       "status": "active",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -983,7 +983,7 @@
                       "name": "Intake form",
                       "description": "Widget used for intake workflow testing.",
                       "status": "active",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -1063,7 +1063,7 @@
                     "name": "Intake form v2",
                     "description": "Updated widget used for intake workflow testing.",
                     "status": "inactive",
-                    "metadata": {
+                    "additionalData": {
                       "source": "local-dev"
                     }
                   }
@@ -1094,7 +1094,7 @@
                       "name": "Intake form v2",
                       "description": "Updated widget used for intake workflow testing.",
                       "status": "inactive",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -1212,7 +1212,7 @@
                       "name": "Intake form",
                       "description": "Widget used for intake workflow testing.",
                       "status": "archived",
-                      "metadata": {
+                      "additionalData": {
                         "source": "local-dev"
                       },
                       "createdAt": "2026-05-13T18:00:00Z",
@@ -1721,7 +1721,7 @@
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
           },
-          "metadata": {
+          "additionalData": {
             "type": "object",
             "additionalProperties": true,
             "example": {
@@ -1748,7 +1748,7 @@
           "name",
           "description",
           "status",
-          "metadata",
+          "additionalData",
           "createdAt",
           "updatedAt"
         ],
@@ -1758,7 +1758,7 @@
           "name": "Intake form",
           "description": "Widget used for intake workflow testing.",
           "status": "active",
-          "metadata": {
+          "additionalData": {
             "source": "local-dev"
           },
           "createdAt": "2026-05-13T18:00:00Z",
@@ -1776,7 +1776,7 @@
                 "name": "Intake form",
                 "description": "Widget used for intake workflow testing.",
                 "status": "active",
-                "metadata": {
+                "additionalData": {
                   "source": "local-dev"
                 },
                 "createdAt": "2026-05-13T18:00:00Z",
@@ -1807,7 +1807,7 @@
               "name": "Intake form",
               "description": "Widget used for intake workflow testing.",
               "status": "active",
-              "metadata": {
+              "additionalData": {
                 "source": "local-dev"
               },
               "createdAt": "2026-05-13T18:00:00Z",
@@ -1994,7 +1994,7 @@
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
           },
-          "metadata": {
+          "additionalData": {
             "type": "object",
             "additionalProperties": true,
             "example": {
@@ -2002,7 +2002,7 @@
             }
           }
         },
-        "description": "Request body for creating a widget. Subject is never accepted here. If status is omitted, the service creates the widget with status `active`. If metadata is omitted, the service stores an empty metadata object.",
+        "description": "Request body for creating a widget. Subject is never accepted here. If status is omitted, the service creates the widget with status `active`. If additionalData is omitted, the service stores an empty additional data object.",
         "required": [
           "name"
         ],
@@ -2011,7 +2011,7 @@
           "name": "Intake form",
           "description": "Widget used for intake workflow testing.",
           "status": "active",
-          "metadata": {
+          "additionalData": {
             "source": "local-dev"
           }
         }
@@ -2034,7 +2034,7 @@
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
           },
-          "metadata": {
+          "additionalData": {
             "type": "object",
             "additionalProperties": true,
             "example": {
@@ -2042,7 +2042,7 @@
             }
           }
         },
-        "description": "Request body for replacing a widget. Subject is never accepted here. This is a full replacement. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and metadata is set to an empty object.",
+        "description": "Request body for replacing a widget. Subject is never accepted here. This is a full replacement. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and additionalData is set to an empty object.",
         "required": [
           "name"
         ],
@@ -2051,7 +2051,7 @@
           "name": "Intake form v2",
           "description": "Updated widget used for intake workflow testing.",
           "status": "inactive",
-          "metadata": {
+          "additionalData": {
             "source": "local-dev"
           }
         }
@@ -2074,7 +2074,7 @@
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
           },
-          "metadata": {
+          "additionalData": {
             "type": "object",
             "additionalProperties": true,
             "example": {
@@ -2107,7 +2107,7 @@
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
           },
-          "metadata": {
+          "additionalData": {
             "type": "object",
             "additionalProperties": true,
             "example": {
@@ -2121,7 +2121,7 @@
             "example": "user-456"
           }
         },
-        "description": "Request body for replacing a widget through an admin endpoint. This is a full replacement for widget fields. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and metadata is set to an empty object. If subject is omitted, the existing subject is preserved.",
+        "description": "Request body for replacing a widget through an admin endpoint. This is a full replacement for widget fields. Omitted optional fields are reset to their default values: description is set to null, status is set to active, and additionalData is set to an empty object. If subject is omitted, the existing subject is preserved.",
         "required": [
           "name"
         ],
@@ -2131,7 +2131,7 @@
           "name": "Intake form v2",
           "description": "Updated widget used for intake workflow testing.",
           "status": "inactive",
-          "metadata": {
+          "additionalData": {
             "source": "local-dev"
           }
         }
@@ -2154,7 +2154,7 @@
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
           },
-          "metadata": {
+          "additionalData": {
             "type": "object",
             "additionalProperties": true,
             "example": {

@@ -11,7 +11,7 @@ type WidgetRow = {
   name: string
   description: string | null
   status: string
-  metadata: Record<string, unknown>
+  additionalData: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
 }
@@ -47,7 +47,7 @@ class FakePrismaService {
         name: data.name,
         description: data.description ?? null,
         status: data.status ?? 'active',
-        metadata: data.metadata ?? {},
+        additionalData: data.additionalData ?? {},
         createdAt: now,
         updatedAt: now,
       } as WidgetRow
@@ -525,7 +525,7 @@ describe('WidgetsController', () => {
         name: 'Original widget',
         description: 'Original description',
         status: 'inactive',
-        metadata: { source: 'custom' },
+        additionalData: { source: 'custom' },
       })
       .expect(201)
 
@@ -538,10 +538,10 @@ describe('WidgetsController', () => {
     expect(replaced.body.name).toBe('Replacement widget')
     expect(replaced.body.description).toBeNull()
     expect(replaced.body.status).toBe('active')
-    expect(replaced.body.metadata).toEqual({})
+    expect(replaced.body.additionalData).toEqual({})
   })
 
-  it('rejects patch values with invalid status or metadata shape', async () => {
+  it('rejects patch values with invalid status or additional data shape', async () => {
     const created = await request(app.getHttpServer())
       .post('/api/v1/widgets')
       .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:create'])}`)
@@ -557,7 +557,7 @@ describe('WidgetsController', () => {
     await request(app.getHttpServer())
       .patch(`/api/v1/widgets/${created.body.id}`)
       .set('authorization', `Bearer ${tokenFor('alice', ['nrs:widgets:update'])}`)
-      .send({ metadata: ['not', 'an', 'object'] })
+      .send({ additionalData: ['not', 'an', 'object'] })
       .expect(422)
   })
 

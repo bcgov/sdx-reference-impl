@@ -13,7 +13,7 @@ Current state:
 - Widgets API implementation exists under `backend/src/widgets/`.
 - Auth helpers exist under `backend/src/auth/`.
 - Global error filter exists at `backend/src/common/http-exception.filter.ts` and is registered in `backend/src/app.module.ts`.
-- Widget create/update/patch service methods validate runtime input types, string sizes, enum values, UUID path params, and JSON-compatible metadata before calling Prisma.
+- Widget create/update/patch service methods validate runtime input types, string sizes, enum values, UUID path params, and JSON-compatible additional data before calling Prisma.
 - Widget create supports optional `Idempotency-Key` header on both user and admin create operations. Reusing the key with the same request body returns the original created widget; reusing it with a different body returns `409 Conflict`.
 - Single-widget create, get, replace, and patch responses return an `ETag` header derived from widget `id` and `updatedAt`. User and admin replace, patch, and delete operations accept optional `If-Match`; stale values return `412 Precondition Failed`.
 - Widget validation now distinguishes malformed requests (`400 Bad Request`) from semantic Widget validation failures (`422 Unprocessable Entity`). Both use BCGov Problem Details; non-validation errors use BCGov ErrorResponse.

@@ -19,22 +19,24 @@ export default function WidgetFormModal({ busy, onHide, onSubmit, show, widget }
   const [name, setName] = useState(widget?.name ?? '')
   const [description, setDescription] = useState(widget?.description ?? '')
   const [status, setStatus] = useState<WidgetStatus>(widget?.status ?? 'active')
-  const [metadata, setMetadata] = useState(JSON.stringify(widget?.metadata ?? {}, null, 2))
+  const [additionalData, setAdditionalData] = useState(
+    JSON.stringify(widget?.additionalData ?? {}, null, 2),
+  )
   const [error, setError] = useState('')
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
 
-    let parsedMetadata: Record<string, unknown>
+    let parsedAdditionalData: Record<string, unknown>
     try {
-      const parsed = JSON.parse(metadata)
+      const parsed = JSON.parse(additionalData)
       if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
         throw new Error()
       }
-      parsedMetadata = parsed
+      parsedAdditionalData = parsed
     } catch {
-      setError('Metadata must be a valid JSON object.')
+      setError('Additional data must be a valid JSON object.')
       return
     }
 
@@ -42,7 +44,7 @@ export default function WidgetFormModal({ busy, onHide, onSubmit, show, widget }
       name,
       description: description || null,
       status,
-      metadata: parsedMetadata,
+      additionalData: parsedAdditionalData,
     })
   }
 
@@ -86,14 +88,14 @@ export default function WidgetFormModal({ busy, onHide, onSubmit, show, widget }
               ))}
             </Form.Select>
           </Form.Group>
-          <Form.Group controlId="widget-metadata">
-            <Form.Label>Metadata (JSON object)</Form.Label>
+          <Form.Group controlId="widget-additional-data">
+            <Form.Label>Additional data (JSON object)</Form.Label>
             <Form.Control
               as="textarea"
               rows={5}
               className="font-monospace"
-              value={metadata}
-              onChange={(event) => setMetadata(event.target.value)}
+              value={additionalData}
+              onChange={(event) => setAdditionalData(event.target.value)}
             />
           </Form.Group>
         </Modal.Body>

@@ -9,7 +9,7 @@ export const WIDGET_EXAMPLE = {
   name: 'Intake form',
   description: 'Widget used for intake workflow testing.',
   status: 'active',
-  metadata: {
+  additionalData: {
     source: 'local-dev',
   },
   createdAt: '2026-05-13T18:00:00Z',
@@ -60,9 +60,9 @@ export class WidgetDto {
   @ApiProperty({
     type: 'object',
     additionalProperties: true,
-    example: WIDGET_EXAMPLE.metadata,
+    example: WIDGET_EXAMPLE.additionalData,
   })
-  metadata: Record<string, unknown>
+  additionalData: Record<string, unknown>
 
   @ApiProperty({
     format: 'date-time',

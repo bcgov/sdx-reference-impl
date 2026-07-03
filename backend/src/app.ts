@@ -326,7 +326,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       name: 'Intake form',
       description: 'Widget used for intake workflow testing.',
       status: 'active',
-      metadata: { source: 'local-dev' },
+      additionalData: { source: 'local-dev' },
       createdAt: '2026-05-13T18:00:00Z',
       updatedAt: '2026-05-13T18:00:00Z',
     },
@@ -343,7 +343,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       name: 'Intake form',
       description: 'Widget used for intake workflow testing.',
       status: 'active',
-      metadata: { source: 'local-dev' },
+      additionalData: { source: 'local-dev' },
     },
   })
   Object.assign(schemas.UpdateWidgetRequest, {
@@ -351,7 +351,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       name: 'Intake form v2',
       description: 'Updated widget used for intake workflow testing.',
       status: 'inactive',
-      metadata: { source: 'local-dev' },
+      additionalData: { source: 'local-dev' },
     },
   })
   Object.assign(schemas.PatchWidgetRequest, {
@@ -363,7 +363,7 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       name: 'Intake form v2',
       description: 'Updated widget used for intake workflow testing.',
       status: 'inactive',
-      metadata: { source: 'local-dev' },
+      additionalData: { source: 'local-dev' },
     },
   })
   Object.assign(schemas.AdminPatchWidgetRequest, {

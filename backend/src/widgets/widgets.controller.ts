@@ -112,7 +112,7 @@ const CREATE_WIDGET_EXAMPLE = {
   name: 'Intake form',
   description: 'Widget used for intake workflow testing.',
   status: 'active',
-  metadata: {
+  additionalData: {
     source: 'local-dev',
   },
 }
@@ -120,7 +120,7 @@ const UPDATE_WIDGET_EXAMPLE = {
   name: 'Intake form v2',
   description: 'Updated widget used for intake workflow testing.',
   status: 'inactive',
-  metadata: {
+  additionalData: {
     source: 'local-dev',
   },
 }

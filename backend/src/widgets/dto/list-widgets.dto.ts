@@ -72,7 +72,7 @@ export class WidgetListResponseDto {
         name: 'Intake form',
         description: 'Widget used for intake workflow testing.',
         status: 'active',
-        metadata: {
+        additionalData: {
           source: 'local-dev',
         },
         createdAt: '2026-05-13T18:00:00Z',
