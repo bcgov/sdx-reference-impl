@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosInstance } from 'axios'
 import { getApiConfig } from '@/auth/config'
-import { getAppUser, removeLocalUser } from '@/auth/oidc'
+import { removeLocalUser } from '@/auth/oidc'
 
 export type ApiErrorBody = {
   detail?: string
@@ -18,17 +18,10 @@ export class APIService {
     }
     this.client = axios.create({
       baseURL: getApiConfig().baseUrl,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
-    })
-
-    this.client.interceptors.request.use(async (config) => {
-      const user = await getAppUser()
-      if (user) {
-        config.headers.Authorization = `Bearer ${user.accessToken}`
-      }
-      return config
     })
 
     this.client.interceptors.response.use(undefined, async (error: AxiosError) => {

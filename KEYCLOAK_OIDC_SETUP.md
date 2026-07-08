@@ -1,7 +1,7 @@
 # Keycloak OIDC Setup
 
-This guide configures Keycloak for the **NRS Widget Application** frontend and
-Widgets API.
+This guide configures Keycloak for the Widget reference implementation using
+the Keycloak Admin REST API.
 
 Example values used below:
 
@@ -11,40 +11,91 @@ Example values used below:
 | Keycloak base URL | `https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth` |
 | Realm | `sdx` |
 | Frontend URL | `http://localhost:3000` |
-| Default frontend client ID | `widget-ui-sdx-reference-implementation-21920` |
-| Default API client ID | `widget-api-sdx-reference-implementation-21921` |
+| Local BFF client ID | `local-widget-bff` |
+| Local provider service client ID | `local-provider-sdx-api` |
+| Local provider API Swagger client ID | `local-provider-api-swagger` |
+| Local provider SDX API Swagger client ID | `local-provider-sdx-api-swagger` |
 
-The admin console URL is used to configure the realm. It is not the OIDC
-authority URL used by the application. Replace the frontend URLs for each
-deployed environment.
+The admin console URL is shown only to orient the realm. The setup script uses
+the Keycloak Admin REST API. Replace the local URLs for each deployed
+environment.
 
 ## Important Security Boundary
 
-The React frontend performs the OIDC authorization code flow with PKCE and sends
-the resulting access token to the API.
+The BFF performs the OIDC authorization code exchange with a confidential
+client, stores the user session in an HttpOnly cookie, and sends the user's
+access token server-side to `provider-sdx-api`.
 
-The current NestJS backend does **not** validate the JWT signature, issuer,
-expiry, or scopes. It decodes the token and reads its `sub` claim. The backend
-assumes that an API gateway has already:
+`provider-api` validates JWT signature, issuer, and expiry by default.
+`provider-sdx-api` defaults to decoding JWTs without validation so it can sit
+behind an SDX gateway during development. The same validation flags can be
+enabled on either provider API. An API gateway should still:
 
-1. Validated the JWT against Keycloak.
-2. Verified the issuer and token lifetime.
-3. Enforced the scope required by the requested API operation.
-4. Required authentication for administrative operations.
+1. Validate the JWT against Keycloak.
+2. Verify the issuer and token lifetime.
+3. Enforce the scope required by the requested API operation.
 
-Do not expose the backend directly in a production environment. Either place it
-behind a validating gateway or add full JWT validation and authorization to the
-backend.
+Do not expose `provider-sdx-api` without either a validating gateway or enabled
+JWT signature, issuer, and expiry validation.
 
-## 1. Create the Realm
+## 1. Run the Setup Script
 
-1. Sign in to the Keycloak administration console.
-2. Select **Create realm**.
-3. Set **Realm name** to `sdx`.
-4. Enable the realm.
-5. Save the realm.
+Run the setup script with a Keycloak base URL, target realm, and admin
+credentials. By default it creates clients with the `local` prefix:
 
-The OIDC authority URL is:
+```sh
+node scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "<admin-username>" \
+  --admin-password "<admin-password>"
+```
+
+The script is idempotent. It creates or updates:
+
+- Realm `sdx`.
+- Widget client scopes `nrs:widgets:read`, `nrs:widgets:create`,
+  `nrs:widgets:update`, and `nrs:widgets:delete`.
+- Confidential BFF client `<environment>-widget-bff`.
+- Confidential service client `<environment>-provider-sdx-api`.
+- Public Swagger OAuth client `<environment>-provider-api-swagger`.
+- Public Swagger OAuth client `<environment>-provider-sdx-api-swagger`.
+
+It then writes the generated client IDs and secrets to the selected env file.
+The default output file is `.env.<environment>`. Docker Compose reads `.env` by
+default, so copy or rename the generated file to `.env`, or pass it with
+`docker compose --env-file`. The admin password is not written to disk.
+
+Use a different environment name to change the generated client ID prefix and
+output file:
+
+```sh
+node scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "<admin-username>" \
+  --admin-password "<admin-password>" \
+  --environment dev \
+  --frontend-origin https://<frontend-host> \
+  --provider-api-origin https://<provider-api-host> \
+  --provider-sdx-api-origin https://<provider-sdx-api-host>
+```
+
+Or provide exact client IDs:
+
+```sh
+node scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "<admin-username>" \
+  --admin-password "<admin-password>" \
+  --bff-client-id "<bff-client-id>" \
+  --provider-service-client-id "<service-client-id>" \
+  --provider-api-swagger-client-id "<provider-api-swagger-client-id>" \
+  --provider-sdx-api-swagger-client-id "<provider-sdx-api-swagger-client-id>"
+```
+
+The resulting OIDC authority URL is:
 
 ```text
 https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx
@@ -56,86 +107,65 @@ Discovery metadata is available at:
 https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx/.well-known/openid-configuration
 ```
 
-## 2. Create the Frontend Client
+## 2. Clients Created by the Script
 
-Create an OpenID Connect client for the browser application:
+The BFF client is an OpenID Connect confidential client:
 
-1. Open **Clients** and select **Create client**.
-2. Set **Client type** to `OpenID Connect`.
-3. Set **Client ID** to `widget-ui-sdx-reference-implementation-21920`.
-4. Enable **Standard flow**.
-5. Disable **Direct access grants**.
-6. Disable **Implicit flow**.
-7. Disable **Client authentication** so this is a public client.
-8. Set the PKCE code challenge method to `S256`.
-
-Configure these local-development URLs:
-
-| Client setting | Value |
+| Setting | Value |
 | --- | --- |
-| Root URL | `http://localhost:3000` |
-| Home URL | `http://localhost:3000` |
-| Valid redirect URIs | `http://localhost:3000/auth/callback` |
-| Valid redirect URIs | `http://localhost:3000/auth/silent-callback` |
-| Valid redirect URIs | `http://localhost:3001/api/docs/oauth2-redirect.html` |
-| Valid post logout redirect URIs | `http://localhost:3000/login` |
-| Web origins | `http://localhost:3000` |
-| Web origins | `http://localhost:3001` |
+| Client ID | `<environment>-widget-bff` unless explicitly provided |
+| Standard flow | Enabled |
+| Client authentication | Enabled |
+| PKCE code challenge method | `S256` |
+| Direct access grants | Disabled |
+| Implicit flow | Disabled |
+| Valid redirect URI | `<frontend-origin>/api/auth/callback` |
+| Web origin | `<frontend-origin>` |
 
-Add the corresponding HTTPS URLs for DEV, TEST, and PROD. Prefer exact URLs over
-wildcards.
+The service-to-service client is a confidential client:
 
-Configure these additional URLs for DEV:
-
-| Client setting | Value |
+| Setting | Value |
 | --- | --- |
-| Valid redirect URIs | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca/auth/callback` |
-| Valid redirect URIs | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca/auth/silent-callback` |
-| Valid redirect URIs | `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/docs/oauth2-redirect.html` |
-| Valid post logout redirect URIs | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca/login` |
-| Web origins | `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca` |
-| Web origins | `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca` |
+| Client ID | `<environment>-provider-sdx-api` unless explicitly provided |
+| Client authentication | Enabled |
+| Service accounts | Enabled |
+| Standard flow | Disabled |
+| Direct access grants | Disabled |
+| Implicit flow | Disabled |
 
-## 3. Create the API Client
+`provider-sdx-api` uses this client with the client-credentials grant to obtain
+a real access token for calls to `provider-api`. There is no unsigned
+development token fallback or static bearer-token override. The setup script
+writes `PROVIDER_API_ALLOWED_CLIENT_IDS=<environment>-provider-sdx-api` so
+`provider-api` accepts this service client.
 
-1. Create another OpenID Connect client with client ID
-   `widget-api-sdx-reference-implementation-21921`.
-2. Disable **Standard flow**, **Implicit flow**, and **Direct access grants**.
-3. This client represents the API resource; it does not need browser redirect
-   URIs.
+For Swagger UI, the script creates separate public clients with authorization
+code and PKCE:
 
-No audience mapper is required for the current reference implementation. The
-gateway will not require the API client ID in the token's `aud` claim.
+| API | Client ID | Redirect URI |
+| --- | --- | --- |
+| `provider-api` | `<environment>-provider-api-swagger` | `<provider-api-origin>/api/docs/oauth2-redirect.html` |
+| `provider-sdx-api` | `<environment>-provider-sdx-api-swagger` | `<provider-sdx-api-origin>/api/docs/oauth2-redirect.html` |
 
-The API client is being created now for use in a later update. That update will:
+Add corresponding HTTPS URLs for DEV, TEST, and PROD when configuring deployed
+clients. Prefer exact URLs over wildcards.
 
-- Use `widget-api-sdx-reference-implementation-21921` as the Widgets API token
-  audience.
-- Configure the UI and other authorized clients to request tokens for that
-  audience.
-- Configure the gateway or backend to validate the audience.
-- Configure an appropriate token-acquisition flow for non-browser API clients,
-  such as client credentials where required.
+## 3. Widget Scopes
 
-Until that update is implemented, do not configure an audience mapper or depend
-on the API client for token acquisition.
-
-## 4. Widget Scopes
-
-Create these OpenID Connect client scopes:
+The setup script creates these OpenID Connect client scopes:
 
 ```text
 nrs:widgets:read
 nrs:widgets:create
 nrs:widgets:update
 nrs:widgets:delete
-nrs:widgets:admin
 ```
 
-Assign all five to `widget-ui-sdx-reference-implementation-21920` under
-**Client scopes** as **Optional** assigned client scopes. Realm-level discovery
-does not make a scope requestable by a client. Include them in `OIDC_SCOPE` so
-both the UI and Swagger explicitly request them.
+It assigns them to the configured BFF, provider API Swagger, and provider SDX
+API Swagger clients as optional client scopes. Realm-level discovery does not
+make a scope requestable by a client. Include them in `BFF_OIDC_SCOPE` and the
+provider-specific Swagger scope variables so the BFF and Swagger explicitly
+request them.
 
 The access token's standard `scope` claim should contain the granted scopes:
 
@@ -145,7 +175,7 @@ The access token's standard `scope` claim should contain the granted scopes:
 }
 ```
 
-The intended future operation mapping is:
+The current operation mapping is:
 
 | API operations | Required scope |
 | --- | --- |
@@ -153,73 +183,51 @@ The intended future operation mapping is:
 | Create subject Widgets | `nrs:widgets:create` |
 | Replace/patch subject Widgets | `nrs:widgets:update` |
 | Delete subject Widgets | `nrs:widgets:delete` |
-| All `/api/v1/admin/*` operations | `nrs:widgets:admin` |
 
-The current backend still assumes the gateway has authorized requests and does
+The current bff still assumes the gateway has authorized requests and does
 not enforce operation scopes itself. The scopes are requested now so access
 tokens are ready for gateway enforcement.
 
-This permissive administrative policy is intended for the current reference
-implementation only. Introduce role- or policy-based authorization before using
-administrative operations with production data.
-
-## 5. Create Users
+## 4. Create Users
 
 Create the users required for local testing. No application roles are required.
 
 The Widgets API uses the access token's immutable `sub` claim as the Widget
 owner identifier. A user's subject can be inspected by decoding their access
-token. Users enter another user's subject ID on the admin Widgets screen.
+token.
 
 Do not configure a mapper that replaces `sub` with a mutable username or email
 address.
 
-## 6. Configure the Frontend
+## 5. Configure the Local Stack
 
-For local Docker Compose development:
+After running the setup script, start the stack:
 
 ```sh
-export OIDC_AUTHORITY=https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx
-export OIDC_CLIENT_ID=widget-ui-sdx-reference-implementation-21920
-export OIDC_SCOPE="openid profile"
-
-docker compose up database migrations backend frontend
+docker compose up database migrations provider-api provider-sdx-api bff frontend
 ```
 
-Supported frontend settings:
+The frontend uses the same-origin BFF path `/api/v1`. The Caddy frontend image
+serves that value through `/config.json` and proxies `/api` to `BFF_BASE_URL`.
+Vite development uses the same browser path and proxies `/api` to `BFF_BASE_URL`.
 
-| Variable | Required | Default |
-| --- | --- | --- |
-| `API_BASE_URL` | Yes | None |
-| `OIDC_AUTHORITY` | Yes | None |
-| `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` |
-| `OIDC_SCOPE` | No | `openid profile` |
-| `OIDC_DISPLAY_NAME_CLAIM` | No | `name` |
-| `OIDC_REDIRECT_URI` | No | `<frontend-origin>/auth/callback` |
-| `OIDC_SILENT_REDIRECT_URI` | No | `<frontend-origin>/auth/silent-callback` |
-| `OIDC_POST_LOGOUT_REDIRECT_URI` | No | `<frontend-origin>/login` |
-
-The Caddy frontend image exposes these settings through `/config.json`, allowing
-the same image to be configured independently in each environment. Vite
-development also accepts the same variables.
-
-Configure the DEV frontend container with:
+The BFF container uses:
 
 ```text
-API_BASE_URL=https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1
 OIDC_AUTHORITY=https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx
-OIDC_CLIENT_ID=widget-ui-sdx-reference-implementation-21920
-OIDC_SCOPE=openid profile
+BFF_OIDC_CLIENT_ID=local-widget-bff
+BFF_OIDC_CLIENT_SECRET=<bff-confidential-client-secret>
+BFF_OIDC_SCOPE=openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete
+BFF_OIDC_REDIRECT_URI=http://localhost:3000/api/auth/callback
 ```
 
-The browser sends API requests directly to the configured absolute API URL. The
-API must allow the UI origin
-`https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca` through CORS.
+The browser sends same-origin API requests to the BFF. The browser does not
+store access tokens or call `provider-sdx-api` or `provider-api` directly.
 
-## 7. Configure Token Validation for the Backend
+## 6. Configure Token Validation for the BFF
 
-The current backend assumes a trusted gateway has validated the bearer token.
-Configure that gateway with:
+`provider-api` validates signature, issuer, and expiry by default. Configure the
+provider APIs and gateway with:
 
 | Validation setting | Value |
 | --- | --- |
@@ -236,31 +244,44 @@ The gateway must reject tokens that have:
 - No non-empty `sub` claim.
 
 The gateway should remove any untrusted inbound identity headers before
-forwarding the request. It must forward the validated bearer token because the
-backend reads `sub` from that token.
+forwarding the request. It must forward the validated bearer token because
+`provider-sdx-api` reads `sub` from that token.
+
+JWT validation can be controlled per provider API:
+
+| Flag | `provider-api` default | `provider-sdx-api` default |
+| --- | --- | --- |
+| `JWT_VALIDATE_SIGNATURE` | `true` | `false` |
+| `JWT_VALIDATE_EXPIRY` | `true` | `false` |
+| `JWT_ISSUER` | `PROVIDER_API_JWT_ISSUER`, generated from `OIDC_AUTHORITY` | unset |
+
+Use `JWT_ISSUER` to set the expected issuer. When `JWT_ISSUER` is set, the
+services validate the token's `iss` claim against it. Signing keys are resolved
+from `OIDC_OPENID_CONNECT_URL`, or from the discovery document derived from
+`OIDC_AUTHORITY`. `JWT_ISSUER` only controls issuer comparison. The services do
+not trust the token's unvalidated `iss` claim to choose a JWKS URL.
 
 The supplied OpenShift templates currently proxy the frontend directly to the
-backend and do not deploy this gateway. Before exposing that topology, either
+bff and do not deploy this gateway. Before exposing that topology, either
 add the gateway or add JWT signature, issuer, and lifetime validation to the
-backend.
+bff.
 
-## 8. Verify the Configuration
+## 7. Verify the Configuration
 
 1. Open `http://localhost:3000`.
 2. Select **Log in** and authenticate through Keycloak.
 3. Confirm that the user can access **My widgets**.
-4. Confirm that the same user can access **Admin widgets**.
-5. Decode the access token and verify:
+4. Decode the access token and verify:
 
 ```json
 {
   "iss": "https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx",
   "sub": "<stable-keycloak-subject>",
-  "scope": "openid profile"
+  "scope": "openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete"
 }
 ```
 
-6. Call the API through the gateway:
+5. Call the API through the gateway:
 
 ```sh
 curl \
@@ -268,8 +289,8 @@ curl \
   https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1/widgets
 ```
 
-7. Verify that missing, expired, and incorrectly issued tokens are rejected
-   before reaching the backend.
+6. Verify that missing, expired, and incorrectly issued tokens are rejected
+   before reaching the bff.
 
 ## Troubleshooting
 
@@ -280,13 +301,6 @@ including scheme, host, port, and path.
 
 ### API returns 401
 
-Confirm that the request carries a JWT access token with a non-empty `sub`
-claim. Also inspect gateway logs for issuer, lifetime, or signature validation
-failures.
-
-### Silent renewal fails
-
-Confirm that `/auth/silent-callback` is a valid redirect URI. Browser
-third-party-cookie policies can prevent iframe-based silent renewal when
-Keycloak is hosted on a different site; users may need to authenticate again
-when the token expires.
+Confirm that the BFF session exists and that the server-side user access token
+contains a non-empty `sub` claim. Also inspect gateway logs for issuer,
+lifetime, or signature validation failures.

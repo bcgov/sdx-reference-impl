@@ -16,8 +16,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  backend-tests:
-    name: Backend Tests
+  bff-tests:
+    name: BFF Tests
     if: (! github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -43,7 +43,7 @@ jobs:
             npm run lint
             npm run format:check
             npm run test:cov
-          dir: backend
+          dir: bff
           node_version: "22"
           sonar_args: >
             -Dsonar.exclusions=**/coverage/**,**/node_modules/**,**/*spec.ts
@@ -55,7 +55,7 @@ jobs:
           sonar_token: ${{ env.sonar_token }}
           dep_scan: warn
           supply_scan: true
-          triggers: ('backend/')
+          triggers: ('bff/')
 
   frontend-tests:
     name: Frontend Tests
@@ -115,7 +115,7 @@ jobs:
 
   results:
     name: Analysis Results
-    needs: [backend-tests, frontend-tests]
+    needs: [bff-tests, frontend-tests]
     if: always() && (! github.event.pull_request.draft)
     runs-on: ubuntu-slim
     steps:

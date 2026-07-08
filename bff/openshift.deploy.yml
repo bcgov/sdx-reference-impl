@@ -1,0 +1,151 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+  - name: NAME
+    description: Module name
+    required: true
+  - name: COMPONENT
+    description: Component name
+    value: bff
+  - name: ZONE
+    description: Deployment zone, e.g. pr-### or prod
+    required: true
+  - name: IMAGE_TAG
+    description: Image tag to use
+    required: true
+  - name: REGISTRY
+    description: Container registry to import from
+    value: ghcr.io
+  - name: ORG_NAME
+    description: Organization name
+    value: bcgov
+  - name: MIN_REPLICAS
+    description: The minimum amount of replicas for the horizontal pod autoscaler.
+    value: "1"
+  - name: MAX_REPLICAS
+    description: The maximum amount of replicas for the horizontal pod autoscaler. Keep at 1 until BFF sessions use shared storage.
+    value: "1"
+  - name: CPU_REQUEST
+    value: "25m"
+  - name: MEMORY_REQUEST
+    value: "100Mi"
+  - name: LOG_LEVEL
+    description: Application log level (debug|info|warn|error)
+    value: "info"
+  - name: PROVIDER_SDX_API_BASE_URL
+    description: Internal Provider SDX API base URL used by the BFF
+    required: true
+  - name: OIDC_AUTHORITY
+    description: OIDC issuer URL used to derive the OpenID Connect discovery document
+    required: true
+  - name: OIDC_OPENID_CONNECT_URL
+    description: Optional explicit OpenID Connect discovery URL
+    value: ""
+  - name: BFF_OIDC_CLIENT_ID
+    description: Confidential BFF OIDC client ID
+    required: true
+  - name: BFF_OIDC_CLIENT_SECRET
+    description: Confidential BFF OIDC client secret
+    required: true
+  - name: BFF_OIDC_SCOPE
+    description: Space-delimited OIDC scopes requested by the BFF
+    value: openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete
+  - name: BFF_OIDC_DISPLAY_NAME_CLAIM
+    description: Dot-delimited token claim path used for the signed-in display name
+    value: name
+  - name: BFF_OIDC_REDIRECT_URI
+    description: Absolute BFF callback URI registered with the OIDC client
+    required: true
+objects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          deployment: ${NAME}-${ZONE}-${COMPONENT}
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          labels:
+            app: ${NAME}-${ZONE}
+            deployment: ${NAME}-${ZONE}-${COMPONENT}
+        spec:
+          containers:
+            - name: ${NAME}
+              image: ${REGISTRY}/${ORG_NAME}/${NAME}/${COMPONENT}:${IMAGE_TAG}
+              imagePullPolicy: Always
+              ports:
+                - name: http
+                  containerPort: 3000
+              env:
+                - name: NODE_ENV
+                  value: production
+                - name: LOG_LEVEL
+                  value: ${LOG_LEVEL}
+                - name: PROVIDER_SDX_API_BASE_URL
+                  value: ${PROVIDER_SDX_API_BASE_URL}
+                - name: OIDC_AUTHORITY
+                  value: ${OIDC_AUTHORITY}
+                - name: OIDC_OPENID_CONNECT_URL
+                  value: ${OIDC_OPENID_CONNECT_URL}
+                - name: OIDC_CLIENT_ID
+                  value: ${BFF_OIDC_CLIENT_ID}
+                - name: OIDC_CLIENT_SECRET
+                  value: ${BFF_OIDC_CLIENT_SECRET}
+                - name: OIDC_SCOPE
+                  value: ${BFF_OIDC_SCOPE}
+                - name: OIDC_DISPLAY_NAME_CLAIM
+                  value: ${BFF_OIDC_DISPLAY_NAME_CLAIM}
+                - name: OIDC_REDIRECT_URI
+                  value: ${BFF_OIDC_REDIRECT_URI}
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+              readinessProbe:
+                httpGet:
+                  path: /api/health
+                  port: http
+              livenessProbe:
+                httpGet:
+                  path: /api/health
+                  port: http
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}
+    spec:
+      ports:
+        - name: http
+          port: 80
+          targetPort: 3000
+      selector:
+        deployment: ${NAME}-${ZONE}-${COMPONENT}
+  - apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: ${NAME}-${ZONE}-${COMPONENT}
+      minReplicas: ${MIN_REPLICAS}
+      maxReplicas: ${MAX_REPLICAS}
+      metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 80

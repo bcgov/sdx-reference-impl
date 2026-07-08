@@ -13,24 +13,10 @@ function runtimeConfig(mode: string): Plugin {
         response.end(
           JSON.stringify({
             api: {
-              baseUrl: env.API_BASE_URL || env.VITE_API_BASE_URL,
-            },
-            oidc: {
-              authority: env.OIDC_AUTHORITY || env.VITE_OIDC_AUTHORITY,
-              clientId: env.OIDC_CLIENT_ID || env.VITE_OIDC_CLIENT_ID,
-              scope: env.OIDC_SCOPE || env.VITE_OIDC_SCOPE,
-              displayNameClaim: env.OIDC_DISPLAY_NAME_CLAIM || env.VITE_OIDC_DISPLAY_NAME_CLAIM,
-              redirectUri: env.OIDC_REDIRECT_URI || env.VITE_OIDC_REDIRECT_URI,
-              silentRedirectUri: env.OIDC_SILENT_REDIRECT_URI || env.VITE_OIDC_SILENT_REDIRECT_URI,
-              postLogoutRedirectUri:
-                env.OIDC_POST_LOGOUT_REDIRECT_URI || env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI,
+              baseUrl: env.VITE_API_BASE_URL || '/api/v1',
             },
           }),
         )
-      })
-      server.middlewares.use('/api', (_request, response) => {
-        response.statusCode = 404
-        response.end()
       })
     },
   }
@@ -48,6 +34,12 @@ export default defineConfig(({ mode }) => ({
   ],
   server: {
     port: parseInt(process.env.PORT),
+    proxy: {
+      '/api': {
+        target: process.env.BFF_BASE_URL || 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
     fs: {
       // Allow serving files from one level up to the project root
       allow: ['..'],

@@ -1,28 +1,39 @@
-import type { User } from 'oidc-client-ts'
-import { toAppUser } from './oidc'
+import { beginLogin, getAppUser } from './oidc'
 
-vi.mock('./config', () => ({
-  getOidcConfig: () => ({
-    displayNameClaim: 'name',
-  }),
-}))
+describe('BFF session auth', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+  })
 
-describe('OIDC user', () => {
-  test('uses the access token subject without requiring role claims', () => {
-    const payload = btoa(JSON.stringify({ sub: 'access-token-subject' }))
-    const user = {
-      access_token: `header.${payload}.signature`,
-      expired: false,
-      profile: {
-        sub: 'id-token-subject',
-        name: 'Test User',
-      },
-    } as User
+  test('returns the BFF session user when authenticated', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        json: async () => ({
+          authenticated: true,
+          user: {
+            displayName: 'Test User',
+            subjectId: 'session-subject',
+          },
+        }),
+        ok: true,
+      }),
+    )
 
-    expect(toAppUser(user)).toEqual({
-      accessToken: user.access_token,
+    await expect(getAppUser()).resolves.toEqual({
       displayName: 'Test User',
-      subjectId: 'access-token-subject',
+      subjectId: 'session-subject',
     })
+  })
+
+  test('starts login through the BFF login endpoint', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', {
+      assign,
+    })
+
+    await beginLogin('/widgets')
+
+    expect(assign).toHaveBeenCalledWith('/api/auth/login?returnTo=%2Fwidgets')
   })
 })

@@ -34,30 +34,9 @@ parameters:
   - name: LOG_LEVEL
     description: Caddy log level (debug|info|warn|error)
     value: "info"
-  - name: API_BASE_URL
-    description: Absolute browser API base URL, for example https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1
+  - name: BFF_BASE_URL
+    description: Internal BFF origin used by Caddy to proxy /api requests
     required: true
-  - name: OIDC_AUTHORITY
-    description: OIDC issuer/authority URL
-    required: true
-  - name: OIDC_CLIENT_ID
-    description: Public OIDC client ID configured for authorization code flow with PKCE
-    value: "widget-ui-sdx-reference-implementation-21920"
-  - name: OIDC_SCOPE
-    description: Space-delimited OIDC scopes requested by the frontend
-    value: "openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete"
-  - name: OIDC_DISPLAY_NAME_CLAIM
-    description: Dot-delimited ID token claim path used for the signed-in display name
-    value: "name"
-  - name: OIDC_REDIRECT_URI
-    description: OIDC login callback URI; defaults to the frontend origin plus /auth/callback
-    value: ""
-  - name: OIDC_SILENT_REDIRECT_URI
-    description: OIDC silent renewal callback URI; defaults to the frontend origin plus /auth/silent-callback
-    value: ""
-  - name: OIDC_POST_LOGOUT_REDIRECT_URI
-    description: OIDC post-logout URI; defaults to the frontend origin plus /login
-    value: ""
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -88,22 +67,8 @@ objects:
               env:
                 - name: LOG_LEVEL
                   value: ${LOG_LEVEL}
-                - name: API_BASE_URL
-                  value: ${API_BASE_URL}
-                - name: OIDC_AUTHORITY
-                  value: ${OIDC_AUTHORITY}
-                - name: OIDC_CLIENT_ID
-                  value: ${OIDC_CLIENT_ID}
-                - name: OIDC_SCOPE
-                  value: ${OIDC_SCOPE}
-                - name: OIDC_DISPLAY_NAME_CLAIM
-                  value: ${OIDC_DISPLAY_NAME_CLAIM}
-                - name: OIDC_REDIRECT_URI
-                  value: ${OIDC_REDIRECT_URI}
-                - name: OIDC_SILENT_REDIRECT_URI
-                  value: ${OIDC_SILENT_REDIRECT_URI}
-                - name: OIDC_POST_LOGOUT_REDIRECT_URI
-                  value: ${OIDC_POST_LOGOUT_REDIRECT_URI}
+                - name: BFF_BASE_URL
+                  value: ${BFF_BASE_URL}
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}

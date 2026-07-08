@@ -1,0 +1,2 @@
+extends:
+  - https://raw.githubusercontent.com/bcgov/csit-api-governance-spectral-style-guide/refs/heads/feature/aps-4316/dist/spectral/sdx-ruleset.yaml

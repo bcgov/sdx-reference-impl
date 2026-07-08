@@ -408,5 +408,7 @@ pyrightconfig.json
 specs
 
 # Prisma 7 generated client
-backend/generated/
-backend/src/generated/
+provider-api/generated/
+provider-api/src/generated/
+
+.env.dev

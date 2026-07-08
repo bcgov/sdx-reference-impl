@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        package: [backend, frontend, migrations]
+        package: [bff, frontend, migrations, provider-api, provider-sdx-api]
     timeout-minutes: 10
     steps:
       - uses: bcgov/action-builder-ghcr@de3d575cf158e16f5dc2789630f6d587483b911c # v4.4.0
@@ -41,7 +41,7 @@ jobs:
   #     oc_token: ${{ secrets.oc_token }}
   #   with:
   #     target: ${{ github.event.number }}
-  #     triggers: ('backend/', 'frontend/', 'migrations/', 'common/', 'database/', '.github/workflows/.deploy.yml')
+  #     triggers: ('bff/', 'frontend/', 'migrations/', 'provider-api/', 'provider-sdx-api/', 'common/', 'database/', '.github/workflows/.deploy.yml')
 
   # tests:
   #   name: Tests

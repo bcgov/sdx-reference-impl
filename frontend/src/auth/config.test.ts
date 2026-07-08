@@ -1,7 +1,3 @@
-const oidcConfig = {
-  authority: 'https://identity.example.com/realms/sdx',
-}
-
 function runtimeResponse(body: unknown): void {
   vi.stubGlobal(
     'fetch',
@@ -18,11 +14,15 @@ describe('runtime configuration', () => {
     vi.unstubAllGlobals()
   })
 
-  test('requires the API base URL', async () => {
-    runtimeResponse({ oidc: oidcConfig })
-    const { loadRuntimeConfig } = await import('./config')
+  test('defaults the API base URL to the BFF path', async () => {
+    runtimeResponse({})
+    const { getApiConfig, loadRuntimeConfig } = await import('./config')
 
-    await expect(loadRuntimeConfig()).rejects.toThrow('Missing required API configuration')
+    await loadRuntimeConfig()
+
+    expect(getApiConfig()).toEqual({
+      baseUrl: '/api/v1',
+    })
   })
 
   test('accepts an absolute API base URL', async () => {
@@ -30,7 +30,6 @@ describe('runtime configuration', () => {
       api: {
         baseUrl: 'https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1',
       },
-      oidc: oidcConfig,
     })
     const { getApiConfig, loadRuntimeConfig } = await import('./config')
 
@@ -46,22 +45,24 @@ describe('runtime configuration', () => {
       api: {
         baseUrl: 'widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1',
       },
-      oidc: oidcConfig,
     })
     const { loadRuntimeConfig } = await import('./config')
 
     await expect(loadRuntimeConfig()).rejects.toThrow('Invalid API configuration')
   })
 
-  test('rejects a root-relative API base URL', async () => {
+  test('accepts a root-relative API base URL', async () => {
     runtimeResponse({
       api: {
         baseUrl: '/api/v1',
       },
-      oidc: oidcConfig,
     })
-    const { loadRuntimeConfig } = await import('./config')
+    const { getApiConfig, loadRuntimeConfig } = await import('./config')
 
-    await expect(loadRuntimeConfig()).rejects.toThrow('Invalid API configuration')
+    await loadRuntimeConfig()
+
+    expect(getApiConfig()).toEqual({
+      baseUrl: '/api/v1',
+    })
   })
 })
