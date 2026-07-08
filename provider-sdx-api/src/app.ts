@@ -35,9 +35,8 @@ const OAUTH_SCOPE_DESCRIPTIONS: Record<string, string> = {
   'nrs:widgets:update': 'Update widgets.',
   'nrs:widgets:delete': 'Delete widgets.',
 }
-const SWAGGER_OAUTH_POPUP_SCRIPT_PATH = '/api/docs/swagger-oauth-popup.js'
-const SWAGGER_OAUTH_REDIRECT_PATH = '/api/docs/oauth2-redirect.html'
-const SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH = '/api/docs/swagger-oauth-callback.js'
+const API_PREFIX = 'api'
+const API_VERSION_PREFIX = 'v'
 
 /**
  *
@@ -47,16 +46,18 @@ export async function bootstrap() {
   const openIdConnectUrl =
     process.env.OIDC_OPENID_CONNECT_URL?.trim() ||
     `${oidcAuthority.replace(/\/$/, '')}/.well-known/openid-configuration`
-  const swaggerClientId =
-    process.env.SWAGGER_OAUTH_CLIENT_ID?.trim() ||
-    DEFAULT_SWAGGER_CLIENT_ID
+  const swaggerClientId = process.env.SWAGGER_OAUTH_CLIENT_ID?.trim() || DEFAULT_SWAGGER_CLIENT_ID
   const swaggerOAuthRedirectUrl = process.env.SWAGGER_OAUTH_REDIRECT_URL?.trim()
-  const swaggerOAuthScopes = (
-    process.env.SWAGGER_OAUTH_SCOPES?.trim() ||
-    DEFAULT_OIDC_SCOPES
-  )
+  const swaggerOAuthScopes = (process.env.SWAGGER_OAUTH_SCOPES?.trim() || DEFAULT_OIDC_SCOPES)
     .split(/\s+/)
     .filter(Boolean)
+  const publicBasePath = normalizePublicBasePath(process.env.PUBLIC_BASE_PATH)
+  const apiPrefix = joinPaths(publicBasePath, API_PREFIX).replace(/^\//, '')
+  const apiServerPath = joinPaths(publicBasePath, API_PREFIX, 'v1')
+  const swaggerDocsPath = joinPaths(publicBasePath, API_PREFIX, 'docs')
+  const swaggerOAuthPopupScriptPath = joinPaths(swaggerDocsPath, 'swagger-oauth-popup.js')
+  const swaggerOAuthRedirectPath = joinPaths(swaggerDocsPath, 'oauth2-redirect.html')
+  const swaggerOAuthCallbackScriptPath = joinPaths(swaggerDocsPath, 'swagger-oauth-callback.js')
   const oidcDiscovery = await loadOidcDiscovery(openIdConnectUrl)
   const oauthScopes = Object.fromEntries(
     swaggerOAuthScopes.map((scope) => [scope, OAUTH_SCOPE_DESCRIPTIONS[scope] || scope]),
@@ -91,25 +92,21 @@ export async function bootstrap() {
   app.set('trust proxy', 1)
   app.use(metricsMiddleware)
   app.enableShutdownHooks()
-  app.setGlobalPrefix('api')
+  app.setGlobalPrefix(apiPrefix)
   app.enableVersioning({
     type: VersioningType.URI,
-    prefix: 'v',
+    prefix: API_VERSION_PREFIX,
+  })
+  app.getHttpAdapter().get(swaggerOAuthPopupScriptPath, (_request: unknown, response: Response) => {
+    response.type('application/javascript').send(swaggerOAuthPopupScript)
   })
   app
     .getHttpAdapter()
-    .get(SWAGGER_OAUTH_POPUP_SCRIPT_PATH, (_request: unknown, response: Response) => {
-      response.type('application/javascript').send(swaggerOAuthPopupScript)
-    })
-  app
-    .getHttpAdapter()
-    .get(SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH, (_request: unknown, response: Response) => {
+    .get(swaggerOAuthCallbackScriptPath, (_request: unknown, response: Response) => {
       response.type('application/javascript').send(swaggerOAuthCallbackScript)
     })
-  app.getHttpAdapter().get(SWAGGER_OAUTH_REDIRECT_PATH, (_request: unknown, response: Response) => {
-    response
-      .type('text/html')
-      .send(createSwaggerOAuthRedirectHtml(SWAGGER_OAUTH_CALLBACK_SCRIPT_PATH))
+  app.getHttpAdapter().get(swaggerOAuthRedirectPath, (_request: unknown, response: Response) => {
+    response.type('text/html').send(createSwaggerOAuthRedirectHtml(swaggerOAuthCallbackScriptPath))
   })
   const config = new DocumentBuilder()
     .setTitle('Provider SDX API - Widgets')
@@ -118,7 +115,7 @@ export async function bootstrap() {
     .setContact('SDX Reference Implementation Maintainers', undefined as any, undefined as any)
     .setLicense('Apache-2.0', undefined as any)
 
-    .addServer('/api/v1', 'Provider SDX API on the same origin as this documentation')
+    .addServer(apiServerPath, 'Provider SDX API on the same origin as this documentation')
     .addTag(
       'Widgets',
       'Widget operations that act on resources owned by the authenticated subject.',
@@ -139,9 +136,9 @@ export async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config, {
     include: [WidgetsModule],
   })
-  alignGeneratedWidgetSpec(document)
-  SwaggerModule.setup('/api/docs', app, document, {
-    customJs: SWAGGER_OAUTH_POPUP_SCRIPT_PATH,
+  alignGeneratedWidgetSpec(document, apiServerPath)
+  SwaggerModule.setup(swaggerDocsPath, app, document, {
+    customJs: swaggerOAuthPopupScriptPath,
     swaggerOptions: {
       persistAuthorization: true,
       ...(swaggerOAuthRedirectUrl ? { oauth2RedirectUrl: swaggerOAuthRedirectUrl } : {}),
@@ -180,7 +177,28 @@ async function loadOidcDiscovery(openIdConnectUrl: string): Promise<OidcDiscover
   return discovery as OidcDiscovery
 }
 
-function alignGeneratedWidgetSpec(document: OpenAPIObject) {
+function normalizePublicBasePath(value: string | undefined): string {
+  const trimmed = value?.trim()
+  if (!trimmed || trimmed === '/') {
+    return ''
+  }
+  return `/${trimmed.replace(/^\/+|\/+$/g, '')}`
+}
+
+function joinPaths(...parts: string[]): string {
+  const joined = parts
+    .filter(Boolean)
+    .map((part) => part.replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean)
+    .join('/')
+  return joined ? `/${joined}` : '/'
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function alignGeneratedWidgetSpec(document: OpenAPIObject, apiServerPath: string) {
   const pathSummaries: Record<string, string> = {
     '/widgets': 'Manage widgets for the authenticated subject.',
     '/widgets/{widgetId}': 'Manage one widget for the authenticated subject.',
@@ -190,7 +208,10 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject) {
 
   const normalizedPaths = Object.fromEntries(
     Object.entries(document.paths).map(([path, pathItem]) => {
-      const normalizedPath = path.replace(/^\/api\/v1/, '').replace(/^\/v1/, '')
+      const normalizedPath = path
+        .replace(new RegExp(`^${escapeRegExp(apiServerPath)}`), '')
+        .replace(/^\/api\/v1/, '')
+        .replace(/^\/v1/, '')
       return [
         normalizedPath,
         orderKeys(

@@ -31,12 +31,15 @@ describe('main', () => {
     process.env.SWAGGER_OAUTH_REDIRECT_URL = 'http://localhost:3001/api/docs/oauth2-redirect.html'
     process.env.SWAGGER_OAUTH_SCOPES =
       'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete'
+    delete process.env.PUBLIC_BASE_PATH
     app = await bootstrap()
+    await app.init()
   })
 
   afterAll(async () => {
     await app.close()
     vi.unstubAllGlobals()
+    delete process.env.PUBLIC_BASE_PATH
   })
 
   it('should start the application', async () => {
@@ -124,5 +127,67 @@ describe('main', () => {
       "connect-src 'self' https://identity.example.com",
     )
     expect(response.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups')
+  })
+})
+
+describe('main with a preserved public base path', () => {
+  let app: NestExpressApplication
+  const fetchMock = vi.fn()
+
+  beforeAll(async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        authorization_endpoint: 'https://identity.example.com/realms/test/oauth2/authorize',
+        token_endpoint: 'https://identity.example.com/realms/test/oauth2/token',
+      }),
+    })
+    process.env.OIDC_AUTHORITY = 'https://identity.example.com/realms/test'
+    process.env.SWAGGER_OAUTH_CLIENT_ID = 'swagger-test-client'
+    process.env.SWAGGER_OAUTH_REDIRECT_URL =
+      'https://widgets-api.example.com/sdx/api/docs/oauth2-redirect.html'
+    process.env.PUBLIC_BASE_PATH = '/sdx'
+    app = await bootstrap()
+    await app.init()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    vi.unstubAllGlobals()
+    delete process.env.PUBLIC_BASE_PATH
+    delete process.env.SWAGGER_OAUTH_REDIRECT_URL
+  })
+
+  it('serves Swagger and advertises API URLs under the preserved path', async () => {
+    const response = await request(app.getHttpServer()).get('/sdx/api/docs-json').expect(200)
+
+    expect(response.body.servers).toEqual([
+      {
+        url: '/sdx/api/v1',
+        description: 'Provider SDX API on the same origin as this documentation',
+      },
+    ])
+    await request(app.getHttpServer()).get('/api/docs-json').expect(404)
+  })
+
+  it('serves Swagger OAuth helper assets under the preserved path', async () => {
+    const docsResponse = await request(app.getHttpServer()).get('/sdx/api/docs').expect(200)
+    const initResponse = await request(app.getHttpServer())
+      .get('/sdx/api/docs/swagger-ui-init.js')
+      .expect(200)
+    const redirectResponse = await request(app.getHttpServer())
+      .get('/sdx/api/docs/oauth2-redirect.html?code=test-code&state=test-state')
+      .expect(200)
+
+    expect(initResponse.text).toContain(
+      '"oauth2RedirectUrl": "https://widgets-api.example.com/sdx/api/docs/oauth2-redirect.html"',
+    )
+    expect(docsResponse.text).toContain(
+      "<script src='/sdx/api/docs/swagger-oauth-popup.js'></script>",
+    )
+    expect(redirectResponse.text).toContain(
+      '<script src="/sdx/api/docs/swagger-oauth-callback.js"></script>',
+    )
   })
 })

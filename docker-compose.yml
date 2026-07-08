@@ -62,6 +62,7 @@ services:
       JWT_ISSUER: ${PROVIDER_API_JWT_ISSUER:?PROVIDER_API_JWT_ISSUER is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       JWT_VALIDATE_SIGNATURE: ${PROVIDER_API_JWT_VALIDATE_SIGNATURE:-true}
       JWT_VALIDATE_EXPIRY: ${PROVIDER_API_JWT_VALIDATE_EXPIRY:-true}
+      PUBLIC_BASE_PATH: ${PROVIDER_API_PUBLIC_BASE_PATH:-}
       SWAGGER_OAUTH_CLIENT_ID: ${PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID:?PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       SWAGGER_OAUTH_REDIRECT_URL: ${PROVIDER_API_SWAGGER_OAUTH_REDIRECT_URL:?PROVIDER_API_SWAGGER_OAUTH_REDIRECT_URL is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       SWAGGER_OAUTH_SCOPES: ${PROVIDER_API_SWAGGER_OAUTH_SCOPES:?PROVIDER_API_SWAGGER_OAUTH_SCOPES is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
@@ -94,6 +95,7 @@ services:
       JWT_ISSUER: ${PROVIDER_SDX_API_JWT_ISSUER:-}
       JWT_VALIDATE_SIGNATURE: ${PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE:-false}
       JWT_VALIDATE_EXPIRY: ${PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY:-false}
+      PUBLIC_BASE_PATH: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH:-}
       SWAGGER_OAUTH_CLIENT_ID: ${PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID:?PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       SWAGGER_OAUTH_REDIRECT_URL: ${PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL:?PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       SWAGGER_OAUTH_SCOPES: ${PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES:?PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
@@ -123,6 +125,7 @@ services:
       OIDC_OPENID_CONNECT_URL: ${OIDC_OPENID_CONNECT_URL:-}
       OIDC_REDIRECT_URI: ${BFF_OIDC_REDIRECT_URI:?BFF_OIDC_REDIRECT_URI is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       OIDC_SCOPE: ${BFF_OIDC_SCOPE:?BFF_OIDC_SCOPE is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      PUBLIC_BASE_PATH: ${BFF_PUBLIC_BASE_PATH:-}
     image: *node-image
     ports: ["3001:3000"]
     healthcheck:

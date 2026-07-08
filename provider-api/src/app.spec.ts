@@ -23,13 +23,16 @@ describe('main', () => {
     delete process.env.SWAGGER_OAUTH_SCOPES
     delete process.env.OIDC_AUTHORITY
     delete process.env.OIDC_OPENID_CONNECT_URL
+    delete process.env.PUBLIC_BASE_PATH
     vi.stubGlobal('fetch', fetchMock)
     app = await bootstrap()
+    await app.init()
   })
 
   afterAll(async () => {
     await app.close()
     vi.unstubAllGlobals()
+    delete process.env.PUBLIC_BASE_PATH
   })
 
   it('should start the application', async () => {
@@ -79,7 +82,9 @@ describe('main with Swagger OAuth', () => {
     process.env.SWAGGER_OAUTH_CLIENT_ID = 'provider-api-swagger-client'
     process.env.SWAGGER_OAUTH_REDIRECT_URL = 'http://localhost:3002/api/docs/oauth2-redirect.html'
     process.env.SWAGGER_OAUTH_SCOPES = 'openid profile provider-api'
+    delete process.env.PUBLIC_BASE_PATH
     app = await bootstrap()
+    await app.init()
   })
 
   afterAll(async () => {
@@ -89,6 +94,7 @@ describe('main with Swagger OAuth', () => {
     delete process.env.SWAGGER_OAUTH_CLIENT_ID
     delete process.env.SWAGGER_OAUTH_REDIRECT_URL
     delete process.env.SWAGGER_OAUTH_SCOPES
+    delete process.env.PUBLIC_BASE_PATH
   })
 
   it('publishes an OAuth security scheme when Swagger OAuth is configured', async () => {
@@ -136,5 +142,48 @@ describe('main with Swagger OAuth', () => {
     expect(docsResponse.text).toContain("<script src='/api/docs/swagger-oauth-popup.js'></script>")
     expect(scriptResponse.text).toContain('https://identity.example.com')
     expect(scriptResponse.headers['content-type']).toContain('application/javascript')
+  })
+})
+
+describe('main with a preserved public base path', () => {
+  let app: NestExpressApplication
+  const fetchMock = vi.fn()
+
+  beforeAll(async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        authorization_endpoint: 'https://identity.example.com/realms/test/oauth2/authorize',
+        token_endpoint: 'https://identity.example.com/realms/test/oauth2/token',
+      }),
+    })
+    process.env.OIDC_AUTHORITY = 'https://identity.example.com/realms/test'
+    process.env.SWAGGER_OAUTH_CLIENT_ID = 'provider-api-swagger-client'
+    process.env.SWAGGER_OAUTH_REDIRECT_URL =
+      'https://widgets-api.example.com/provider/api/docs/oauth2-redirect.html'
+    process.env.PUBLIC_BASE_PATH = '/provider'
+    app = await bootstrap()
+    await app.init()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    vi.unstubAllGlobals()
+    delete process.env.PUBLIC_BASE_PATH
+    delete process.env.SWAGGER_OAUTH_CLIENT_ID
+    delete process.env.SWAGGER_OAUTH_REDIRECT_URL
+  })
+
+  it('serves Swagger and advertises API URLs under the preserved path', async () => {
+    const response = await request(app.getHttpServer()).get('/provider/api/docs-json').expect(200)
+
+    expect(response.body.servers).toEqual([
+      {
+        url: '/provider/api/v1',
+        description: 'Provider API on the same origin as this documentation',
+      },
+    ])
+    await request(app.getHttpServer()).get('/api/docs-json').expect(404)
   })
 })

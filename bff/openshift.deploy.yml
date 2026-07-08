@@ -56,6 +56,9 @@ parameters:
   - name: BFF_OIDC_REDIRECT_URI
     description: Absolute BFF callback URI registered with the OIDC client
     required: true
+  - name: BFF_PUBLIC_BASE_PATH
+    description: Optional preserved public path prefix used before /api, for example /bff
+    value: ""
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -104,17 +107,19 @@ objects:
                   value: ${BFF_OIDC_DISPLAY_NAME_CLAIM}
                 - name: OIDC_REDIRECT_URI
                   value: ${BFF_OIDC_REDIRECT_URI}
+                - name: PUBLIC_BASE_PATH
+                  value: ${BFF_PUBLIC_BASE_PATH}
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
                   memory: ${MEMORY_REQUEST}
               readinessProbe:
                 httpGet:
-                  path: /api/health
+                  path: ${BFF_PUBLIC_BASE_PATH}/api/health
                   port: http
               livenessProbe:
                 httpGet:
-                  path: /api/health
+                  path: ${BFF_PUBLIC_BASE_PATH}/api/health
                   port: http
   - apiVersion: v1
     kind: Service

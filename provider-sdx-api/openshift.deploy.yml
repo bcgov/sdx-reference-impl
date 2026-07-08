@@ -73,6 +73,9 @@ parameters:
   - name: PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY
     description: Whether provider-sdx-api validates inbound JWT expiry
     value: "false"
+  - name: PROVIDER_SDX_API_PUBLIC_BASE_PATH
+    description: Optional preserved public path prefix used before /api, for example /sdx
+    value: ""
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -131,17 +134,19 @@ objects:
                   value: ${PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE}
                 - name: JWT_VALIDATE_EXPIRY
                   value: ${PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY}
+                - name: PUBLIC_BASE_PATH
+                  value: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
                   memory: ${MEMORY_REQUEST}
               readinessProbe:
                 httpGet:
-                  path: /api/health
+                  path: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}/api/health
                   port: http
               livenessProbe:
                 httpGet:
-                  path: /api/health
+                  path: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}/api/health
                   port: http
   - apiVersion: v1
     kind: Service

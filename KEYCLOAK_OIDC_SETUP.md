@@ -77,8 +77,8 @@ node scripts/setup-keycloak.mjs \
   --admin-password "<admin-password>" \
   --environment dev \
   --frontend-origin https://<frontend-host> \
-  --provider-api-origin https://<provider-api-host> \
-  --provider-sdx-api-origin https://<provider-sdx-api-host>
+  --provider-api-public-url https://<provider-api-host> \
+  --provider-sdx-api-public-url https://<provider-sdx-api-host-or-path>
 ```
 
 Or provide exact client IDs:
@@ -144,11 +144,19 @@ code and PKCE:
 
 | API | Client ID | Redirect URI |
 | --- | --- | --- |
-| `provider-api` | `<environment>-provider-api-swagger` | `<provider-api-origin>/api/docs/oauth2-redirect.html` |
-| `provider-sdx-api` | `<environment>-provider-sdx-api-swagger` | `<provider-sdx-api-origin>/api/docs/oauth2-redirect.html` |
+| `provider-api` | `<environment>-provider-api-swagger` | `<provider-api-public-url>/api/docs/oauth2-redirect.html` |
+| `provider-sdx-api` | `<environment>-provider-sdx-api-swagger` | `<provider-sdx-api-public-url>/api/docs/oauth2-redirect.html` |
 
 Add corresponding HTTPS URLs for DEV, TEST, and PROD when configuring deployed
 clients. Prefer exact URLs over wildcards.
+
+The `*-public-url` values may include a preserved route path. For example, if
+`provider-sdx-api` is served at
+`https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/sdx`, the setup script
+registers
+`https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/sdx/api/docs/oauth2-redirect.html`
+as the Swagger callback and uses
+`https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca` as the Keycloak web origin.
 
 ## 3. Widget Scopes
 
