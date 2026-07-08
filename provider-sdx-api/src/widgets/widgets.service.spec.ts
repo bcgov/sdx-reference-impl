@@ -8,20 +8,20 @@ describe('WidgetsService proxy adapter', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock)
     process.env.PROVIDER_API_BASE_URL = 'http://provider-api.test/api/v1'
-    process.env.PROVIDER_API_TOKEN_URL =
+    process.env.PROVIDER_SDX_API_TOKEN_URL =
       'https://issuer.test/realms/sdx/protocol/openid-connect/token'
-    process.env.PROVIDER_API_CLIENT_ID = 'local-provider-sdx-api'
-    process.env.PROVIDER_API_CLIENT_SECRET = 'service-secret'
+    process.env.PROVIDER_SDX_API_CLIENT_ID = 'local-provider-sdx-api'
+    process.env.PROVIDER_SDX_API_CLIENT_SECRET = 'service-secret'
     service = new WidgetsService()
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
     delete process.env.PROVIDER_API_BASE_URL
-    delete process.env.PROVIDER_API_CLIENT_ID
-    delete process.env.PROVIDER_API_CLIENT_SECRET
-    delete process.env.PROVIDER_API_TOKEN_SCOPE
-    delete process.env.PROVIDER_API_TOKEN_URL
+    delete process.env.PROVIDER_SDX_API_CLIENT_ID
+    delete process.env.PROVIDER_SDX_API_CLIENT_SECRET
+    delete process.env.PROVIDER_SDX_API_TOKEN_SCOPE
+    delete process.env.PROVIDER_SDX_API_TOKEN_URL
     delete process.env.OIDC_AUTHORITY
     delete process.env.OIDC_OPENID_CONNECT_URL
     fetchMock.mockReset()
@@ -79,9 +79,9 @@ describe('WidgetsService proxy adapter', () => {
   })
 
   it('obtains a provider API service token with client credentials', async () => {
-    process.env.PROVIDER_API_TOKEN_SCOPE = 'provider-api'
+    process.env.PROVIDER_SDX_API_TOKEN_SCOPE = 'provider-api'
     process.env.OIDC_AUTHORITY = 'https://issuer.test/realms/sdx'
-    delete process.env.PROVIDER_API_TOKEN_URL
+    delete process.env.PROVIDER_SDX_API_TOKEN_URL
     service = new WidgetsService()
     fetchMock
       .mockResolvedValueOnce({
@@ -136,7 +136,7 @@ describe('WidgetsService proxy adapter', () => {
   })
 
   it('fails loudly when client-credentials auth is not configured', async () => {
-    delete process.env.PROVIDER_API_CLIENT_SECRET
+    delete process.env.PROVIDER_SDX_API_CLIENT_SECRET
     process.env.OIDC_AUTHORITY = 'https://issuer.test/realms/sdx'
     service = new WidgetsService()
 
@@ -145,7 +145,7 @@ describe('WidgetsService proxy adapter', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({
         message:
-          'PROVIDER_API_CLIENT_SECRET is required for provider API client-credentials authentication',
+          'PROVIDER_SDX_API_CLIENT_SECRET is required for provider API client-credentials authentication',
       }),
     })
     expect(fetchMock).not.toHaveBeenCalled()

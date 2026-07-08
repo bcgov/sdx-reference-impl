@@ -86,10 +86,10 @@ services:
     environment:
       NODE_ENV: development
       PROVIDER_API_BASE_URL: ${PROVIDER_API_BASE_URL:-http://provider-api:3000/api/v1}
-      PROVIDER_API_CLIENT_ID: ${PROVIDER_API_CLIENT_ID:?PROVIDER_API_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
-      PROVIDER_API_CLIENT_SECRET: ${PROVIDER_API_CLIENT_SECRET:?PROVIDER_API_CLIENT_SECRET is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
-      PROVIDER_API_TOKEN_SCOPE: ${PROVIDER_API_TOKEN_SCOPE:-}
-      PROVIDER_API_TOKEN_URL: ${PROVIDER_API_TOKEN_URL:-}
+      PROVIDER_SDX_API_CLIENT_ID: ${PROVIDER_SDX_API_CLIENT_ID:?PROVIDER_SDX_API_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      PROVIDER_SDX_API_CLIENT_SECRET: ${PROVIDER_SDX_API_CLIENT_SECRET:?PROVIDER_SDX_API_CLIENT_SECRET is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      PROVIDER_SDX_API_TOKEN_SCOPE: ${PROVIDER_SDX_API_TOKEN_SCOPE:-}
+      PROVIDER_SDX_API_TOKEN_URL: ${PROVIDER_SDX_API_TOKEN_URL:-}
       OIDC_AUTHORITY: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       OIDC_OPENID_CONNECT_URL: ${OIDC_OPENID_CONNECT_URL:-}
       JWT_ISSUER: ${PROVIDER_SDX_API_JWT_ISSUER:-}

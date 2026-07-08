@@ -52,16 +52,16 @@ parameters:
   - name: PROVIDER_API_BASE_URL
     description: Base URL for the non-SDX-facing provider API
     required: true
-  - name: PROVIDER_API_CLIENT_ID
+  - name: PROVIDER_SDX_API_CLIENT_ID
     description: Confidential service client ID used to call provider-api
     required: true
-  - name: PROVIDER_API_CLIENT_SECRET
+  - name: PROVIDER_SDX_API_CLIENT_SECRET
     description: Confidential service client secret used to call provider-api
     required: true
-  - name: PROVIDER_API_TOKEN_SCOPE
+  - name: PROVIDER_SDX_API_TOKEN_SCOPE
     description: Optional client-credentials token scope requested for provider-api calls
     value: ""
-  - name: PROVIDER_API_TOKEN_URL
+  - name: PROVIDER_SDX_API_TOKEN_URL
     description: Optional explicit token endpoint for provider-api service tokens
     value: ""
   - name: PROVIDER_SDX_API_JWT_ISSUER
@@ -120,14 +120,14 @@ objects:
                   value: ${PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES}
                 - name: PROVIDER_API_BASE_URL
                   value: ${PROVIDER_API_BASE_URL}
-                - name: PROVIDER_API_CLIENT_ID
-                  value: ${PROVIDER_API_CLIENT_ID}
-                - name: PROVIDER_API_CLIENT_SECRET
-                  value: ${PROVIDER_API_CLIENT_SECRET}
-                - name: PROVIDER_API_TOKEN_SCOPE
-                  value: ${PROVIDER_API_TOKEN_SCOPE}
-                - name: PROVIDER_API_TOKEN_URL
-                  value: ${PROVIDER_API_TOKEN_URL}
+                - name: PROVIDER_SDX_API_CLIENT_ID
+                  value: ${PROVIDER_SDX_API_CLIENT_ID}
+                - name: PROVIDER_SDX_API_CLIENT_SECRET
+                  value: ${PROVIDER_SDX_API_CLIENT_SECRET}
+                - name: PROVIDER_SDX_API_TOKEN_SCOPE
+                  value: ${PROVIDER_SDX_API_TOKEN_SCOPE}
+                - name: PROVIDER_SDX_API_TOKEN_URL
+                  value: ${PROVIDER_SDX_API_TOKEN_URL}
                 - name: JWT_ISSUER
                   value: ${PROVIDER_SDX_API_JWT_ISSUER}
                 - name: JWT_VALIDATE_SIGNATURE

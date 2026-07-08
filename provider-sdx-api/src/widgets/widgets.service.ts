@@ -18,10 +18,10 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 export class WidgetsService {
   private readonly providerApiBaseUrl =
     process.env.PROVIDER_API_BASE_URL?.replace(/\/+$/, '') ?? 'http://localhost:3002/api/v1'
-  private readonly providerApiClientId = process.env.PROVIDER_API_CLIENT_ID || 'local-provider-sdx-api'
-  private readonly providerApiClientSecret = process.env.PROVIDER_API_CLIENT_SECRET
-  private readonly providerApiTokenScope = process.env.PROVIDER_API_TOKEN_SCOPE
-  private readonly explicitProviderApiTokenUrl = process.env.PROVIDER_API_TOKEN_URL
+  private readonly providerApiClientId = process.env.PROVIDER_SDX_API_CLIENT_ID || 'local-provider-sdx-api'
+  private readonly providerApiClientSecret = process.env.PROVIDER_SDX_API_CLIENT_SECRET
+  private readonly providerApiTokenScope = process.env.PROVIDER_SDX_API_TOKEN_SCOPE
+  private readonly explicitProviderApiTokenUrl = process.env.PROVIDER_SDX_API_TOKEN_URL
   private readonly oidcAuthority = process.env.OIDC_AUTHORITY
   private readonly openIdConnectUrl = process.env.OIDC_OPENID_CONNECT_URL
   private providerApiTokenEndpoint?: string
@@ -220,7 +220,7 @@ export class WidgetsService {
   private async fetchProviderApiBearerToken(): Promise<string> {
     if (!this.providerApiClientSecret?.trim()) {
       throw new InternalServerErrorException(
-        'PROVIDER_API_CLIENT_SECRET is required for provider API client-credentials authentication',
+        'PROVIDER_SDX_API_CLIENT_SECRET is required for provider API client-credentials authentication',
       )
     }
 
@@ -294,7 +294,7 @@ export class WidgetsService {
 
     if (!discoveryUrl) {
       throw new InternalServerErrorException(
-        'OIDC_AUTHORITY or PROVIDER_API_TOKEN_URL is required for provider API client-credentials authentication',
+        'OIDC_AUTHORITY or PROVIDER_SDX_API_TOKEN_URL is required for provider API client-credentials authentication',
       )
     }
 
