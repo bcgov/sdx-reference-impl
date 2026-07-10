@@ -51,6 +51,7 @@ describe('main', () => {
     ])
     expect(Object.keys(response.body.paths)).toEqual([
       '/subjects/{subject}/widgets',
+      '/subjects/{subject}/events',
       '/widgets/{widgetId}',
       '/users',
     ])
@@ -118,6 +119,19 @@ describe('main with Swagger OAuth', () => {
         },
       },
     })
+  })
+
+  it('allows Swagger OAuth tokens on provider operations', async () => {
+    const response = await request(app.getHttpServer()).get('/api/docs-json').expect(200)
+
+    expect(response.body.paths['/subjects/{subject}/events'].get.security).toEqual([
+      { serviceBearer: [] },
+      { openId: ['nrs:widgets:read'] },
+    ])
+    expect(response.body.paths['/subjects/{subject}/widgets'].post.security).toEqual([
+      { serviceBearer: [] },
+      { openId: ['nrs:widgets:create'] },
+    ])
   })
 
   it('initializes Swagger authorization with the configured client', async () => {

@@ -15,6 +15,7 @@ import { CreateWidgetDto } from './dto/create-widget.dto'
 import {
   ListWidgetsQueryDto,
   WidgetListResponseDto,
+  WidgetSummaryDto,
   WIDGET_SORT_DIRECTIONS,
   WIDGET_SORT_FIELDS,
   type WidgetSortDirection,
@@ -26,6 +27,12 @@ import {
   ProviderUpdateWidgetDto,
   UpdateWidgetDto,
 } from './dto/update-widget.dto'
+import {
+  ListWidgetAccessEventsQueryDto,
+  WidgetAccessEventDto,
+  WidgetAccessEventListResponseDto,
+  type WidgetEventType,
+} from './dto/widget-access-event.dto'
 import { WidgetDto, WidgetStatus, WIDGET_STATUSES } from './dto/widget.dto'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -39,6 +46,17 @@ type WidgetRecord = {
   additionalData: unknown
   createdAt: Date
   updatedAt: Date
+}
+
+type WidgetAccessEventRecord = {
+  id: string
+  ownerSubject: string
+  actorSubject: string
+  actorUsername: string
+  event: string
+  description: string
+  resourceUrl: string
+  createdAt: Date
 }
 
 type ParsedListQuery = {
@@ -164,7 +182,7 @@ export class WidgetsService {
     caller?: ProviderCaller,
   ): Promise<WidgetDto> {
     const widget = await this.createForSubject(subject, dto, idempotencyKey)
-    await this.recordAccessEvent(caller, 'widget.create')
+    await this.recordWidgetAccessEvent(caller, widget.subject, 'widget.create', 'created', widget)
     return widget
   }
 
@@ -174,15 +192,36 @@ export class WidgetsService {
     caller?: ProviderCaller,
   ): Promise<WidgetListResponseDto> {
     const response = await this.listWidgets({ subject }, query)
-    await this.recordAccessEvent(caller, 'widget.list')
+    await this.recordWidgetCollectionAccessEvent(caller, subject, 'widget.list')
     return response
+  }
+
+  async providerListEventsForSubject(
+    subject: string,
+    query: ListWidgetAccessEventsQueryDto,
+  ): Promise<WidgetAccessEventListResponseDto> {
+    this.validateSubject(subject)
+    const limit = this.parseLimit(query.limit)
+    const cursorOffset = this.parseCursor(query.cursor)
+    const events = (await this.prisma.widgetAccessEvent.findMany({
+      where: { ownerSubject: subject },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: cursorOffset,
+      take: limit + 1,
+    })) as WidgetAccessEventRecord[]
+
+    const hasNextPage = events.length > limit
+    return {
+      items: events.slice(0, limit).map((event) => this.toAccessEventDto(event)),
+      nextCursor: hasNextPage ? this.encodeCursor(cursorOffset + limit) : null,
+    }
   }
 
   async providerGet(widgetId: string, caller?: ProviderCaller): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
     const widget = await this.prisma.widget.findUnique({ where: { id: widgetId } })
     const dto = this.requireWidget(widget)
-    await this.recordAccessEvent(caller, 'widget.get')
+    await this.recordWidgetAccessEvent(caller, dto.subject, 'widget.get', 'viewed', dto)
     return dto
   }
 
@@ -199,8 +238,15 @@ export class WidgetsService {
       where: { id: widgetId },
       data: this.buildProviderUpdateData(dto, true),
     })
-    await this.recordAccessEvent(caller, 'widget.replace')
-    return this.toDto(widget)
+    const updatedWidget = this.toDto(widget)
+    await this.recordWidgetAccessEvent(
+      caller,
+      current.subject,
+      'widget.replace',
+      'replaced',
+      updatedWidget,
+    )
+    return updatedWidget
   }
 
   async providerPatch(
@@ -216,8 +262,15 @@ export class WidgetsService {
       where: { id: widgetId },
       data: this.buildProviderUpdateData(dto, false),
     })
-    await this.recordAccessEvent(caller, 'widget.patch')
-    return this.toDto(widget)
+    const updatedWidget = this.toDto(widget)
+    await this.recordWidgetAccessEvent(
+      caller,
+      current.subject,
+      'widget.patch',
+      'updated',
+      updatedWidget,
+    )
+    return updatedWidget
   }
 
   async providerDelete(widgetId: string, ifMatch?: string, caller?: ProviderCaller): Promise<void> {
@@ -225,7 +278,7 @@ export class WidgetsService {
     const current = await this.getWidget(widgetId)
     this.validateIfMatch(current, ifMatch)
     await this.prisma.widget.delete({ where: { id: widgetId } })
-    await this.recordAccessEvent(caller, 'widget.delete')
+    await this.recordWidgetAccessEvent(caller, current.subject, 'widget.delete', 'deleted', current)
   }
 
   etagForWidget(widget: Pick<WidgetDto, 'id' | 'updatedAt'>): string {
@@ -254,7 +307,12 @@ export class WidgetsService {
 
   private async recordAccessEvent(
     caller: ProviderCaller | undefined,
-    event: string,
+    details: {
+      ownerSubject: string
+      event: string
+      description: string
+      resourceUrl: string
+    },
   ): Promise<void> {
     if (!caller) {
       return
@@ -262,11 +320,58 @@ export class WidgetsService {
 
     await this.prisma.widgetAccessEvent.create({
       data: {
-        subject: caller.onBehalfOfSubject,
-        username: caller.onBehalfOfUsername,
-        event,
+        ownerSubject: details.ownerSubject,
+        actorSubject: caller.onBehalfOfSubject,
+        actorUsername: caller.onBehalfOfUsername,
+        event: details.event,
+        description: details.description,
+        resourceUrl: details.resourceUrl,
       },
     })
+  }
+
+  private async recordWidgetAccessEvent(
+    caller: ProviderCaller | undefined,
+    ownerSubject: string,
+    event: string,
+    verb: string,
+    widget: Pick<WidgetDto, 'id' | 'name'>,
+  ): Promise<void> {
+    if (!caller) {
+      return
+    }
+
+    await this.recordAccessEvent(caller, {
+      ownerSubject,
+      event,
+      description: `${caller.onBehalfOfUsername} ${verb} widget ${widget.name}`,
+      resourceUrl: this.widgetResourceUrl(widget.id),
+    })
+  }
+
+  private async recordWidgetCollectionAccessEvent(
+    caller: ProviderCaller | undefined,
+    ownerSubject: string,
+    event: string,
+  ): Promise<void> {
+    if (!caller) {
+      return
+    }
+
+    await this.recordAccessEvent(caller, {
+      ownerSubject,
+      event,
+      description: `${caller.onBehalfOfUsername} listed widgets`,
+      resourceUrl: this.widgetCollectionResourceUrl(ownerSubject),
+    })
+  }
+
+  private widgetResourceUrl(widgetId: string): string {
+    return `/api/v1/widgets/${encodeURIComponent(widgetId)}`
+  }
+
+  private widgetCollectionResourceUrl(subject: string): string {
+    return `/api/v1/subjects/${encodeURIComponent(subject)}/widgets`
   }
 
   private buildUpdateData(
@@ -504,6 +609,29 @@ export class WidgetsService {
     }
   }
 
+  private toSummaryDto(widget: WidgetRecord): WidgetSummaryDto {
+    return {
+      id: widget.id,
+      subject: widget.subject,
+      name: widget.name,
+      status: widget.status as WidgetStatus,
+      updatedAt: widget.updatedAt,
+    }
+  }
+
+  private toAccessEventDto(event: WidgetAccessEventRecord): WidgetAccessEventDto {
+    return {
+      id: event.id,
+      ownerSubject: event.ownerSubject,
+      actorSubject: event.actorSubject,
+      actorUsername: event.actorUsername,
+      event: event.event as WidgetEventType,
+      description: event.description,
+      resourceUrl: event.resourceUrl,
+      createdAt: event.createdAt,
+    }
+  }
+
   private async listWidgets(
     where: Pick<Prisma.WidgetWhereInput, 'subject'>,
     query: ListWidgetsQueryDto,
@@ -528,7 +656,7 @@ export class WidgetsService {
     })
 
     const hasNextPage = widgets.length > parsed.limit
-    const items = widgets.slice(0, parsed.limit).map((widget) => this.toDto(widget))
+    const items = widgets.slice(0, parsed.limit).map((widget) => this.toSummaryDto(widget))
 
     return {
       items,

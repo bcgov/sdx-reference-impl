@@ -13,6 +13,8 @@ export type Widget = {
   updatedAt: string
 }
 
+export type WidgetSummary = Pick<Widget, 'id' | 'name' | 'status' | 'subject' | 'updatedAt'>
+
 export type WidgetInput = {
   additionalData?: Record<string, unknown>
   description?: string | null
@@ -22,6 +24,6 @@ export type WidgetInput = {
 }
 
 export type WidgetListResponse = {
-  items: Widget[]
+  items: WidgetSummary[]
   nextCursor: string | null
 }

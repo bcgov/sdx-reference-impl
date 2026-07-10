@@ -121,6 +121,13 @@ const UPDATE_WIDGET_EXAMPLE = {
 const PATCH_WIDGET_EXAMPLE = {
   status: 'archived',
 }
+const WIDGET_SUMMARY_EXAMPLE = {
+  id: WIDGET_EXAMPLE.id,
+  subject: WIDGET_EXAMPLE.subject,
+  name: WIDGET_EXAMPLE.name,
+  status: WIDGET_EXAMPLE.status,
+  updatedAt: WIDGET_EXAMPLE.updatedAt,
+}
 const CREATED_WIDGET_EXAMPLES = {
   createdWidget: {
     summary: 'Created widget',
@@ -361,7 +368,7 @@ export class WidgetsController {
       listWidgets: {
         summary: 'List widgets',
         value: {
-          items: [WIDGET_EXAMPLE],
+          items: [WIDGET_SUMMARY_EXAMPLE],
           nextCursor: null,
         },
       },

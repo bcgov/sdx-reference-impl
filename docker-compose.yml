@@ -4,6 +4,8 @@ x-var:
   - &POSTGRES_PASSWORD default
   - &POSTGRES_DATABASE postgres
   - &node-image node:22
+  # Run bind-mounted dev Node services as the host user so generated files are not owned by root/nobody.
+  - &node-user "${HOST_UID:-1000}:${HOST_GID:-1000}"
 
 # Reusable envars for postgres
 x-postgres-vars: &postgres-vars
@@ -68,6 +70,7 @@ services:
       SWAGGER_OAUTH_SCOPES: ${PROVIDER_API_SWAGGER_OAUTH_SCOPES:?PROVIDER_API_SWAGGER_OAUTH_SCOPES is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
     image: *node-image
     ports: ["3002:3000"]
+    user: *node-user
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
     working_dir: "/app"
@@ -101,6 +104,7 @@ services:
       SWAGGER_OAUTH_SCOPES: ${PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES:?PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
     image: *node-image
     ports: ["3003:3000"]
+    user: *node-user
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
     working_dir: "/app"
@@ -128,6 +132,7 @@ services:
       PUBLIC_BASE_PATH: ${BFF_PUBLIC_BASE_PATH:-}
     image: *node-image
     ports: ["3001:3000"]
+    user: *node-user
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
     working_dir: "/app"
@@ -145,6 +150,7 @@ services:
       NODE_ENV: development
     image: *node-image
     ports: ["3000:3000"]
+    user: *node-user
     volumes: ["./frontend:/app", "/app/node_modules"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000"]

@@ -49,6 +49,10 @@ import {
   WIDGET_SORT_FIELDS,
 } from './dto/list-widgets.dto'
 import {
+  ListWidgetAccessEventsQueryDto,
+  WidgetAccessEventListResponseDto,
+} from './dto/widget-access-event.dto'
+import {
   PatchWidgetDto,
   ProviderPatchWidgetDto,
   ProviderUpdateWidgetDto,
@@ -129,6 +133,13 @@ const UPDATE_WIDGET_EXAMPLE = {
 }
 const PATCH_WIDGET_EXAMPLE = {
   status: 'archived',
+}
+const WIDGET_SUMMARY_EXAMPLE = {
+  id: WIDGET_EXAMPLE.id,
+  subject: WIDGET_EXAMPLE.subject,
+  name: WIDGET_EXAMPLE.name,
+  status: WIDGET_EXAMPLE.status,
+  updatedAt: WIDGET_EXAMPLE.updatedAt,
 }
 const PROVIDER_UPDATE_WIDGET_EXAMPLE = {
   subject: 'user-456',
@@ -632,8 +643,9 @@ export class WidgetsController {
 @ApiBearerAuth('serviceBearer')
 @ApiHeader({
   name: 'x-on-behalf-of-sub',
-  required: true,
-  description: 'Original user subject represented by a provider-sdx-api client token.',
+  required: false,
+  description:
+    'Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.',
   schema: {
     type: 'string',
     example: SUBJECT_EXAMPLE,
@@ -641,8 +653,9 @@ export class WidgetsController {
 })
 @ApiHeader({
   name: 'x-on-behalf-of-username',
-  required: true,
-  description: 'Original username represented by a provider-sdx-api client token.',
+  required: false,
+  description:
+    'Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.',
   schema: {
     type: 'string',
     example: 'Alex Smith',
@@ -660,6 +673,7 @@ export class ProviderWidgetsController {
   }
 
   @Get('subjects/:subject/widgets')
+  @ApiSecurity('openId', ['nrs:widgets:read'])
   @ApiOperation({
     operationId: 'providerListSubjectWidgets',
     summary: 'List Widgets for the requested subject.',
@@ -745,7 +759,7 @@ export class ProviderWidgetsController {
       listWidgetsForSubject: {
         summary: 'List widgets for a subject',
         value: {
-          items: [WIDGET_EXAMPLE],
+          items: [WIDGET_SUMMARY_EXAMPLE],
           nextCursor: null,
         },
       },
@@ -762,7 +776,60 @@ export class ProviderWidgetsController {
     return this.widgetsService.providerListForSubject(subject, query, caller)
   }
 
+  @Get('subjects/:subject/events')
+  @ApiSecurity('openId', ['nrs:widgets:read'])
+  @ApiOperation({
+    operationId: 'providerListSubjectWidgetEvents',
+    summary: 'List Widget access events for the requested subject.',
+    description:
+      'Returns audit events for widget resources owned by the subject identified in the path.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 100,
+      default: 25,
+    },
+    description: 'Maximum number of events to return.',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    schema: {
+      type: 'string',
+      example: 'eyJvZmZzZXQiOjI1fQ',
+    },
+    description: 'Opaque pagination cursor from the previous response.',
+  })
+  @ApiParam({
+    name: 'subject',
+    description: 'The owner subject identifier.',
+    schema: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 255,
+      example: SUBJECT_EXAMPLE,
+    },
+  })
+  @ApiOkResponse({
+    description: 'The list of Widget access events for the requested subject.',
+    type: WidgetAccessEventListResponseDto,
+  })
+  @ApiBadRequestResponse(PROBLEM_DETAIL_RESPONSE)
+  @ApiUnauthorizedResponse(ERROR_RESPONSE)
+  @ApiForbiddenResponse(ERROR_RESPONSE)
+  listEventsForSubject(
+    @Param('subject') subject: string,
+    @Query() query: ListWidgetAccessEventsQueryDto,
+  ) {
+    return this.widgetsService.providerListEventsForSubject(subject, query)
+  }
+
   @Post('subjects/:subject/widgets')
+  @ApiSecurity('openId', ['nrs:widgets:create'])
   @ApiOperation({
     operationId: 'providerCreateSubjectWidget',
     summary: 'Create a Widget for the requested subject.',
@@ -828,6 +895,7 @@ export class ProviderWidgetsController {
   }
 
   @Get('widgets/:widgetId')
+  @ApiSecurity('openId', ['nrs:widgets:read'])
   @ApiOperation({
     operationId: 'providerGetWidget',
     summary: 'Get a Widget by ID.',
@@ -862,6 +930,7 @@ export class ProviderWidgetsController {
   }
 
   @Put('widgets/:widgetId')
+  @ApiSecurity('openId', ['nrs:widgets:update'])
   @ApiOperation({
     operationId: 'providerReplaceWidget',
     summary: 'Replace any Widget by ID.',
@@ -913,6 +982,7 @@ export class ProviderWidgetsController {
   }
 
   @Patch('widgets/:widgetId')
+  @ApiSecurity('openId', ['nrs:widgets:update'])
   @ApiOperation({
     operationId: 'providerUpdateWidget',
     summary: 'Partially update a Widget by ID.',
@@ -964,6 +1034,7 @@ export class ProviderWidgetsController {
   }
 
   @Delete('widgets/:widgetId')
+  @ApiSecurity('openId', ['nrs:widgets:delete'])
   @HttpCode(204)
   @ApiOperation({
     operationId: 'providerDeleteWidget',

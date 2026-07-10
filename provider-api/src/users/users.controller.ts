@@ -18,8 +18,9 @@ import { UserDirectoryService } from './user-directory.service'
 @ApiBearerAuth('serviceBearer')
 @ApiHeader({
   name: 'x-on-behalf-of-sub',
-  required: true,
-  description: 'Original user subject represented by a provider-sdx-api client token.',
+  required: false,
+  description:
+    'Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.',
   schema: {
     type: 'string',
     example: 'user-123',
@@ -27,8 +28,9 @@ import { UserDirectoryService } from './user-directory.service'
 })
 @ApiHeader({
   name: 'x-on-behalf-of-username',
-  required: true,
-  description: 'Original username represented by a provider-sdx-api client token.',
+  required: false,
+  description:
+    'Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.',
   schema: {
     type: 'string',
     example: 'Alex Smith',

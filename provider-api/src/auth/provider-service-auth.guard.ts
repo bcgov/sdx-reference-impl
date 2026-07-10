@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common'
 import type { ProviderAuthenticatedRequest } from './auth.types'
 import { JwtTokenValidator } from './jwt-token.validator'
+import { UserDirectoryService } from '../users/user-directory.service'
 
 const DEFAULT_ALLOWED_CLIENT_IDS = ['local-provider-sdx-api']
 
@@ -16,6 +17,8 @@ export class ProviderServiceAuthGuard implements CanActivate {
     validateSignature: true,
     validateExpiry: true,
   })
+
+  constructor(private readonly userDirectory: UserDirectoryService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<ProviderAuthenticatedRequest>()
@@ -58,6 +61,10 @@ export class ProviderServiceAuthGuard implements CanActivate {
       onBehalfOfSubject: userSubject,
       onBehalfOfUsername: username,
     }
+    await this.userDirectory.recordAuthenticatedUser(
+      userSubject,
+      clientToken ? { name: username } : claims,
+    )
     return true
   }
 

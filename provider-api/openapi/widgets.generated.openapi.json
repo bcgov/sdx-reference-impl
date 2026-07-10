@@ -37,8 +37,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -47,8 +47,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -160,12 +160,7 @@
                           "id": "4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
                           "subject": "user-123",
                           "name": "Intake form",
-                          "description": "Widget used for intake workflow testing.",
                           "status": "active",
-                          "additionalData": {
-                            "source": "local-dev"
-                          },
-                          "createdAt": "2026-05-13T18:00:00Z",
                           "updatedAt": "2026-05-13T18:00:00Z"
                         }
                       ],
@@ -209,8 +204,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -219,8 +214,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -340,6 +335,106 @@
         ]
       }
     },
+    "/subjects/{subject}/events": {
+      "summary": "List widget access events for one owner subject.",
+      "get": {
+        "description": "Returns audit events for widget resources owned by the subject identified in the path.",
+        "operationId": "providerListSubjectWidgetEvents",
+        "parameters": [
+          {
+            "name": "x-on-behalf-of-username",
+            "in": "header",
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Alex Smith"
+            }
+          },
+          {
+            "name": "x-on-behalf-of-sub",
+            "in": "header",
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "user-123"
+            }
+          },
+          {
+            "name": "subject",
+            "required": true,
+            "in": "path",
+            "description": "Owner subject identifier.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "example": "user-123"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of events to return.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "example": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque pagination cursor from the previous response.",
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjI1fQ"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of Widget access events for the requested subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WidgetAccessEventListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "summary": "List Widget access events for the requested subject.",
+        "tags": [
+          "Provider Widgets"
+        ]
+      }
+    },
     "/widgets/{widgetId}": {
       "summary": "Manage one widget by ID.",
       "get": {
@@ -349,8 +444,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -359,8 +454,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -444,8 +539,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -454,8 +549,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -585,8 +680,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -595,8 +690,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -721,8 +816,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -731,8 +826,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -806,8 +901,8 @@
           {
             "name": "x-on-behalf-of-username",
             "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "Alex Smith"
@@ -816,8 +911,8 @@
           {
             "name": "x-on-behalf-of-sub",
             "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token.",
-            "required": true,
+            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
+            "required": false,
             "schema": {
               "type": "string",
               "example": "user-123"
@@ -1163,7 +1258,7 @@
           "archived"
         ]
       },
-      "Widget": {
+      "WidgetSummary": {
         "type": "object",
         "properties": {
           "id": {
@@ -1184,27 +1279,8 @@
             "maxLength": 200,
             "example": "Intake form"
           },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 1000,
-            "example": "Widget used for intake workflow testing."
-          },
           "status": {
             "$ref": "#/components/schemas/WidgetStatus"
-          },
-          "additionalData": {
-            "type": "object",
-            "additionalProperties": true,
-            "example": {
-              "source": "local-dev"
-            }
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "example": "2026-05-13T18:00:00Z",
-            "readOnly": true
           },
           "updatedAt": {
             "format": "date-time",
@@ -1213,27 +1289,19 @@
             "readOnly": true
           }
         },
-        "description": "Widget resource owned by a subject.",
+        "description": "Summary representation used in widget list responses.",
         "required": [
           "id",
           "subject",
           "name",
-          "description",
           "status",
-          "additionalData",
-          "createdAt",
           "updatedAt"
         ],
         "example": {
           "id": "4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
           "subject": "user-123",
           "name": "Intake form",
-          "description": "Widget used for intake workflow testing.",
           "status": "active",
-          "additionalData": {
-            "source": "local-dev"
-          },
-          "createdAt": "2026-05-13T18:00:00Z",
           "updatedAt": "2026-05-13T18:00:00Z"
         }
       },
@@ -1246,18 +1314,13 @@
                 "id": "4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
                 "subject": "user-123",
                 "name": "Intake form",
-                "description": "Widget used for intake workflow testing.",
                 "status": "active",
-                "additionalData": {
-                  "source": "local-dev"
-                },
-                "createdAt": "2026-05-13T18:00:00Z",
                 "updatedAt": "2026-05-13T18:00:00Z"
               }
             ],
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Widget"
+              "$ref": "#/components/schemas/WidgetSummary"
             }
           },
           "nextCursor": {
@@ -1267,7 +1330,7 @@
             "example": "eyJvZmZzZXQiOjI1fQ=="
           }
         },
-        "description": "A paginated list of widgets with an optional cursor for the next page.",
+        "description": "A paginated list of widget summaries with an optional cursor for the next page.",
         "required": [
           "items"
         ],
@@ -1277,12 +1340,7 @@
               "id": "4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
               "subject": "user-123",
               "name": "Intake form",
-              "description": "Widget used for intake workflow testing.",
               "status": "active",
-              "additionalData": {
-                "source": "local-dev"
-              },
-              "createdAt": "2026-05-13T18:00:00Z",
               "updatedAt": "2026-05-13T18:00:00Z"
             }
           ],
@@ -1448,6 +1506,138 @@
           "type": "tag:validation-errors"
         }
       },
+      "WidgetEventType": {
+        "description": "Machine-readable widget access event type.",
+        "type": "string",
+        "example": "widget.get",
+        "enum": [
+          "widget.create",
+          "widget.list",
+          "widget.get",
+          "widget.replace",
+          "widget.patch",
+          "widget.delete"
+        ]
+      },
+      "WidgetAccessEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "8f91c829-6935-4fb0-90bb-2e4f4cc9d3d1",
+            "readOnly": true
+          },
+          "ownerSubject": {
+            "type": "string",
+            "description": "Subject that owns the accessed resource.",
+            "example": "user-123",
+            "readOnly": true
+          },
+          "actorSubject": {
+            "type": "string",
+            "description": "Subject that performed the action.",
+            "example": "actor-789",
+            "readOnly": true
+          },
+          "actorUsername": {
+            "type": "string",
+            "description": "Display name or username for the actor.",
+            "example": "Alex Smith",
+            "readOnly": true
+          },
+          "event": {
+            "$ref": "#/components/schemas/WidgetEventType"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable event description.",
+            "example": "Alex Smith viewed widget Intake form",
+            "readOnly": true
+          },
+          "resourceUrl": {
+            "type": "string",
+            "description": "Relative URL for the resource that was acted on.",
+            "example": "/api/v1/widgets/4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
+            "readOnly": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-13T18:30:00Z",
+            "readOnly": true
+          }
+        },
+        "description": "Audit event describing access to a widget resource owned by a subject.",
+        "required": [
+          "id",
+          "ownerSubject",
+          "actorSubject",
+          "actorUsername",
+          "event",
+          "description",
+          "resourceUrl",
+          "createdAt"
+        ],
+        "example": {
+          "id": "8f91c829-6935-4fb0-90bb-2e4f4cc9d3d1",
+          "ownerSubject": "user-123",
+          "actorSubject": "actor-789",
+          "actorUsername": "Alex Smith",
+          "event": "widget.get",
+          "description": "Alex Smith viewed widget Intake form",
+          "resourceUrl": "/api/v1/widgets/4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
+          "createdAt": "2026-05-13T18:30:00Z"
+        }
+      },
+      "WidgetAccessEventListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "example": [
+              {
+                "id": "8f91c829-6935-4fb0-90bb-2e4f4cc9d3d1",
+                "ownerSubject": "user-123",
+                "actorSubject": "actor-789",
+                "actorUsername": "Alex Smith",
+                "event": "widget.get",
+                "description": "Alex Smith viewed widget Intake form",
+                "resourceUrl": "/api/v1/widgets/4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
+                "createdAt": "2026-05-13T18:30:00Z"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WidgetAccessEvent"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cursor to retrieve the next page, or null when there are no more results.",
+            "example": "eyJvZmZzZXQiOjI1fQ=="
+          }
+        },
+        "description": "A paginated list of widget access audit events.",
+        "required": [
+          "items"
+        ],
+        "example": {
+          "items": [
+            {
+              "id": "8f91c829-6935-4fb0-90bb-2e4f4cc9d3d1",
+              "ownerSubject": "user-123",
+              "actorSubject": "actor-789",
+              "actorUsername": "Alex Smith",
+              "event": "widget.get",
+              "description": "Alex Smith viewed widget Intake form",
+              "resourceUrl": "/api/v1/widgets/4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
+              "createdAt": "2026-05-13T18:30:00Z"
+            }
+          ],
+          "nextCursor": "eyJvZmZzZXQiOjI1fQ"
+        }
+      },
       "CreateWidgetRequest": {
         "type": "object",
         "properties": {
@@ -1486,6 +1676,80 @@
           "additionalData": {
             "source": "local-dev"
           }
+        }
+      },
+      "Widget": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
+            "readOnly": true
+          },
+          "subject": {
+            "type": "string",
+            "description": "Owner subject from the JWT sub claim or provider operation.",
+            "example": "user-123",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Intake form"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000,
+            "example": "Widget used for intake workflow testing."
+          },
+          "status": {
+            "$ref": "#/components/schemas/WidgetStatus"
+          },
+          "additionalData": {
+            "type": "object",
+            "additionalProperties": true,
+            "example": {
+              "source": "local-dev"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-13T18:00:00Z",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-13T18:00:00Z",
+            "readOnly": true
+          }
+        },
+        "description": "Widget resource owned by a subject.",
+        "required": [
+          "id",
+          "subject",
+          "name",
+          "description",
+          "status",
+          "additionalData",
+          "createdAt",
+          "updatedAt"
+        ],
+        "example": {
+          "id": "4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f",
+          "subject": "user-123",
+          "name": "Intake form",
+          "description": "Widget used for intake workflow testing.",
+          "status": "active",
+          "additionalData": {
+            "source": "local-dev"
+          },
+          "createdAt": "2026-05-13T18:00:00Z",
+          "updatedAt": "2026-05-13T18:00:00Z"
         }
       },
       "ProviderUpdateWidgetRequest": {

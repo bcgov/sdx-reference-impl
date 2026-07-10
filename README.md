@@ -73,8 +73,12 @@ nvm use
 Start the local database, migrations, provider APIs, BFF, and frontend with:
 
 ```sh
-docker compose up database migrations provider-api provider-sdx-api bff frontend
+HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up database migrations provider-api provider-sdx-api bff frontend
 ```
+
+`HOST_UID` and `HOST_GID` make the bind-mounted Node services write generated
+local files as your host user instead of as a container user such as `root` or
+`nobody`.
 
 The BFF is exposed on `http://localhost:3001`, with auth routes under `/api/auth` and proxied Widget routes under `/api/v1`.
 The SDX-facing provider API is exposed on `http://localhost:3003`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3003/api/docs`.
@@ -136,7 +140,7 @@ node scripts/setup-keycloak.mjs \
 Then start the stack:
 
 ```sh
-docker compose up database migrations provider-api provider-sdx-api bff frontend
+HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose --env-file .env.local up database migrations provider-api provider-sdx-api bff frontend
 ```
 
 The script configures these local clients:
@@ -235,8 +239,23 @@ original user. `provider-api` accepts client tokens only from
 client-token requests.
 
 The internal provider API records Widget access events in
-`widgets.widget_access_events` with the on-behalf-of subject, username, event
-name, and timestamp.
+`widgets.widget_access_events` with the owner subject, actor subject, actor
+username, event type, human-readable description, relative resource URL, and
+timestamp. It also upserts the represented user in `widgets.users`: for
+service-client calls it uses the `x-on-behalf-of-sub` and
+`x-on-behalf-of-username` headers, and for direct user-token calls it uses the
+JWT claims.
+
+Widget list endpoints return `WidgetSummary` items with only identifier, owner,
+name, status, and updated timestamp. Fetching `/widgets/{widgetId}` returns the
+full Widget resource, including description and additional data, and records a
+`widget.get` viewed event.
+
+Provider API callers can list audit events for an owner with
+`GET /api/v1/subjects/{subject}/events`. The `x-on-behalf-of-sub` and
+`x-on-behalf-of-username` headers are required only when the bearer token is a
+client token. Swagger users authenticated with an Authorization Code token can
+omit those headers.
 
 Register the Swagger callback and API origin with each public OIDC client you
 configure:

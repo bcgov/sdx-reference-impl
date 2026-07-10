@@ -57,13 +57,17 @@ model User {
 }
 
 model WidgetAccessEvent {
-  id        String   @id @default(uuid()) @db.Uuid
-  subject   String   @db.VarChar(255)
-  username  String   @db.VarChar(255)
-  event     String   @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id            String   @id @default(uuid()) @db.Uuid
+  ownerSubject  String   @map("owner_subject") @db.VarChar(255)
+  actorSubject  String   @map("actor_subject") @db.VarChar(255)
+  actorUsername String   @map("actor_username") @db.VarChar(255)
+  event         String   @db.VarChar(100)
+  description   String   @db.VarChar(500)
+  resourceUrl   String   @map("resource_url") @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@index([subject], map: "WIDGET_ACCESS_EVENT_SUBJECT_IDX")
+  @@index([ownerSubject], map: "WIDGET_ACCESS_EVENT_OWNER_SUBJECT_IDX")
+  @@index([actorSubject], map: "WIDGET_ACCESS_EVENT_ACTOR_SUBJECT_IDX")
   @@index([createdAt], map: "WIDGET_ACCESS_EVENT_CREATED_AT_IDX")
   @@map("widget_access_events")
   @@schema("widgets")

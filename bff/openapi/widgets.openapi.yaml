@@ -9,7 +9,7 @@ info:
     authorization code with a confidential client, maintains the user's
     server-side session with an HttpOnly cookie, and proxies Widget calls to the
     SDX-facing provider API.
-  version: 0.1.1
+  version: 0.1.0
   contact:
     name: SDX Reference Implementation Maintainers
   license:
@@ -343,6 +343,95 @@ components:
         - active
         - inactive
         - archived
+    WidgetSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+          readOnly: true
+        subject:
+          type: string
+          description: Owner subject from the provider SDX API.
+          example: user-123
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        status:
+          example: active
+          allOf:
+            - $ref: '#/components/schemas/WidgetStatus'
+        updatedAt:
+          format: date-time
+          type: string
+          example: '2026-05-13T18:00:00Z'
+          readOnly: true
+      description: Summary representation used in widget list responses.
+      required:
+        - id
+        - subject
+        - name
+        - status
+        - updatedAt
+    WidgetListResponse:
+      type: object
+      properties:
+        items:
+          example:
+            - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+              subject: user-123
+              name: Intake form
+              status: active
+              updatedAt: '2026-05-13T18:00:00Z'
+          type: array
+          items:
+            $ref: '#/components/schemas/WidgetSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: >-
+            Cursor to retrieve the next page, or null when there are no more
+            results.
+          example: eyJvZmZzZXQiOjI1fQ==
+      description: >-
+        A paginated list of widget summaries with an optional cursor for the
+        next page.
+      required:
+        - items
+    CreateWidgetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Widget used for intake workflow testing.
+        status:
+          default: active
+          example: active
+          allOf:
+            - $ref: '#/components/schemas/WidgetStatus'
+        additionalData:
+          type: object
+          additionalProperties: true
+          example:
+            source: local-dev
+      description: >-
+        Request body for creating a widget. Subject is never accepted here. If
+        status is omitted, the service creates the widget with status `active`.
+        If additionalData is omitted, the service stores an empty additional
+        data object.
+      required:
+        - name
     Widget:
       type: object
       properties:
@@ -395,63 +484,6 @@ components:
         - additionalData
         - createdAt
         - updatedAt
-    WidgetListResponse:
-      type: object
-      properties:
-        items:
-          example:
-            - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
-              subject: user-123
-              name: Intake form
-              description: Widget used for intake workflow testing.
-              status: active
-              additionalData:
-                source: local-dev
-              createdAt: '2026-05-13T18:00:00Z'
-              updatedAt: '2026-05-13T18:00:00Z'
-          type: array
-          items:
-            $ref: '#/components/schemas/Widget'
-        nextCursor:
-          type: string
-          nullable: true
-          description: >-
-            Cursor to retrieve the next page, or null when there are no more
-            results.
-          example: eyJvZmZzZXQiOjI1fQ==
-      description: A paginated list of widgets with an optional cursor for the next page.
-      required:
-        - items
-    CreateWidgetRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: Intake form
-        description:
-          type: string
-          nullable: true
-          maxLength: 1000
-          example: Widget used for intake workflow testing.
-        status:
-          default: active
-          example: active
-          allOf:
-            - $ref: '#/components/schemas/WidgetStatus'
-        additionalData:
-          type: object
-          additionalProperties: true
-          example:
-            source: local-dev
-      description: >-
-        Request body for creating a widget. Subject is never accepted here. If
-        status is omitted, the service creates the widget with status `active`.
-        If additionalData is omitted, the service stores an empty additional
-        data object.
-      required:
-        - name
     UpdateWidgetRequest:
       type: object
       properties:

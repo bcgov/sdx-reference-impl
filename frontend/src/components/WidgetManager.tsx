@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Badge, Button, Card, Form, Spinner, Table } from 'react-bootstrap'
 import apiService, { getApiErrorMessage } from '@/service/api-service'
-import type { Widget, WidgetInput, WidgetListResponse, WidgetStatus } from '@/interfaces/Widget'
+import type {
+  Widget,
+  WidgetInput,
+  WidgetListResponse,
+  WidgetStatus,
+  WidgetSummary,
+} from '@/interfaces/Widget'
 import WidgetFormModal from './WidgetFormModal'
 
 type Props = {
@@ -16,7 +22,7 @@ const statusVariant: Record<WidgetStatus, string> = {
 }
 
 export default function WidgetManager({ subject, title }: Props) {
-  const [widgets, setWidgets] = useState<Widget[]>([])
+  const [widgets, setWidgets] = useState<WidgetSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -79,7 +85,7 @@ export default function WidgetManager({ subject, title }: Props) {
     }
   }
 
-  const deleteWidget = async (widget: Widget) => {
+  const deleteWidget = async (widget: WidgetSummary) => {
     if (!window.confirm(`Delete "${widget.name}"? This action cannot be undone.`)) {
       return
     }
@@ -97,9 +103,18 @@ export default function WidgetManager({ subject, title }: Props) {
     setShowForm(true)
   }
 
-  const openEdit = (widget: Widget) => {
-    setEditing(widget)
-    setShowForm(true)
+  const openEdit = async (widget: WidgetSummary) => {
+    setBusy(true)
+    setError('')
+    try {
+      const response = await apiService.getAxiosInstance().get<Widget>(`/widgets/${widget.id}`)
+      setEditing(response.data)
+      setShowForm(true)
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -172,9 +187,6 @@ export default function WidgetManager({ subject, title }: Props) {
                     <tr key={widget.id}>
                       <td>
                         <strong>{widget.name}</strong>
-                        <div className="widget-description">
-                          {widget.description || 'No description'}
-                        </div>
                       </td>
                       <td>
                         <Badge bg={statusVariant[widget.status]}>{widget.status}</Badge>
@@ -185,13 +197,15 @@ export default function WidgetManager({ subject, title }: Props) {
                           variant="outline-secondary"
                           size="sm"
                           className="me-2"
-                          onClick={() => openEdit(widget)}
+                          disabled={busy}
+                          onClick={() => void openEdit(widget)}
                         >
                           Edit
                         </Button>
                         <Button
                           variant="outline-danger"
                           size="sm"
+                          disabled={busy}
                           onClick={() => void deleteWidget(widget)}
                         >
                           Delete

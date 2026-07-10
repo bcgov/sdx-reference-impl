@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger'
-import { WidgetDto, WIDGET_STATUSES } from './widget.dto'
+import { WIDGET_EXAMPLE, WidgetStatus, WIDGET_STATUSES } from './widget.dto'
 
 export const WIDGET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name', 'status'] as const
 export type WidgetSortField = (typeof WIDGET_SORT_FIELDS)[number]
@@ -58,29 +58,65 @@ export class ListWidgetsQueryDto {
 }
 
 @ApiSchema({
+  name: 'WidgetSummary',
+  description: 'Summary representation used in widget list responses.',
+})
+export class WidgetSummaryDto {
+  @ApiProperty({
+    format: 'uuid',
+    example: WIDGET_EXAMPLE.id,
+    readOnly: true,
+  })
+  id: string
+
+  @ApiProperty({
+    description: 'Owner subject from the provider SDX API.',
+    example: WIDGET_EXAMPLE.subject,
+    readOnly: true,
+  })
+  subject: string
+
+  @ApiProperty({
+    minLength: 1,
+    maxLength: 200,
+    example: WIDGET_EXAMPLE.name,
+  })
+  name: string
+
+  @ApiProperty({
+    enum: WIDGET_STATUSES,
+    enumName: 'WidgetStatus',
+    example: WIDGET_EXAMPLE.status,
+  })
+  status: WidgetStatus
+
+  @ApiProperty({
+    format: 'date-time',
+    example: WIDGET_EXAMPLE.updatedAt,
+    readOnly: true,
+  })
+  updatedAt: Date
+}
+
+@ApiSchema({
   name: 'WidgetListResponse',
-  description: 'A paginated list of widgets with an optional cursor for the next page.',
+  description: 'A paginated list of widget summaries with an optional cursor for the next page.',
 })
 export class WidgetListResponseDto {
   @ApiProperty({
-    type: WidgetDto,
+    type: WidgetSummaryDto,
     isArray: true,
     example: [
       {
         id: '4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f',
         subject: 'user-123',
         name: 'Intake form',
-        description: 'Widget used for intake workflow testing.',
         status: 'active',
-        additionalData: {
-          source: 'local-dev',
-        },
-        createdAt: '2026-05-13T18:00:00Z',
         updatedAt: '2026-05-13T18:00:00Z',
       },
     ],
   })
-  items: WidgetDto[]
+  items: WidgetSummaryDto[]
 
   @ApiPropertyOptional({
     type: 'string',

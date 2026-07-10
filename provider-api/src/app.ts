@@ -236,11 +236,17 @@ function escapeRegExp(value: string): string {
 function alignGeneratedWidgetSpec(document: OpenAPIObject, apiServerPath: string) {
   const pathSummaries: Record<string, string> = {
     '/subjects/{subject}/widgets': 'Manage widgets for one owner subject.',
+    '/subjects/{subject}/events': 'List widget access events for one owner subject.',
     '/widgets/{widgetId}': 'Manage one widget by ID.',
     '/users': 'Discover users that currently own widgets.',
   }
 
-  const orderedPaths = ['/subjects/{subject}/widgets', '/widgets/{widgetId}', '/users']
+  const orderedPaths = [
+    '/subjects/{subject}/widgets',
+    '/subjects/{subject}/events',
+    '/widgets/{widgetId}',
+    '/users',
+  ]
 
   const normalizedPaths = Object.fromEntries(
     Object.entries(document.paths).map(([path, pathItem]) => {
@@ -262,6 +268,7 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject, apiServerPath: string
   )
 
   document.paths = orderKeys(normalizedPaths, orderedPaths) as OpenAPIObject['paths']
+  alignGeneratedSecurity(document)
   alignGeneratedSchemas(document)
   alignGeneratedResponses(document)
   alignGeneratedHeaders(document)
@@ -269,6 +276,29 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject, apiServerPath: string
   orderGeneratedOperations(document)
   orderGeneratedComponents(document)
   orderOpenApiDocument(document)
+}
+
+function alignGeneratedSecurity(document: OpenAPIObject): void {
+  const hasOpenIdSecurityScheme = Boolean(document.components?.securitySchemes?.openId)
+  if (hasOpenIdSecurityScheme) {
+    return
+  }
+
+  for (const operation of generatedOperations(document)) {
+    const security = operation.security
+    if (!Array.isArray(security)) {
+      continue
+    }
+    const filteredSecurity = security.filter(
+      (security) =>
+        !isRecord(security) || !Object.prototype.hasOwnProperty.call(security, 'openId'),
+    )
+    if (filteredSecurity.length === 0) {
+      delete operation.security
+    } else {
+      operation.security = filteredSecurity
+    }
+  }
 }
 
 function alignGeneratedSchemas(document: OpenAPIObject): void {
@@ -285,6 +315,19 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     example: 'active',
     enum: ['active', 'inactive', 'archived'],
   }
+  schemas.WidgetEventType = {
+    description: 'Machine-readable widget access event type.',
+    type: 'string',
+    example: 'widget.get',
+    enum: [
+      'widget.create',
+      'widget.list',
+      'widget.get',
+      'widget.replace',
+      'widget.patch',
+      'widget.delete',
+    ],
+  }
   schemas.ProblemDetailErrorLocation = {
     title: 'ProblemDetailErrorLocation',
     description: 'The location on the HTTP request for which a problem has been detected.',
@@ -300,12 +343,19 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     'PatchWidgetRequest',
     'ProviderUpdateWidgetRequest',
     'ProviderPatchWidgetRequest',
+    'WidgetSummary',
   ]) {
     const properties = schemas[schemaName]?.properties
     if (isRecord(properties) && isRecord(properties.status)) {
       properties.status = {
         $ref: '#/components/schemas/WidgetStatus',
       }
+    }
+  }
+  const eventProperties = schemas.WidgetAccessEvent?.properties
+  if (isRecord(eventProperties) && isRecord(eventProperties.event)) {
+    eventProperties.event = {
+      $ref: '#/components/schemas/WidgetEventType',
     }
   }
 
@@ -373,10 +423,40 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       updatedAt: '2026-05-13T18:00:00Z',
     },
   })
-  assignSchema(schemas, 'WidgetListResponse', {
-    description: 'A paginated list of widgets with an optional cursor for the next page.',
+  assignSchema(schemas, 'WidgetSummary', {
+    description: 'Summary representation used in widget list responses.',
     example: {
-      items: [schemas.Widget.example],
+      id: '4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f',
+      subject: 'user-123',
+      name: 'Intake form',
+      status: 'active',
+      updatedAt: '2026-05-13T18:00:00Z',
+    },
+  })
+  assignSchema(schemas, 'WidgetListResponse', {
+    description: 'A paginated list of widget summaries with an optional cursor for the next page.',
+    example: {
+      items: [schemas.WidgetSummary.example],
+      nextCursor: 'eyJvZmZzZXQiOjI1fQ',
+    },
+  })
+  assignSchema(schemas, 'WidgetAccessEvent', {
+    description: 'Audit event describing access to a widget resource owned by a subject.',
+    example: {
+      id: '8f91c829-6935-4fb0-90bb-2e4f4cc9d3d1',
+      ownerSubject: 'user-123',
+      actorSubject: 'actor-789',
+      actorUsername: 'Alex Smith',
+      event: 'widget.get',
+      description: 'Alex Smith viewed widget Intake form',
+      resourceUrl: '/api/v1/widgets/4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f',
+      createdAt: '2026-05-13T18:30:00Z',
+    },
+  })
+  assignSchema(schemas, 'WidgetAccessEventListResponse', {
+    description: 'A paginated list of widget access audit events.',
+    example: {
+      items: [schemas.WidgetAccessEvent.example],
       nextCursor: 'eyJvZmZzZXQiOjI1fQ',
     },
   })

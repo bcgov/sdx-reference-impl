@@ -1,0 +1,75 @@
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'widgets'
+          AND table_name = 'widget_access_events'
+          AND column_name = 'subject'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'widgets'
+          AND table_name = 'widget_access_events'
+          AND column_name = 'owner_subject'
+    ) THEN
+        ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+            RENAME COLUMN SUBJECT TO OWNER_SUBJECT;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'widgets'
+          AND table_name = 'widget_access_events'
+          AND column_name = 'username'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'widgets'
+          AND table_name = 'widget_access_events'
+          AND column_name = 'actor_username'
+    ) THEN
+        ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+            RENAME COLUMN USERNAME TO ACTOR_USERNAME;
+    END IF;
+END $$;
+
+ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+    ADD COLUMN IF NOT EXISTS ACTOR_SUBJECT varchar(255);
+
+UPDATE WIDGETS.WIDGET_ACCESS_EVENTS
+SET ACTOR_SUBJECT = OWNER_SUBJECT
+WHERE ACTOR_SUBJECT IS NULL;
+
+ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+    ALTER COLUMN ACTOR_SUBJECT SET NOT NULL;
+
+ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+    ADD COLUMN IF NOT EXISTS DESCRIPTION varchar(500);
+
+UPDATE WIDGETS.WIDGET_ACCESS_EVENTS
+SET DESCRIPTION = ACTOR_USERNAME || ' performed ' || EVENT
+WHERE DESCRIPTION IS NULL;
+
+ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+    ALTER COLUMN DESCRIPTION SET NOT NULL;
+
+ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+    ADD COLUMN IF NOT EXISTS RESOURCE_URL varchar(500);
+
+UPDATE WIDGETS.WIDGET_ACCESS_EVENTS
+SET RESOURCE_URL = '/api/v1/widgets'
+WHERE RESOURCE_URL IS NULL;
+
+ALTER TABLE WIDGETS.WIDGET_ACCESS_EVENTS
+    ALTER COLUMN RESOURCE_URL SET NOT NULL;
+
+CREATE INDEX IF NOT EXISTS "WIDGET_ACCESS_EVENT_OWNER_SUBJECT_IDX"
+    ON WIDGETS.WIDGET_ACCESS_EVENTS (OWNER_SUBJECT);
+
+CREATE INDEX IF NOT EXISTS "WIDGET_ACCESS_EVENT_ACTOR_SUBJECT_IDX"
+    ON WIDGETS.WIDGET_ACCESS_EVENTS (ACTOR_SUBJECT);

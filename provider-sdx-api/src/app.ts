@@ -337,10 +337,20 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
       updatedAt: '2026-05-13T18:00:00Z',
     },
   })
-  assignSchema(schemas, 'WidgetListResponse', {
-    description: 'A paginated list of widgets with an optional cursor for the next page.',
+  assignSchema(schemas, 'WidgetSummary', {
+    description: 'Summary representation used in widget list responses.',
     example: {
-      items: [schemas.Widget.example],
+      id: '4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f',
+      subject: 'user-123',
+      name: 'Intake form',
+      status: 'active',
+      updatedAt: '2026-05-13T18:00:00Z',
+    },
+  })
+  assignSchema(schemas, 'WidgetListResponse', {
+    description: 'A paginated list of widget summaries with an optional cursor for the next page.',
+    example: {
+      items: [schemas.WidgetSummary.example],
       nextCursor: 'eyJvZmZzZXQiOjI1fQ',
     },
   })
