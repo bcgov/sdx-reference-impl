@@ -19,8 +19,6 @@ const API_VERSION_PREFIX = 'v'
 export async function bootstrap() {
   const publicBasePath = normalizePublicBasePath(process.env.PUBLIC_BASE_PATH)
   const apiPrefix = joinPaths(publicBasePath, API_PREFIX).replace(/^\//, '')
-  const apiPath = joinPaths(publicBasePath, API_PREFIX)
-  const apiServerPath = joinPaths(publicBasePath, API_PREFIX, 'v1')
   const swaggerDocsPath = joinPaths(publicBasePath, API_PREFIX, 'docs')
   const app: NestExpressApplication = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: customLogger,
@@ -56,8 +54,18 @@ export async function bootstrap() {
     .setVersion('0.1.0')
     .setContact('SDX Reference Implementation Maintainers', undefined as any, undefined as any)
     .setLicense('Apache-2.0', undefined as any)
-    .addServer(apiPath, 'BFF auth endpoints on the same origin as this documentation')
-    .addServer(apiServerPath, 'BFF Widget API on the same origin as this documentation')
+    .addCookieAuth(
+      'bff_session',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'bff_session',
+        description:
+          'HttpOnly BFF session cookie created by /api/auth/login. Swagger users should log in through the application first; the browser will then send this cookie automatically with same-origin Swagger requests.',
+      },
+      'bff_session',
+    )
+    .addServer('/', 'Same-origin BFF API. Operation paths include the /api prefix.')
     .addTag('BFF Auth', 'BFF login, callback, session, and logout endpoints.')
     .addTag('BFF Widgets', 'Widget calls proxied through the BFF session.')
     .build()

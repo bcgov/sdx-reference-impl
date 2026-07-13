@@ -15,10 +15,8 @@ info:
   license:
     name: Apache-2.0
 servers:
-  - url: /api
-    description: BFF auth endpoints on the same origin as this documentation
-  - url: /api/v1
-    description: BFF Widget API on the same origin as this documentation
+  - url: /
+    description: Same-origin BFF API. Operation paths include the /api prefix.
 tags:
   - name: BFF Auth
     description: 'BFF login, callback, session, and logout endpoints.'
@@ -75,6 +73,8 @@ paths:
       responses:
         '401':
           description: ''
+      security:
+        - bff_session: []
       summary: End the current BFF session.
       tags:
         - BFF Auth
@@ -150,6 +150,8 @@ paths:
                 $ref: '#/components/schemas/WidgetListResponse'
         '401':
           description: Login is required.
+      security:
+        - bff_session: []
       summary: List Widgets for the signed-in user through the BFF.
       tags:
         - BFF Widgets
@@ -186,6 +188,8 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '401':
           description: Login is required.
+      security:
+        - bff_session: []
       summary: Create a Widget for the signed-in user through the BFF.
       tags:
         - BFF Widgets
@@ -216,6 +220,8 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '401':
           description: Login is required.
+      security:
+        - bff_session: []
       summary: Get a Widget for the signed-in user through the BFF.
       tags:
         - BFF Widgets
@@ -260,6 +266,8 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '401':
           description: Login is required.
+      security:
+        - bff_session: []
       summary: Replace a Widget for the signed-in user through the BFF.
       tags:
         - BFF Widgets
@@ -304,6 +312,8 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '401':
           description: Login is required.
+      security:
+        - bff_session: []
       summary: Partially update a Widget for the signed-in user through the BFF.
       tags:
         - BFF Widgets
@@ -332,10 +342,21 @@ paths:
           description: The Widget was deleted.
         '401':
           description: Login is required.
+      security:
+        - bff_session: []
       summary: Delete a Widget for the signed-in user through the BFF.
       tags:
         - BFF Widgets
 components:
+  securitySchemes:
+    bff_session:
+      type: apiKey
+      in: cookie
+      name: bff_session
+      description: >-
+        HttpOnly BFF session cookie created by /api/auth/login. Swagger users
+        should log in through the application first; the browser will then send
+        this cookie automatically with same-origin Swagger requests.
   schemas:
     WidgetStatus:
       type: string

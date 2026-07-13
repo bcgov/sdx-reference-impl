@@ -305,6 +305,12 @@ cd ../provider-api
 npm run test
 ```
 
+API unit and component tests are colocated with the source files they exercise
+and use the `.spec.ts` suffix, for example `src/auth/jwt-auth.guard.spec.ts`.
+End-to-end tests use the `.e2e-spec.ts` suffix and live under each module's
+`test` directory. The API package scripts reflect that split: `npm run test`
+runs `src` specs, while `npm run test:e2e` runs `test` specs.
+
 Future SDX examples intentionally left as TODOs:
 
 - Token exchange

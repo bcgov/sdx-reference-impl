@@ -6,6 +6,7 @@ import {
   ApiHeader,
   ApiOkResponse,
   ApiOperation,
+  ApiSecurity,
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger'
@@ -43,6 +44,7 @@ export class UsersController {
   constructor(private readonly userDirectory: UserDirectoryService) {}
 
   @Get()
+  @ApiSecurity('openId', ['nrs:widgets:read'])
   @ApiOperation({
     operationId: 'providerListUsersWithWidgets',
     summary: 'List known users that own widgets.',

@@ -44,9 +44,27 @@ describe('main', () => {
         { name: 'BFF Widgets', description: 'Widget calls proxied through the BFF session.' },
       ]),
     )
+    expect(response.body.servers).toEqual([
+      {
+        url: '/',
+        description: 'Same-origin BFF API. Operation paths include the /api prefix.',
+      },
+    ])
     expect(response.body.paths['/api/auth/login'].get.operationId).toBe('beginLogin')
     expect(response.body.paths['/api/v1/widgets'].get.operationId).toBe('listWidgets')
-    expect(response.body.components?.securitySchemes).toBeUndefined()
+    expect(response.body.components.securitySchemes.bff_session).toEqual({
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'bff_session',
+      description:
+        'HttpOnly BFF session cookie created by /api/auth/login. Swagger users should log in through the application first; the browser will then send this cookie automatically with same-origin Swagger requests.',
+    })
+    expect(response.body.paths['/api/auth/login'].get.security).toBeUndefined()
+    expect(response.body.paths['/api/auth/callback'].get.security).toBeUndefined()
+    expect(response.body.paths['/api/auth/logout'].post.security).toEqual([
+      { bff_session: [] },
+    ])
+    expect(response.body.paths['/api/v1/widgets'].get.security).toEqual([{ bff_session: [] }])
   })
 
   it('uses same-origin CSP for the BFF docs', async () => {
@@ -76,14 +94,11 @@ describe('main with a preserved public base path', () => {
 
     expect(response.body.servers).toEqual([
       {
-        url: '/bff/api',
-        description: 'BFF auth endpoints on the same origin as this documentation',
-      },
-      {
-        url: '/bff/api/v1',
-        description: 'BFF Widget API on the same origin as this documentation',
+        url: '/',
+        description: 'Same-origin BFF API. Operation paths include the /api prefix.',
       },
     ])
+    expect(response.body.paths['/bff/api/v1/widgets'].get.operationId).toBe('listWidgets')
     await request(app.getHttpServer()).get('/api/docs-json').expect(404)
   })
 })

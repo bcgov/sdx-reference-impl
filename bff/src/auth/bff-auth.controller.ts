@@ -1,5 +1,11 @@
 import { Controller, Get, HttpCode, Post, Query, Req, Res } from '@nestjs/common'
-import { ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger'
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger'
 import type { Request, Response } from 'express'
 import { BffSessionService } from './bff-session.service'
 
@@ -61,6 +67,7 @@ export class BffAuthController {
 
   @Post('logout')
   @HttpCode(204)
+  @ApiCookieAuth('bff_session')
   @ApiOperation({
     operationId: 'logout',
     summary: 'End the current BFF session.',

@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common'
 import {
   ApiBody,
+  ApiCookieAuth,
   ApiCreatedResponse,
   ApiHeader,
   ApiNoContentResponse,
@@ -57,6 +58,7 @@ const IF_MATCH_HEADER = {
 }
 
 @ApiTags('BFF Widgets')
+@ApiCookieAuth('bff_session')
 @ApiUnauthorizedResponse({ description: 'Login is required.' })
 @UseGuards(BffSessionGuard)
 @Controller({ path: 'widgets', version: '1' })

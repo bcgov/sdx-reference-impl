@@ -132,6 +132,10 @@ describe('main with Swagger OAuth', () => {
       { serviceBearer: [] },
       { openId: ['nrs:widgets:create'] },
     ])
+    expect(response.body.paths['/users'].get.security).toEqual([
+      { serviceBearer: [] },
+      { openId: ['nrs:widgets:read'] },
+    ])
   })
 
   it('initializes Swagger authorization with the configured client', async () => {
