@@ -12,10 +12,9 @@ import { MetricsController } from './metrics.controller'
 import { TerminusModule } from '@nestjs/terminus'
 import { HealthController } from './health.controller'
 import { HttpExceptionFilter } from './common/http-exception.filter'
-import { UsersModule } from './users/users.module'
 
 @Module({
-  imports: [ConfigModule.forRoot(), TerminusModule, WidgetsModule, UsersModule],
+  imports: [ConfigModule.forRoot(), TerminusModule, WidgetsModule],
   controllers: [AppController, MetricsController, HealthController],
   providers: [
     AppService,

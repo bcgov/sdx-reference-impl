@@ -19,10 +19,6 @@
   ],
   "tags": [
     {
-      "name": "Provider Users",
-      "description": "Provider discovery of users that own Widgets."
-    },
-    {
       "name": "Provider Widgets",
       "description": "Provider Widget operations that can act across subjects."
     }
@@ -889,70 +885,6 @@
         "summary": "Delete a Widget by ID.",
         "tags": [
           "Provider Widgets"
-        ]
-      }
-    },
-    "/users": {
-      "summary": "Discover users that currently own widgets.",
-      "get": {
-        "description": "Returns distinct widget owners with their most recently observed display name and current widget count.",
-        "operationId": "providerListUsersWithWidgets",
-        "parameters": [
-          {
-            "name": "x-on-behalf-of-username",
-            "in": "header",
-            "description": "Original username represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "Alex Smith"
-            }
-          },
-          {
-            "name": "x-on-behalf-of-sub",
-            "in": "header",
-            "description": "Original user subject represented by a provider-sdx-api client token. Required when the bearer token is a client token; omit for user tokens.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "user-123"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Known users that currently own at least one widget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserSummary"
-                  },
-                  "example": [
-                    {
-                      "subject": "user-123",
-                      "displayName": "Alex Smith",
-                      "widgetCount": 3,
-                      "lastSeenAt": "2026-06-11T15:00:00Z"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        },
-        "security": [
-          {
-            "serviceBearer": []
-          }
-        ],
-        "summary": "List known users that own widgets.",
-        "tags": [
-          "Provider Users"
         ]
       }
     }
@@ -1837,46 +1769,6 @@
         "example": {
           "subject": "user-456",
           "status": "archived"
-        }
-      },
-      "UserSummary": {
-        "type": "object",
-        "properties": {
-          "subject": {
-            "type": "string",
-            "description": "Immutable subject identifier from the access token.",
-            "example": "user-123"
-          },
-          "displayName": {
-            "type": "string",
-            "description": "Most recently observed display name from the user access token, or the subject identifier until a name is observed.",
-            "example": "Alex Smith"
-          },
-          "widgetCount": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Number of widgets currently owned by the subject.",
-            "example": 3
-          },
-          "lastSeenAt": {
-            "format": "date-time",
-            "type": "string",
-            "description": "Last time the user made an authenticated request to this API."
-          }
-        },
-        "description": "A known user that currently owns one or more widgets.",
-        "required": [
-          "subject",
-          "displayName",
-          "widgetCount",
-          "lastSeenAt"
-        ],
-        "additionalProperties": false,
-        "example": {
-          "subject": "user-123",
-          "displayName": "Alex Smith",
-          "widgetCount": 3,
-          "lastSeenAt": "2026-06-11T15:00:00Z"
         }
       }
     }

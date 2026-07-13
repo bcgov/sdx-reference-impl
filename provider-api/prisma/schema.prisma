@@ -45,17 +45,6 @@ model WidgetIdempotency {
   @@schema("widgets")
 }
 
-model User {
-  subject     String   @id @db.VarChar(255)
-  displayName String   @map("display_name") @db.VarChar(255)
-  lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  @@map("users")
-  @@schema("widgets")
-}
-
 model WidgetAccessEvent {
   id            String   @id @default(uuid()) @db.Uuid
   ownerSubject  String   @map("owner_subject") @db.VarChar(255)

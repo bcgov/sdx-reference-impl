@@ -8,7 +8,6 @@ import helmet from 'helmet'
 import { VersioningType } from '@nestjs/common'
 import { metricsMiddleware } from './middleware/prom'
 import { WidgetsModule } from './widgets/widgets.module'
-import { UsersModule } from './users/users.module'
 import type { Response } from 'express'
 import {
   createSwaggerOAuthCallbackScript,
@@ -136,7 +135,6 @@ export async function bootstrap() {
     .setLicense('Apache-2.0', undefined as any)
 
     .addServer(apiServerPath, 'Provider API on the same origin as this documentation')
-    .addTag('Provider Users', 'Provider discovery of users that own Widgets.')
     .addTag('Provider Widgets', 'Provider Widget operations that can act across subjects.')
     .addBearerAuth(
       {
@@ -165,7 +163,7 @@ export async function bootstrap() {
   const config = configBuilder.build()
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [WidgetsModule, UsersModule],
+    include: [WidgetsModule],
   })
   alignGeneratedWidgetSpec(document, apiServerPath)
   SwaggerModule.setup(swaggerDocsPath, app, document, {
@@ -238,14 +236,12 @@ function alignGeneratedWidgetSpec(document: OpenAPIObject, apiServerPath: string
     '/subjects/{subject}/widgets': 'Manage widgets for one owner subject.',
     '/subjects/{subject}/events': 'List widget access events for one owner subject.',
     '/widgets/{widgetId}': 'Manage one widget by ID.',
-    '/users': 'Discover users that currently own widgets.',
   }
 
   const orderedPaths = [
     '/subjects/{subject}/widgets',
     '/subjects/{subject}/events',
     '/widgets/{widgetId}',
-    '/users',
   ]
 
   const normalizedPaths = Object.fromEntries(
@@ -492,15 +488,6 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     example: {
       subject: 'user-456',
       status: 'archived',
-    },
-  })
-  assignSchema(schemas, 'UserSummary', {
-    additionalProperties: false,
-    example: {
-      subject: 'user-123',
-      displayName: 'Alex Smith',
-      widgetCount: 3,
-      lastSeenAt: '2026-06-11T15:00:00Z',
     },
   })
   assignSchema(schemas, 'ErrorResponse', {

@@ -1,7 +1,6 @@
 import { UnauthorizedException, type ExecutionContext } from '@nestjs/common'
 import type { AuthenticatedRequest } from './auth.types'
 import { JwtAuthGuard } from './jwt-auth.guard'
-import type { UserDirectoryService } from '../users/user-directory.service'
 
 const tokenFor = (claims: Record<string, unknown>) => {
   const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
@@ -17,10 +16,7 @@ const contextFor = (request: AuthenticatedRequest): ExecutionContext =>
   }) as ExecutionContext
 
 describe('JwtAuthGuard', () => {
-  const recordAuthenticatedUser = vi.fn(async () => undefined)
-  const guard = new JwtAuthGuard({
-    recordAuthenticatedUser,
-  } as unknown as UserDirectoryService)
+  const guard = new JwtAuthGuard()
 
   beforeEach(() => {
     process.env.JWT_VALIDATE_SIGNATURE = 'false'
@@ -31,10 +27,9 @@ describe('JwtAuthGuard', () => {
     delete process.env.JWT_VALIDATE_SIGNATURE
     delete process.env.JWT_VALIDATE_EXPIRY
     delete process.env.JWT_ISSUER
-    recordAuthenticatedUser.mockClear()
   })
 
-  it('sets the authenticated subject and records the user from the bearer token', async () => {
+  it('sets the authenticated subject from the bearer token', async () => {
     const request: AuthenticatedRequest = {
       headers: {
         authorization: `Bearer ${tokenFor({ sub: 'user-123', name: 'Alex Smith' })}`,
@@ -45,10 +40,6 @@ describe('JwtAuthGuard', () => {
     expect(request.user).toEqual({
       subject: 'user-123',
       claims: { sub: 'user-123', name: 'Alex Smith' },
-    })
-    expect(recordAuthenticatedUser).toHaveBeenCalledWith('user-123', {
-      sub: 'user-123',
-      name: 'Alex Smith',
     })
   })
 

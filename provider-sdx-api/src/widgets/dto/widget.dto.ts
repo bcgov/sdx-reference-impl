@@ -29,7 +29,7 @@ export class WidgetDto {
   id: string
 
   @ApiProperty({
-    description: 'Owner subject from the JWT sub claim or admin operation.',
+    description: 'Owner subject from the JWT sub claim.',
     example: WIDGET_EXAMPLE.subject,
     readOnly: true,
   })

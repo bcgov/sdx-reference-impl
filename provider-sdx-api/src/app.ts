@@ -262,8 +262,6 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     'CreateWidgetRequest',
     'UpdateWidgetRequest',
     'PatchWidgetRequest',
-    'AdminUpdateWidgetRequest',
-    'AdminPatchWidgetRequest',
   ]) {
     const properties = schemas[schemaName]?.properties
     if (isRecord(properties) && isRecord(properties.status)) {
@@ -310,8 +308,6 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
     'CreateWidgetRequest',
     'UpdateWidgetRequest',
     'PatchWidgetRequest',
-    'AdminUpdateWidgetRequest',
-    'AdminPatchWidgetRequest',
   ]) {
     if (schemas[schemaName]) {
       schemas[schemaName].additionalProperties = false
@@ -319,9 +315,6 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
   }
   if (schemas.PatchWidgetRequest) {
     schemas.PatchWidgetRequest.minProperties = 1
-  }
-  if (schemas.AdminPatchWidgetRequest) {
-    schemas.AdminPatchWidgetRequest.minProperties = 1
   }
 
   assignSchema(schemas, 'Widget', {
@@ -372,30 +365,6 @@ function alignGeneratedSchemas(document: OpenAPIObject): void {
   })
   assignSchema(schemas, 'PatchWidgetRequest', {
     example: { status: 'archived' },
-  })
-  assignSchema(schemas, 'AdminUpdateWidgetRequest', {
-    example: {
-      subject: 'user-456',
-      name: 'Intake form v2',
-      description: 'Updated widget used for intake workflow testing.',
-      status: 'inactive',
-      additionalData: { source: 'local-dev' },
-    },
-  })
-  assignSchema(schemas, 'AdminPatchWidgetRequest', {
-    example: {
-      subject: 'user-456',
-      status: 'archived',
-    },
-  })
-  assignSchema(schemas, 'UserSummary', {
-    additionalProperties: false,
-    example: {
-      subject: 'user-123',
-      displayName: 'Alex Smith',
-      widgetCount: 3,
-      lastSeenAt: '2026-06-11T15:00:00Z',
-    },
   })
   assignSchema(schemas, 'ErrorResponse', {
     title: 'ErrorResponse',

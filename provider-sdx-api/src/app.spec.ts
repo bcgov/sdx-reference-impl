@@ -88,8 +88,10 @@ describe('main', () => {
     expect(response.text).toContain(
       '"oauth2RedirectUrl": "http://localhost:3001/api/docs/oauth2-redirect.html"',
     )
+    expect(response.text).toContain('"nrs:widgets:read"')
     expect(response.text).toContain('"nrs:widgets:create"')
-    expect(response.text).not.toContain('"nrs:widgets:admin"')
+    expect(response.text).toContain('"nrs:widgets:update"')
+    expect(response.text).toContain('"nrs:widgets:delete"')
   })
 
   it('loads a helper that preserves the Swagger OAuth popup opener', async () => {

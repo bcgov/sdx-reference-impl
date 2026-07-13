@@ -241,10 +241,7 @@ client-token requests.
 The internal provider API records Widget access events in
 `widgets.widget_access_events` with the owner subject, actor subject, actor
 username, event type, human-readable description, relative resource URL, and
-timestamp. It also upserts the represented user in `widgets.users`: for
-service-client calls it uses the `x-on-behalf-of-sub` and
-`x-on-behalf-of-username` headers, and for direct user-token calls it uses the
-JWT claims.
+timestamp.
 
 Widget list endpoints return `WidgetSummary` items with only identifier, owner,
 name, status, and updated timestamp. Fetching `/widgets/{widgetId}` returns the

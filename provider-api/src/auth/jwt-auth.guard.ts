@@ -1,6 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
 import type { AuthenticatedRequest } from './auth.types'
-import { UserDirectoryService } from '../users/user-directory.service'
 import { JwtTokenValidator } from './jwt-token.validator'
 
 @Injectable()
@@ -9,8 +8,6 @@ export class JwtAuthGuard implements CanActivate {
     validateSignature: true,
     validateExpiry: true,
   })
-
-  constructor(private readonly userDirectory: UserDirectoryService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
@@ -25,7 +22,6 @@ export class JwtAuthGuard implements CanActivate {
       subject,
       claims,
     }
-    await this.userDirectory.recordAuthenticatedUser(subject, claims)
     return true
   }
 

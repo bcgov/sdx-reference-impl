@@ -1,7 +1,6 @@
 import { BadRequestException, UnauthorizedException, type ExecutionContext } from '@nestjs/common'
 import type { ProviderAuthenticatedRequest } from './auth.types'
 import { ProviderServiceAuthGuard } from './provider-service-auth.guard'
-import type { UserDirectoryService } from '../users/user-directory.service'
 
 const tokenFor = (claims: Record<string, unknown>) => {
   const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
@@ -17,16 +16,11 @@ const contextFor = (request: ProviderAuthenticatedRequest): ExecutionContext =>
   }) as ExecutionContext
 
 describe('ProviderServiceAuthGuard', () => {
-  const recordAuthenticatedUser = vi.fn(async () => undefined)
-  const userDirectory = {
-    recordAuthenticatedUser,
-  } as unknown as UserDirectoryService
-  const guard = new ProviderServiceAuthGuard(userDirectory)
+  const guard = new ProviderServiceAuthGuard()
 
   beforeEach(() => {
     process.env.JWT_VALIDATE_SIGNATURE = 'false'
     process.env.JWT_VALIDATE_EXPIRY = 'false'
-    recordAuthenticatedUser.mockClear()
   })
 
   afterEach(() => {
@@ -105,7 +99,7 @@ describe('ProviderServiceAuthGuard', () => {
     delete process.env.JWT_VALIDATE_SIGNATURE
     delete process.env.JWT_VALIDATE_EXPIRY
     process.env.JWT_ISSUER = 'https://issuer.test'
-    const strictGuard = new ProviderServiceAuthGuard(userDirectory)
+    const strictGuard = new ProviderServiceAuthGuard()
     const request: ProviderAuthenticatedRequest = {
       headers: {
         authorization: `Bearer ${tokenFor({
@@ -145,7 +139,7 @@ describe('ProviderServiceAuthGuard', () => {
     )
   })
 
-  it('records represented users from on-behalf-of headers for client tokens', async () => {
+  it('sets represented caller fields from on-behalf-of headers for client tokens', async () => {
     const request: ProviderAuthenticatedRequest = {
       headers: {
         authorization: `Bearer ${tokenFor({
@@ -160,10 +154,11 @@ describe('ProviderServiceAuthGuard', () => {
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true)
 
-    expect(recordAuthenticatedUser).toHaveBeenCalledWith('user-123', { name: 'Alex Smith' })
+    expect(request.providerCaller?.onBehalfOfSubject).toBe('user-123')
+    expect(request.providerCaller?.onBehalfOfUsername).toBe('Alex Smith')
   })
 
-  it('records represented users from JWT claims for user tokens', async () => {
+  it('sets represented caller fields from JWT claims for user tokens', async () => {
     const claims = {
       sub: 'user-123',
       name: 'Alex Smith',
@@ -185,6 +180,5 @@ describe('ProviderServiceAuthGuard', () => {
       onBehalfOfSubject: 'user-123',
       onBehalfOfUsername: 'Alex Smith',
     })
-    expect(recordAuthenticatedUser).toHaveBeenCalledWith('user-123', claims)
   })
 })

@@ -53,7 +53,6 @@ describe('main', () => {
       '/subjects/{subject}/widgets',
       '/subjects/{subject}/events',
       '/widgets/{widgetId}',
-      '/users',
     ])
     expect(response.body.components.securitySchemes.serviceBearer).toEqual({
       type: 'http',
@@ -131,10 +130,6 @@ describe('main with Swagger OAuth', () => {
     expect(response.body.paths['/subjects/{subject}/widgets'].post.security).toEqual([
       { serviceBearer: [] },
       { openId: ['nrs:widgets:create'] },
-    ])
-    expect(response.body.paths['/users'].get.security).toEqual([
-      { serviceBearer: [] },
-      { openId: ['nrs:widgets:read'] },
     ])
   })
 
