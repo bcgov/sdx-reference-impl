@@ -43,7 +43,7 @@ The reference implementation now separates the UI/BFF surface from the provider 
 
 - `bff`: backend-for-frontend (BFF) used by the browser UI. It starts Authorization Code with PKCE login, exchanges the code with a confidential client, maintains an HttpOnly session cookie, and proxies Widget requests to `provider-sdx-api`.
 - `provider-sdx-api`: SDX-facing provider API used by the BFF. It derives Widget ownership from the JWT `sub` claim and proxies adapted requests to the provider API.
-- `provider-api`: non-SDX-facing provider API. It identifies Widget ownership from explicit subject path/body parameters and is not called directly by the UI.
+- `provider-api`: database-backed provider API and ownership enforcement point. It derives the effective owner from the user JWT `sub` claim or, for an authorized service client, from trusted on-behalf-of headers.
 
 Validate the OpenAPI 3.0.3 contracts locally with:
 
@@ -62,7 +62,7 @@ requirement disabled because it is not an SDX-facing contract.
 
 ## Widgets API Local Development
 
-The internal provider API uses the existing PostgreSQL/Flyway/Prisma approach from this template. The SDX-facing provider API does not connect to the database; it derives the owner subject from the JWT and proxies adapted requests to the internal provider API. The BFF also does not connect to the database; it stores local development sessions in memory and proxies Widget requests with the user access token from the server-side session.
+The internal provider API uses the existing PostgreSQL/Flyway/Prisma approach from this template and enforces ownership on every database operation. The SDX-facing provider API does not connect to the database; it validates the original user token and forwards Widget requests using an authorized client token plus on-behalf-of headers. The BFF also does not connect to the database; it stores local development sessions in memory and proxies Widget requests with the user access token from the server-side session.
 
 Use Node.js 22.13 or newer for API commands. The repo includes `.nvmrc`, so with nvm you can run:
 
@@ -236,7 +236,23 @@ bearer-token override and no unsigned local development token fallback. It also
 sends `x-on-behalf-of-sub` and `x-on-behalf-of-username` headers for the
 original user. `provider-api` accepts client tokens only from
 `PROVIDER_API_ALLOWED_CLIENT_IDS` and requires those on-behalf-of headers for
-client-token requests.
+client-token requests. For direct user-token requests, `provider-api` uses the
+signed JWT `sub` claim and rejects on-behalf-of headers so that a user cannot
+override their identity.
+
+`provider-api` establishes one effective subject for each request:
+
+- user token: the signed JWT `sub` claim;
+- authorized client token: `x-on-behalf-of-sub`, after validating the client ID
+  against `PROVIDER_API_ALLOWED_CLIENT_IDS`.
+
+All Widget list, create, read, replace, patch, delete, and event queries are
+scoped to that effective subject. Subject path values must match the effective
+subject, and a Widget owned by another subject is returned as `404`. The
+provider PUT and PATCH implementation retains a transfer-permission decision
+point for a future provider permissions table. The reference implementation
+does not grant that permission, so a supplied Widget subject is overwritten
+with the caller's effective subject.
 
 The internal provider API records Widget access events in
 `widgets.widget_access_events` with the owner subject, actor subject, actor
@@ -248,10 +264,11 @@ name, status, and updated timestamp. Fetching `/widgets/{widgetId}` returns the
 full Widget resource, including description and additional data, and records a
 `widget.get` viewed event.
 
-Provider API callers can list audit events for an owner with
-`GET /api/v1/subjects/{subject}/events`. The `x-on-behalf-of-sub` and
-`x-on-behalf-of-username` headers are required only when the bearer token is a
-client token. Swagger users authenticated with an Authorization Code token can
+Provider API callers can list audit events for the effective subject with
+`GET /api/v1/subjects/{subject}/events`, where the path subject must match the
+effective subject. The `x-on-behalf-of-sub` and
+`x-on-behalf-of-username` headers are required for client tokens and prohibited
+for user tokens. Swagger users authenticated with an Authorization Code token
 omit those headers.
 
 Register the Swagger callback and API origin with each public OIDC client you

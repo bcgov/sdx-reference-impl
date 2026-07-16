@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Provider API - Widgets",
-    "description": "Non-SDX-facing provider API for managing fictional widgets.\n\nThis API is intended for internal provider traffic. Widget ownership is supplied explicitly through path or body parameters rather than derived from a JWT subject.\n\nThe SDX-facing provider API adapts authenticated requests and proxies them to this API. The UI should not call this API directly.",
+    "description": "Non-SDX-facing provider API for managing fictional widgets.\nThis API is intended to represent a legacy provider interface that does not conform to the SDX pattern which requires that the access token identify the resource owner.\nThe SDX-facing provider API adapts authenticated requests and proxies them to this API.\nThis example API does not implement the full authentication or authorization that would be expected in a real provider implementation.",
     "version": "0.1.0",
     "contact": {
       "name": "SDX Reference Implementation Maintainers"
@@ -583,7 +583,7 @@
               },
               "examples": {
                 "providerReplaceWidget": {
-                  "summary": "Replace a widget and transfer ownership",
+                  "summary": "Replace a widget",
                   "value": {
                     "subject": "user-456",
                     "name": "Intake form v2",
@@ -724,7 +724,7 @@
               },
               "examples": {
                 "providerArchiveWidget": {
-                  "summary": "Archive a widget and transfer ownership",
+                  "summary": "Archive a widget",
                   "value": {
                     "subject": "user-456",
                     "status": "archived"

@@ -16,10 +16,9 @@ import {
 } from './swagger-oauth.scripts'
 
 const apiDescription = `Non-SDX-facing provider API for managing fictional widgets.
-
-This API is intended for internal provider traffic. Widget ownership is supplied explicitly through path or body parameters rather than derived from a JWT subject.
-
-The SDX-facing provider API adapts authenticated requests and proxies them to this API. The UI should not call this API directly.`
+This API is intended to represent a legacy provider interface that does not conform to the SDX pattern which requires that the access token identify the resource owner.
+The SDX-facing provider API adapts authenticated requests and proxies them to this API.
+This example API does not implement the full authentication or authorization that would be expected in a real provider implementation.`
 
 const DEFAULT_OIDC_SCOPES =
   'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete'

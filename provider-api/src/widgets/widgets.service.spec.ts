@@ -1,3 +1,4 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import type { ProviderCaller } from '../auth/auth.types'
 import type { PrismaService } from '../prisma.service'
 import { WidgetsService } from './widgets.service'
@@ -16,10 +17,9 @@ const widget = {
   updatedAt: now,
 }
 
-const transferredWidget = {
+const updatedWidget = {
   ...widget,
-  subject: 'user-456',
-  name: 'Transferred Widget',
+  name: 'Updated Widget',
 }
 
 const accessEvent = {
@@ -38,12 +38,13 @@ const caller: ProviderCaller = {
   claims: {},
   clientToken: true,
   clientId: 'dev-provider-sdx-api',
-  onBehalfOfSubject: 'actor-789',
-  onBehalfOfUsername: 'Alex Smith',
+  effectiveSubject: 'user-123',
+  effectiveUsername: 'Alex Smith',
 }
 
 describe('WidgetsService provider access events', () => {
   const widgetCreate = vi.fn()
+  const widgetFindFirst = vi.fn()
   const widgetFindUnique = vi.fn()
   const widgetUpdate = vi.fn()
   const widgetDelete = vi.fn()
@@ -52,6 +53,7 @@ describe('WidgetsService provider access events', () => {
   const prisma = {
     widget: {
       create: widgetCreate,
+      findFirst: widgetFindFirst,
       findUnique: widgetFindUnique,
       update: widgetUpdate,
       delete: widgetDelete,
@@ -65,8 +67,9 @@ describe('WidgetsService provider access events', () => {
 
   beforeEach(() => {
     widgetCreate.mockResolvedValue(widget)
+    widgetFindFirst.mockResolvedValue(widget)
     widgetFindUnique.mockResolvedValue(widget)
-    widgetUpdate.mockResolvedValue(transferredWidget)
+    widgetUpdate.mockResolvedValue(updatedWidget)
     widgetDelete.mockResolvedValue(widget)
     eventCreate.mockResolvedValue({})
     eventFindMany.mockResolvedValue([accessEvent])
@@ -74,17 +77,12 @@ describe('WidgetsService provider access events', () => {
   })
 
   it('records a readable create event with the widget URL', async () => {
-    await service.providerCreateForSubject(
-      'user-123',
-      { name: 'Forest Tenure Widget' },
-      undefined,
-      caller,
-    )
+    await service.providerCreateForSubject('user-123', { name: 'Forest Tenure Widget' }, caller)
 
     expect(eventCreate).toHaveBeenCalledWith({
       data: {
         ownerSubject: 'user-123',
-        actorSubject: 'actor-789',
+        actorSubject: 'user-123',
         actorUsername: 'Alex Smith',
         event: 'widget.create',
         description: 'Alex Smith created widget Forest Tenure Widget',
@@ -94,14 +92,16 @@ describe('WidgetsService provider access events', () => {
   })
 
   it('records a readable delete event before removing the widget', async () => {
-    await service.providerDelete(widgetId, undefined, caller)
+    await service.providerDelete(widgetId, caller)
 
-    expect(widgetFindUnique).toHaveBeenCalledWith({ where: { id: widgetId } })
+    expect(widgetFindFirst).toHaveBeenCalledWith({
+      where: { id: widgetId, subject: 'user-123' },
+    })
     expect(widgetDelete).toHaveBeenCalledWith({ where: { id: widgetId } })
     expect(eventCreate).toHaveBeenCalledWith({
       data: {
         ownerSubject: 'user-123',
-        actorSubject: 'actor-789',
+        actorSubject: 'user-123',
         actorUsername: 'Alex Smith',
         event: 'widget.delete',
         description: 'Alex Smith deleted widget Forest Tenure Widget',
@@ -110,25 +110,24 @@ describe('WidgetsService provider access events', () => {
     })
   })
 
-  it('records ownership transfer updates against the previous owner', async () => {
+  it('overwrites a requested transfer with the effective subject', async () => {
     await service.providerReplace(
       widgetId,
       {
         subject: 'user-456',
-        name: 'Transferred Widget',
+        name: 'Updated Widget',
         status: 'active',
         description: null,
         additionalData: {},
       },
-      undefined,
       caller,
     )
 
     expect(widgetUpdate).toHaveBeenCalledWith({
       where: { id: widgetId },
       data: {
-        subject: 'user-456',
-        name: 'Transferred Widget',
+        subject: 'user-123',
+        name: 'Updated Widget',
         status: 'active',
         description: null,
         additionalData: {},
@@ -137,10 +136,10 @@ describe('WidgetsService provider access events', () => {
     expect(eventCreate).toHaveBeenCalledWith({
       data: {
         ownerSubject: 'user-123',
-        actorSubject: 'actor-789',
+        actorSubject: 'user-123',
         actorUsername: 'Alex Smith',
         event: 'widget.replace',
-        description: 'Alex Smith replaced widget Transferred Widget',
+        description: 'Alex Smith replaced widget Updated Widget',
         resourceUrl: `/api/v1/widgets/${widgetId}`,
       },
     })
@@ -148,7 +147,7 @@ describe('WidgetsService provider access events', () => {
 
   it('lists access events for the owner subject', async () => {
     await expect(
-      service.providerListEventsForSubject('user-123', { limit: '25' }),
+      service.providerListEventsForSubject('user-123', { limit: '25' }, caller),
     ).resolves.toEqual({
       items: [accessEvent],
       nextCursor: null,
@@ -159,6 +158,52 @@ describe('WidgetsService provider access events', () => {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: 0,
       take: 26,
+    })
+  })
+
+  it.each([
+    ['get', () => service.providerGet(widgetId, caller)],
+    [
+      'replace',
+      () =>
+        service.providerReplace(widgetId, { subject: 'user-123', name: 'Updated Widget' }, caller),
+    ],
+    [
+      'patch',
+      () =>
+        service.providerPatch(widgetId, { subject: 'user-123', name: 'Updated Widget' }, caller),
+    ],
+    ['delete', () => service.providerDelete(widgetId, caller)],
+  ])('returns not found when %s targets a widget owned by another subject', async (_name, call) => {
+    widgetFindFirst.mockResolvedValueOnce(null)
+
+    await expect(call()).rejects.toBeInstanceOf(NotFoundException)
+
+    expect(widgetFindFirst).toHaveBeenCalledWith({
+      where: { id: widgetId, subject: 'user-123' },
+    })
+    expect(widgetUpdate).not.toHaveBeenCalled()
+    expect(widgetDelete).not.toHaveBeenCalled()
+    expect(eventCreate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a subject path that does not match the effective subject', async () => {
+    await expect(
+      service.providerCreateForSubject('user-456', { name: 'Another User Widget' }, caller),
+    ).rejects.toBeInstanceOf(ForbiddenException)
+
+    expect(widgetCreate).not.toHaveBeenCalled()
+  })
+
+  it('overwrites a patch subject with the effective subject', async () => {
+    await service.providerPatch(widgetId, { subject: 'user-456' }, caller)
+
+    expect(widgetFindFirst).toHaveBeenCalledWith({
+      where: { id: widgetId, subject: 'user-123' },
+    })
+    expect(widgetUpdate).toHaveBeenCalledWith({
+      where: { id: widgetId },
+      data: { subject: 'user-123' },
     })
   })
 })

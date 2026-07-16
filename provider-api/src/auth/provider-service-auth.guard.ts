@@ -35,19 +35,28 @@ export class ProviderServiceAuthGuard implements CanActivate {
     const onBehalfOfSubject = this.readHeader(request, 'x-on-behalf-of-sub')
     const onBehalfOfUsername = this.readHeader(request, 'x-on-behalf-of-username')
 
-    if (clientToken && (!onBehalfOfSubject || !onBehalfOfUsername)) {
-      throw new BadRequestException(
-        'x-on-behalf-of-sub and x-on-behalf-of-username headers are required for client tokens',
-      )
+    let effectiveSubject: string | undefined
+    let effectiveUsername: string | undefined
+    if (clientToken) {
+      if (!onBehalfOfSubject || !onBehalfOfUsername) {
+        throw new BadRequestException(
+          'x-on-behalf-of-sub and x-on-behalf-of-username headers are required for client tokens',
+        )
+      }
+      effectiveSubject = onBehalfOfSubject
+      effectiveUsername = onBehalfOfUsername
+    } else {
+      if (onBehalfOfSubject || onBehalfOfUsername) {
+        throw new BadRequestException(
+          'x-on-behalf-of-sub and x-on-behalf-of-username headers are only permitted for client tokens',
+        )
+      }
+      effectiveSubject = this.readStringClaim(claims, 'sub')
+      effectiveUsername = this.usernameFromClaims(claims)
     }
 
-    const userSubject = onBehalfOfSubject || this.readStringClaim(claims, 'sub')
-    const username = onBehalfOfUsername || this.usernameFromClaims(claims)
-
-    if (!userSubject || !username) {
-      throw new BadRequestException(
-        'Unable to determine user subject and username for provider event recording',
-      )
+    if (!effectiveSubject || !effectiveUsername) {
+      throw new BadRequestException('Unable to determine effective user subject and username')
     }
 
     request.providerCaller = {
@@ -55,8 +64,8 @@ export class ProviderServiceAuthGuard implements CanActivate {
       claims,
       clientToken,
       clientId,
-      onBehalfOfSubject: userSubject,
-      onBehalfOfUsername: username,
+      effectiveSubject,
+      effectiveUsername,
     }
     return true
   }

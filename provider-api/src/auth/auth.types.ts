@@ -13,8 +13,8 @@ export interface ProviderCaller {
   claims: Record<string, unknown>
   clientToken: boolean
   clientId?: string
-  onBehalfOfSubject: string
-  onBehalfOfUsername: string
+  effectiveSubject: string
+  effectiveUsername: string
 }
 
 export interface ProviderAuthenticatedRequest {

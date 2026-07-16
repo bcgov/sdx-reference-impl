@@ -4,14 +4,15 @@ info:
   description: >-
     Non-SDX-facing provider API for managing fictional widgets.
 
-
-    This API is intended for internal provider traffic. Widget ownership is
-    supplied explicitly through path or body parameters rather than derived from
-    a JWT subject.
-
+    This API is intended to represent a legacy provider interface that does not
+    conform to the SDX pattern which requires that the access token identify the
+    resource owner.
 
     The SDX-facing provider API adapts authenticated requests and proxies them
-    to this API. The UI should not call this API directly.
+    to this API.
+
+    This example API does not implement the full authentication or authorization
+    that would be expected in a real provider implementation.
   version: 0.1.0
   contact:
     name: SDX Reference Implementation Maintainers
@@ -449,7 +450,7 @@ paths:
               $ref: '#/components/schemas/ProviderUpdateWidgetRequest'
             examples:
               providerReplaceWidget:
-                summary: Replace a widget and transfer ownership
+                summary: Replace a widget
                 value:
                   subject: user-456
                   name: Intake form v2
@@ -554,7 +555,7 @@ paths:
               $ref: '#/components/schemas/ProviderPatchWidgetRequest'
             examples:
               providerArchiveWidget:
-                summary: Archive a widget and transfer ownership
+                summary: Archive a widget
                 value:
                   subject: user-456
                   status: archived

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   PreconditionFailedException,
@@ -178,9 +179,10 @@ export class WidgetsService {
   async providerCreateForSubject(
     subject: string,
     dto: CreateWidgetDto,
+    caller: ProviderCaller,
     idempotencyKey?: string,
-    caller?: ProviderCaller,
   ): Promise<WidgetDto> {
+    this.requireEffectiveSubject(subject, caller)
     const widget = await this.createForSubject(subject, dto, idempotencyKey)
     await this.recordWidgetAccessEvent(caller, widget.subject, 'widget.create', 'created', widget)
     return widget
@@ -189,8 +191,9 @@ export class WidgetsService {
   async providerListForSubject(
     subject: string,
     query: ListWidgetsQueryDto,
-    caller?: ProviderCaller,
+    caller: ProviderCaller,
   ): Promise<WidgetListResponseDto> {
+    this.requireEffectiveSubject(subject, caller)
     const response = await this.listWidgets({ subject }, query)
     await this.recordWidgetCollectionAccessEvent(caller, subject, 'widget.list')
     return response
@@ -199,7 +202,9 @@ export class WidgetsService {
   async providerListEventsForSubject(
     subject: string,
     query: ListWidgetAccessEventsQueryDto,
+    caller: ProviderCaller,
   ): Promise<WidgetAccessEventListResponseDto> {
+    this.requireEffectiveSubject(subject, caller)
     this.validateSubject(subject)
     const limit = this.parseLimit(query.limit)
     const cursorOffset = this.parseCursor(query.cursor)
@@ -217,10 +222,9 @@ export class WidgetsService {
     }
   }
 
-  async providerGet(widgetId: string, caller?: ProviderCaller): Promise<WidgetDto> {
+  async providerGet(widgetId: string, caller: ProviderCaller): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
-    const widget = await this.prisma.widget.findUnique({ where: { id: widgetId } })
-    const dto = this.requireWidget(widget)
+    const dto = await this.getForSubject(widgetId, caller.effectiveSubject)
     await this.recordWidgetAccessEvent(caller, dto.subject, 'widget.get', 'viewed', dto)
     return dto
   }
@@ -228,15 +232,20 @@ export class WidgetsService {
   async providerReplace(
     widgetId: string,
     dto: ProviderUpdateWidgetDto,
+    caller: ProviderCaller,
     ifMatch?: string,
-    caller?: ProviderCaller,
   ): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
-    const current = await this.getWidget(widgetId)
+    const current = await this.getWidgetForSubject(widgetId, caller.effectiveSubject)
     this.validateIfMatch(current, ifMatch)
     const widget = await this.prisma.widget.update({
       where: { id: widgetId },
-      data: this.buildProviderUpdateData(dto, true),
+      data: this.buildProviderUpdateData(
+        dto,
+        true,
+        caller.effectiveSubject,
+        this.canTransferWidgetOwnership(caller, current),
+      ),
     })
     const updatedWidget = this.toDto(widget)
     await this.recordWidgetAccessEvent(
@@ -252,15 +261,20 @@ export class WidgetsService {
   async providerPatch(
     widgetId: string,
     dto: ProviderPatchWidgetDto,
+    caller: ProviderCaller,
     ifMatch?: string,
-    caller?: ProviderCaller,
   ): Promise<WidgetDto> {
     this.validateWidgetId(widgetId)
-    const current = await this.getWidget(widgetId)
+    const current = await this.getWidgetForSubject(widgetId, caller.effectiveSubject)
     this.validateIfMatch(current, ifMatch)
     const widget = await this.prisma.widget.update({
       where: { id: widgetId },
-      data: this.buildProviderUpdateData(dto, false),
+      data: this.buildProviderUpdateData(
+        dto,
+        false,
+        caller.effectiveSubject,
+        this.canTransferWidgetOwnership(caller, current),
+      ),
     })
     const updatedWidget = this.toDto(widget)
     await this.recordWidgetAccessEvent(
@@ -273,9 +287,9 @@ export class WidgetsService {
     return updatedWidget
   }
 
-  async providerDelete(widgetId: string, ifMatch?: string, caller?: ProviderCaller): Promise<void> {
+  async providerDelete(widgetId: string, caller: ProviderCaller, ifMatch?: string): Promise<void> {
     this.validateWidgetId(widgetId)
-    const current = await this.getWidget(widgetId)
+    const current = await this.getWidgetForSubject(widgetId, caller.effectiveSubject)
     this.validateIfMatch(current, ifMatch)
     await this.prisma.widget.delete({ where: { id: widgetId } })
     await this.recordWidgetAccessEvent(caller, current.subject, 'widget.delete', 'deleted', current)
@@ -321,8 +335,8 @@ export class WidgetsService {
     await this.prisma.widgetAccessEvent.create({
       data: {
         ownerSubject: details.ownerSubject,
-        actorSubject: caller.onBehalfOfSubject,
-        actorUsername: caller.onBehalfOfUsername,
+        actorSubject: caller.effectiveSubject,
+        actorUsername: caller.effectiveUsername,
         event: details.event,
         description: details.description,
         resourceUrl: details.resourceUrl,
@@ -344,7 +358,7 @@ export class WidgetsService {
     await this.recordAccessEvent(caller, {
       ownerSubject,
       event,
-      description: `${caller.onBehalfOfUsername} ${verb} widget ${widget.name}`,
+      description: `${caller.effectiveUsername} ${verb} widget ${widget.name}`,
       resourceUrl: this.widgetResourceUrl(widget.id),
     })
   }
@@ -361,7 +375,7 @@ export class WidgetsService {
     await this.recordAccessEvent(caller, {
       ownerSubject,
       event,
-      description: `${caller.onBehalfOfUsername} listed widgets`,
+      description: `${caller.effectiveUsername} listed widgets`,
       resourceUrl: this.widgetCollectionResourceUrl(ownerSubject),
     })
   }
@@ -418,13 +432,22 @@ export class WidgetsService {
   private buildProviderUpdateData(
     dto: ProviderUpdateWidgetDto | ProviderPatchWidgetDto,
     replace: boolean,
+    effectiveSubject: string,
+    canTransferOwnership: boolean,
   ): Prisma.WidgetUpdateInput {
     const data = this.buildUpdateData(dto, replace, dto.subject !== undefined)
     if (dto.subject !== undefined) {
       this.validateSubject(dto.subject)
-      data.subject = dto.subject
+      data.subject = canTransferOwnership ? dto.subject : effectiveSubject
     }
     return data
+  }
+
+  private canTransferWidgetOwnership(_caller: ProviderCaller, _widget: WidgetRecord): boolean {
+    // A real provider could consult its permissions table here. The reference
+    // policy grants no transfer permission, so a supplied subject is normalized
+    // to the caller's effective subject.
+    return false
   }
 
   private validateSubject(subject: string): void {
@@ -432,6 +455,13 @@ export class WidgetsService {
       throw new UnprocessableEntityException(
         'subject must be a non-empty string up to 255 characters',
       )
+    }
+  }
+
+  private requireEffectiveSubject(subject: string, caller: ProviderCaller): void {
+    this.validateSubject(subject)
+    if (subject !== caller.effectiveSubject) {
+      throw new ForbiddenException('Requested subject must match the effective subject')
     }
   }
 
@@ -583,11 +613,6 @@ export class WidgetsService {
     const widget = await this.prisma.widget.findFirst({
       where: { id: widgetId, subject },
     })
-    return this.requireWidgetRecord(widget)
-  }
-
-  private async getWidget(widgetId: string): Promise<WidgetRecord> {
-    const widget = await this.prisma.widget.findUnique({ where: { id: widgetId } })
     return this.requireWidgetRecord(widget)
   }
 

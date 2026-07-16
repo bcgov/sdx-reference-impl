@@ -822,10 +822,11 @@ export class ProviderWidgetsController {
   @ApiUnauthorizedResponse(ERROR_RESPONSE)
   @ApiForbiddenResponse(ERROR_RESPONSE)
   listEventsForSubject(
+    @CurrentProviderCaller() caller: ProviderCaller,
     @Param('subject') subject: string,
     @Query() query: ListWidgetAccessEventsQueryDto,
   ) {
-    return this.widgetsService.providerListEventsForSubject(subject, query)
+    return this.widgetsService.providerListEventsForSubject(subject, query, caller)
   }
 
   @Post('subjects/:subject/widgets')
@@ -887,8 +888,8 @@ export class ProviderWidgetsController {
     const widget = await this.widgetsService.providerCreateForSubject(
       subject,
       dto,
-      idempotencyKey,
       caller,
+      idempotencyKey,
     )
     this.setWidgetEtag(response, widget)
     return widget
@@ -950,7 +951,7 @@ export class ProviderWidgetsController {
     type: ProviderUpdateWidgetDto,
     examples: {
       providerReplaceWidget: {
-        summary: 'Replace a widget and transfer ownership',
+        summary: 'Replace a widget',
         value: PROVIDER_UPDATE_WIDGET_EXAMPLE,
       },
     },
@@ -976,7 +977,7 @@ export class ProviderWidgetsController {
     @Res({ passthrough: true }) response: Response,
     @CurrentProviderCaller() caller: ProviderCaller,
   ) {
-    const widget = await this.widgetsService.providerReplace(widgetId, dto, ifMatch, caller)
+    const widget = await this.widgetsService.providerReplace(widgetId, dto, caller, ifMatch)
     this.setWidgetEtag(response, widget)
     return widget
   }
@@ -1002,7 +1003,7 @@ export class ProviderWidgetsController {
     type: ProviderPatchWidgetDto,
     examples: {
       providerUpdateWidget: {
-        summary: 'Archive a widget and transfer ownership',
+        summary: 'Archive a widget',
         value: PROVIDER_PATCH_WIDGET_EXAMPLE,
       },
     },
@@ -1028,7 +1029,7 @@ export class ProviderWidgetsController {
     @Res({ passthrough: true }) response: Response,
     @CurrentProviderCaller() caller: ProviderCaller,
   ) {
-    const widget = await this.widgetsService.providerPatch(widgetId, dto, ifMatch, caller)
+    const widget = await this.widgetsService.providerPatch(widgetId, dto, caller, ifMatch)
     this.setWidgetEtag(response, widget)
     return widget
   }
@@ -1064,6 +1065,6 @@ export class ProviderWidgetsController {
     @Param('widgetId') widgetId: string,
     @Headers('if-match') ifMatch: string | undefined,
   ) {
-    return this.widgetsService.providerDelete(widgetId, ifMatch, caller)
+    return this.widgetsService.providerDelete(widgetId, caller, ifMatch)
   }
 }

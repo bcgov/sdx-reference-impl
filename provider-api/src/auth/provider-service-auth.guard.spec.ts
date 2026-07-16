@@ -71,8 +71,8 @@ describe('ProviderServiceAuthGuard', () => {
       },
       clientToken: true,
       clientId: 'local-provider-sdx-api',
-      onBehalfOfSubject: 'user-123',
-      onBehalfOfUsername: 'Alex Smith',
+      effectiveSubject: 'user-123',
+      effectiveUsername: 'Alex Smith',
     })
   })
 
@@ -154,8 +154,8 @@ describe('ProviderServiceAuthGuard', () => {
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true)
 
-    expect(request.providerCaller?.onBehalfOfSubject).toBe('user-123')
-    expect(request.providerCaller?.onBehalfOfUsername).toBe('Alex Smith')
+    expect(request.providerCaller?.effectiveSubject).toBe('user-123')
+    expect(request.providerCaller?.effectiveUsername).toBe('Alex Smith')
   })
 
   it('sets represented caller fields from JWT claims for user tokens', async () => {
@@ -177,8 +177,27 @@ describe('ProviderServiceAuthGuard', () => {
       claims,
       clientToken: false,
       clientId: undefined,
-      onBehalfOfSubject: 'user-123',
-      onBehalfOfUsername: 'Alex Smith',
+      effectiveSubject: 'user-123',
+      effectiveUsername: 'Alex Smith',
     })
+  })
+
+  it('rejects on-behalf-of headers for user tokens', async () => {
+    const request: ProviderAuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor({
+          sub: 'user-123',
+          name: 'Alex Smith',
+        })}`,
+        'x-on-behalf-of-sub': 'user-456',
+        'x-on-behalf-of-username': 'Another User',
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).rejects.toEqual(
+      new BadRequestException(
+        'x-on-behalf-of-sub and x-on-behalf-of-username headers are only permitted for client tokens',
+      ),
+    )
   })
 })
