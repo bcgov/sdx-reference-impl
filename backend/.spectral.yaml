@@ -1,2 +1,0 @@
-extends:
-  - https://raw.githubusercontent.com/bcgov/csit-api-governance-spectral-style-guide/refs/heads/main/dist/spectral/strict-ruleset.yaml

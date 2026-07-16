@@ -1,0 +1,22 @@
+  # Local Setup
+  scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "kcadmin" \
+  --admin-password "<password>" \
+  --environment local \
+  --frontend-origin http://localhost:3000 \
+  --provider-api-public-url http://localhost:3002 \
+  --provider-sdx-api-public-url http://localhost:3003
+
+
+  # Dev Setup
+  scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "kcadmin" \
+  --admin-password "<password>" \
+  --environment dev \
+  --frontend-origin https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca \
+  --provider-api-public-url https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca \
+  --provider-sdx-api-public-url https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/sdx

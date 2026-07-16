@@ -4,6 +4,8 @@ x-var:
   - &POSTGRES_PASSWORD default
   - &POSTGRES_DATABASE postgres
   - &node-image node:22
+  # Run bind-mounted dev Node services as the host user so generated files are not owned by root/nobody.
+  - &node-user "${HOST_UID:-1000}:${HOST_GID:-1000}"
 
 # Reusable envars for postgres
 x-postgres-vars: &postgres-vars
@@ -47,54 +49,114 @@ services:
         condition: service_completed_successfully
     volumes: ["./output:/output"]
 
-  backend:
-    container_name: backend
+  provider-api:
+    container_name: provider-api
     depends_on:
       migrations:
-        condition: service_started
+        condition: service_completed_successfully
     entrypoint: sh -c "npm i && npm run start:dev"
     environment:
       <<: *postgres-vars
       NODE_ENV: development
-      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-widget-ui-sdx-reference-implementation-21920}
+      PROVIDER_API_ALLOWED_CLIENT_IDS: ${PROVIDER_API_ALLOWED_CLIENT_IDS:?PROVIDER_API_ALLOWED_CLIENT_IDS is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
       OIDC_OPENID_CONNECT_URL: ${OIDC_OPENID_CONNECT_URL:-}
-      SWAGGER_OAUTH_CLIENT_ID: ${SWAGGER_OAUTH_CLIENT_ID:-}
-      SWAGGER_OAUTH_REDIRECT_URL: ${SWAGGER_OAUTH_REDIRECT_URL:-http://localhost:3001/api/docs/oauth2-redirect.html}
-      SWAGGER_OAUTH_SCOPES: ${SWAGGER_OAUTH_SCOPES:-${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}}
+      JWT_ISSUER: ${PROVIDER_API_JWT_ISSUER:?PROVIDER_API_JWT_ISSUER is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      JWT_VALIDATE_SIGNATURE: ${PROVIDER_API_JWT_VALIDATE_SIGNATURE:-true}
+      JWT_VALIDATE_EXPIRY: ${PROVIDER_API_JWT_VALIDATE_EXPIRY:-true}
+      PUBLIC_BASE_PATH: ${PROVIDER_API_PUBLIC_BASE_PATH:-}
+      SWAGGER_OAUTH_CLIENT_ID: ${PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID:?PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      SWAGGER_OAUTH_REDIRECT_URL: ${PROVIDER_API_SWAGGER_OAUTH_REDIRECT_URL:?PROVIDER_API_SWAGGER_OAUTH_REDIRECT_URL is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      SWAGGER_OAUTH_SCOPES: ${PROVIDER_API_SWAGGER_OAUTH_SCOPES:?PROVIDER_API_SWAGGER_OAUTH_SCOPES is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
     image: *node-image
-    ports: ["3001:3000"]
+    ports: ["3002:3000"]
+    user: *node-user
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
     working_dir: "/app"
     volumes:
-      - "./backend:/app"
+      - "./provider-api:/app"
       - "/app/node_modules"
       - "/app/src/generated"
       - "/app/dist"
+
+  provider-sdx-api:
+    container_name: provider-sdx-api
+    depends_on:
+      provider-api:
+        condition: service_healthy
+    entrypoint: sh -c "npm i && npm run start:dev"
+    environment:
+      NODE_ENV: development
+      PROVIDER_API_BASE_URL: ${PROVIDER_API_BASE_URL:-http://provider-api:3000/api/v1}
+      PROVIDER_SDX_API_CLIENT_ID: ${PROVIDER_SDX_API_CLIENT_ID:?PROVIDER_SDX_API_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      PROVIDER_SDX_API_CLIENT_SECRET: ${PROVIDER_SDX_API_CLIENT_SECRET:?PROVIDER_SDX_API_CLIENT_SECRET is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      PROVIDER_SDX_API_TOKEN_SCOPE: ${PROVIDER_SDX_API_TOKEN_SCOPE:-}
+      PROVIDER_SDX_API_TOKEN_URL: ${PROVIDER_SDX_API_TOKEN_URL:-}
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      OIDC_OPENID_CONNECT_URL: ${OIDC_OPENID_CONNECT_URL:-}
+      JWT_ISSUER: ${PROVIDER_SDX_API_JWT_ISSUER:-}
+      JWT_VALIDATE_SIGNATURE: ${PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE:-false}
+      JWT_VALIDATE_EXPIRY: ${PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY:-false}
+      PUBLIC_BASE_PATH: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH:-}
+      SWAGGER_OAUTH_CLIENT_ID: ${PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID:?PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      SWAGGER_OAUTH_REDIRECT_URL: ${PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL:?PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      SWAGGER_OAUTH_SCOPES: ${PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES:?PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+    image: *node-image
+    ports: ["3003:3000"]
+    user: *node-user
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
+    working_dir: "/app"
+    volumes:
+      - "./provider-sdx-api:/app"
+      - "/app/node_modules"
+      - "/app/dist"
+
+  bff:
+    container_name: bff
+    depends_on:
+      provider-sdx-api:
+        condition: service_healthy
+    entrypoint: sh -c "npm i && npm run start:dev"
+    environment:
+      NODE_ENV: development
+      PROVIDER_SDX_API_BASE_URL: ${PROVIDER_SDX_API_BASE_URL:-http://provider-sdx-api:3000/api/v1}
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      OIDC_CLIENT_ID: ${BFF_OIDC_CLIENT_ID:?BFF_OIDC_CLIENT_ID is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      OIDC_CLIENT_SECRET: ${BFF_OIDC_CLIENT_SECRET:?BFF_OIDC_CLIENT_SECRET is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      OIDC_DISPLAY_NAME_CLAIM: ${BFF_OIDC_DISPLAY_NAME_CLAIM:-name}
+      OIDC_OPENID_CONNECT_URL: ${OIDC_OPENID_CONNECT_URL:-}
+      OIDC_REDIRECT_URI: ${BFF_OIDC_REDIRECT_URI:?BFF_OIDC_REDIRECT_URI is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      OIDC_SCOPE: ${BFF_OIDC_SCOPE:?BFF_OIDC_SCOPE is required. Run scripts/setup-keycloak.mjs and use the generated env file.}
+      PUBLIC_BASE_PATH: ${BFF_PUBLIC_BASE_PATH:-}
+    image: *node-image
+    ports: ["3001:3000"]
+    user: *node-user
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
+    working_dir: "/app"
+    volumes:
+      - "./bff:/app"
+      - "/app/node_modules"
+      - "/app/build"
 
   frontend:
     container_name: frontend
     entrypoint: sh -c "npm ci --ignore-scripts && npm run dev"
     environment:
-      API_BASE_URL: ${API_BASE_URL:-http://localhost:3001/api/v1}
-      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-widget-ui-sdx-reference-implementation-21920}
-      OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
-      OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
-      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}
-      OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
+      BFF_BASE_URL: ${BFF_BASE_URL:-http://bff:3000}
       PORT: 3000
       NODE_ENV: development
     image: *node-image
     ports: ["3000:3000"]
+    user: *node-user
     volumes: ["./frontend:/app", "/app/node_modules"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000"]
     working_dir: "/app"
     depends_on:
-      backend:
+      bff:
         condition: service_healthy
 
   caddy:
@@ -104,19 +166,12 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      API_BASE_URL: ${API_BASE_URL:-http://localhost:3001/api/v1}
+      BFF_BASE_URL: ${BFF_BASE_URL:-http://bff:3000}
       LOG_LEVEL: info
-      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-widget-ui-sdx-reference-implementation-21920}
-      OIDC_DISPLAY_NAME_CLAIM: ${OIDC_DISPLAY_NAME_CLAIM:-name}
-      OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
-      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_SCOPE: ${OIDC_SCOPE:-openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}
-      OIDC_SILENT_REDIRECT_URI: ${OIDC_SILENT_REDIRECT_URI:-}
     ports: ["3005:3000"]
     volumes: ["./frontend/Caddyfile:/etc/caddy/Caddyfile"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
     depends_on:
-      backend:
+      bff:
         condition: service_healthy

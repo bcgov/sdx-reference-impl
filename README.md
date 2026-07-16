@@ -19,7 +19,7 @@ This repository provides a template to rapidly deploy a modern web application s
 * 🔧 Automatic dependency patching available from [bcgov/renovate-config](https://github.com/bcgov/renovate-config)
 * ✅ Enforced code reviews and workflow jobs (pass|fail)
 * 📊 OpenShift Templates
-* 📈 Prometheus Metrics export from Backend/Frontend
+* 📈 Prometheus Metrics export from BFF/Frontend
 * ⚡ Resource Tuning with Horizontal Pod Autoscaler
 * 🎯 Affinity and anti-affinity for Scheduling on different worker nodes
 * 🔄 Rolling updates with zero downtime in PROD
@@ -30,7 +30,7 @@ This repository provides a template to rapidly deploy a modern web application s
 * **Sample application stack:**
     * 🗄️ Database: Postgres, Flyway
     * 🎨 Frontend: TypeScript, Caddy Server with Coraza WAF
-    * ⚙️ Backend: TypeScript, Nest.js
+    * ⚙️ BFF: TypeScript, Nest.js
     * 🔄 Alternative backend examples - see [Alternative Backends](#alternative-backends)
 
 # ⚙️ Setup
@@ -39,131 +39,291 @@ Initial setup is intended to take an hour or less.  This depends greatly on inte
 
 ## Widgets API OpenAPI Validation
 
-The initial SDX Reference Implementation API contract is defined in `backend/openapi/widgets.openapi.yaml`.
+The reference implementation now separates the UI/BFF surface from the provider surface:
 
-Validate the OpenAPI 3.0.3 contract locally with:
+- `bff`: backend-for-frontend (BFF) used by the browser UI. It starts Authorization Code with PKCE login, exchanges the code with a confidential client, maintains an HttpOnly session cookie, and proxies Widget requests to `provider-sdx-api`.
+- `provider-sdx-api`: SDX-facing provider API used by the BFF. It derives Widget ownership from the JWT `sub` claim and proxies adapted requests to the provider API.
+- `provider-api`: database-backed provider API and ownership enforcement point. It derives the effective owner from the user JWT `sub` claim or, for an authorized service client, from trusted on-behalf-of headers.
+
+Validate the OpenAPI 3.0.3 contracts locally with:
 
 ```sh
-cd backend
+cd provider-sdx-api
+npm run lint:openapi
+
+cd ../provider-api
 npm run lint:openapi
 ```
 
-The API contract is checked against the
+The SDX-facing API keeps the SDX OAuth scope checks from the
 [Connected Services Integration Toolkit API Governance Style Guide](https://github.com/bcgov/csit-api-governance-spectral-style-guide/blob/main/dist/spectral/STRICT_STYLE_GUIDE.md).
-The local configuration in `backend/.spectral.yaml` extends the corresponding
-shared strict Spectral ruleset to enforce the guide during linting.
+The internal provider API uses the same base ruleset with the SDX OAuth-scope
+requirement disabled because it is not an SDX-facing contract.
 
 ## Widgets API Local Development
 
-The Widgets API is implemented in the NestJS backend and uses the existing PostgreSQL/Flyway/Prisma approach from this template.
+The internal provider API uses the existing PostgreSQL/Flyway/Prisma approach from this template and enforces ownership on every database operation. The SDX-facing provider API does not connect to the database; it validates the original user token and forwards Widget requests using an authorized client token plus on-behalf-of headers. The BFF also does not connect to the database; it stores local development sessions in memory and proxies Widget requests with the user access token from the server-side session.
 
-Use Node.js 22.13 or newer for backend commands. The repo includes `.nvmrc`, so with nvm you can run:
+Use Node.js 22.13 or newer for API commands. The repo includes `.nvmrc`, so with nvm you can run:
 
 ```sh
 nvm use
 ```
 
-Start the local database, migrations, backend, and frontend with:
+Start the local database, migrations, provider APIs, BFF, and frontend with:
 
 ```sh
-docker compose up database migrations backend frontend
+HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up database migrations provider-api provider-sdx-api bff frontend
 ```
 
-The backend is exposed on `http://localhost:3001`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3001/api/docs`.
-The frontend is exposed on `http://localhost:3000`.
+`HOST_UID` and `HOST_GID` make the bind-mounted Node services write generated
+local files as your host user instead of as a container user such as `root` or
+`nobody`.
 
-### Frontend OIDC configuration
+The BFF is exposed on `http://localhost:3001`, with auth routes under `/api/auth` and proxied Widget routes under `/api/v1`.
+The SDX-facing provider API is exposed on `http://localhost:3003`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3003/api/docs`.
+The internal provider API is exposed on `http://localhost:3002`, with API routes under `/api/v1`. Swagger UI is available at `http://localhost:3002/api/docs`.
+The frontend is exposed on `http://localhost:3000` and calls the BFF through same-origin `/api` paths.
 
-The frontend uses the OIDC authorization code flow with PKCE. Configure the
-provider before starting the frontend:
+### Local Keycloak configuration
+
+The BFF uses the OIDC authorization code flow with PKCE. For local development,
+configure Keycloak with the included Admin REST API script before starting the
+stack. The script defaults to the `local` environment:
 
 See [KEYCLOAK_OIDC_SETUP.md](KEYCLOAK_OIDC_SETUP.md) for the complete Keycloak
-realm, client, token, and backend validation configuration.
+realm, client, token, and BFF validation configuration.
 
 ```sh
-export OIDC_AUTHORITY=https://identity.example.com/realms/sdx
-export OIDC_CLIENT_ID=widget-ui-sdx-reference-implementation-21920
-export OIDC_SCOPE="openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin"
-docker compose up database migrations backend frontend
+node scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "<admin-username>" \
+  --admin-password "<admin-password>"
 ```
 
-Register these browser redirect URIs with the OIDC provider:
+The script creates or updates OAuth clients and Widget scopes using the
+Keycloak Admin REST API, then writes the generated client IDs and client secrets
+to `.env.<environment>`. Docker Compose reads `.env` by default, so copy or
+rename the generated file to `.env`, or pass it with `docker compose --env-file`.
+The admin password is not written to disk.
 
-- `http://localhost:3000/auth/callback`
-- `http://localhost:3000/auth/silent-callback`
-- `http://localhost:3001/api/docs/oauth2-redirect.html` for Swagger UI
-- `http://localhost:3000/login` as the post-logout redirect URI
+Use a different environment name to change the generated client ID prefix and
+output file:
+
+```sh
+node scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "<admin-username>" \
+  --admin-password "<admin-password>" \
+  --environment dev \
+  --frontend-origin https://<frontend-host> \
+  --provider-api-public-url https://<provider-api-host> \
+  --provider-sdx-api-public-url https://<provider-sdx-api-host-or-path>
+```
+
+Or provide exact client IDs:
+
+```sh
+node scripts/setup-keycloak.mjs \
+  --url https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth \
+  --realm sdx \
+  --admin-username "<admin-username>" \
+  --admin-password "<admin-password>" \
+  --bff-client-id "<bff-client-id>" \
+  --provider-service-client-id "<service-client-id>" \
+  --provider-api-swagger-client-id "<provider-api-swagger-client-id>" \
+  --provider-sdx-api-swagger-client-id "<provider-sdx-api-swagger-client-id>"
+```
+
+Then start the stack:
+
+```sh
+HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose --env-file .env.local up database migrations provider-api provider-sdx-api bff frontend
+```
+
+The script configures these local clients:
+
+- `local-widget-bff`: confidential BFF client with callback `http://localhost:3000/api/auth/callback`
+- `local-provider-sdx-api`: confidential service client used by `provider-sdx-api` to call `provider-api`
+- `local-provider-api-swagger`: public Swagger UI client with callback `http://localhost:3002/api/docs/oauth2-redirect.html`
+- `local-provider-sdx-api-swagger`: public Swagger UI client with callback `http://localhost:3003/api/docs/oauth2-redirect.html`
+
+The browser starts login at `/api/auth/login`, the BFF receives the callback at
+`/api/auth/callback`, exchanges the authorization code server-side, and then
+sets the HttpOnly session cookie before redirecting back to the UI.
 
 DEV uses:
 
 - UI: `https://widgets-apps-gov-bc-ca.dev.api.gov.bc.ca`
-- API base URL: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1`
-- UI container `API_BASE_URL`: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1`
+- Browser API base path: `/api/v1`
+- Frontend proxy target: internal BFF service URL
 
-The frontend accepts these runtime settings:
+The BFF accepts these runtime settings:
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `API_BASE_URL` | Yes | | Absolute HTTP(S) API base URL |
 | `OIDC_AUTHORITY` | Yes | | OIDC issuer/authority URL |
-| `OIDC_CLIENT_ID` | No | `widget-ui-sdx-reference-implementation-21920` | Public browser client ID |
-| `OIDC_SCOPE` | No | Widget scopes plus `openid profile` | Space-delimited scopes |
-| `OIDC_DISPLAY_NAME_CLAIM` | No | `name` | Dot-delimited display-name claim path |
-| `OIDC_REDIRECT_URI` | No | `<origin>/auth/callback` | Login callback URI |
-| `OIDC_SILENT_REDIRECT_URI` | No | `<origin>/auth/silent-callback` | Silent token renewal callback URI |
-| `OIDC_POST_LOGOUT_REDIRECT_URI` | No | `<origin>/login` | Post-logout redirect URI |
+| `BFF_OIDC_CLIENT_ID` | Yes | Generated by setup script | Confidential BFF client ID |
+| `BFF_OIDC_CLIENT_SECRET` | Yes | | Confidential BFF client secret used for token exchange |
+| `BFF_OIDC_SCOPE` | Yes | Generated by setup script | Space-delimited scopes requested for the user token |
+| `BFF_OIDC_DISPLAY_NAME_CLAIM` | No | `name` | Dot-delimited display-name claim path |
+| `BFF_OIDC_REDIRECT_URI` | Yes | Generated by setup script | BFF login callback URI |
+| `OIDC_OPENID_CONNECT_URL` | No | `<OIDC_AUTHORITY>/.well-known/openid-configuration` | Explicit discovery URL |
+| `PROVIDER_SDX_API_BASE_URL` | No | `http://provider-sdx-api:3000/api/v1` | SDX-facing provider API base URL |
+| `BFF_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api`, if the BFF is mounted below a path |
 
-The backend uses `OIDC_AUTHORITY` to load
-`<authority>/.well-known/openid-configuration` during startup. Set
-`OIDC_OPENID_CONNECT_URL` only when the discovery URL cannot be derived from the
-authority. The live and generated OpenAPI documents use the discovered
-authorization and token endpoints to define only the OAuth2 authorization-code
-flow. Startup fails when discovery is unavailable or does not define both
-endpoints. Swagger UI uses `SWAGGER_OAUTH_CLIENT_ID`, falling back to
-`OIDC_CLIENT_ID`, as a public client with authorization code and PKCE. Set
-`SWAGGER_OAUTH_REDIRECT_URL` to the absolute callback URL registered with that
-client. Do not configure a client secret. `SWAGGER_OAUTH_SCOPES` controls the
-space-delimited scopes requested by Swagger and documented by the OAuth2 scheme;
-it defaults to `OIDC_SCOPE`, then the complete Widget scope set.
+The provider API service-to-service connection accepts these runtime settings:
 
-Register the Swagger callback and API origin with the public OIDC client:
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `PROVIDER_API_ALLOWED_CLIENT_IDS` | Yes | Generated by setup script | Comma-delimited client IDs that `provider-api` accepts as service clients |
+| `PROVIDER_API_BASE_URL` | No | `http://provider-api:3000/api/v1` | Internal provider API base URL used by `provider-sdx-api` |
+| `PROVIDER_SDX_API_CLIENT_ID` | Yes | Generated by setup script | Confidential service client ID used by `provider-sdx-api` |
+| `PROVIDER_SDX_API_CLIENT_SECRET` | Yes | | Confidential service client secret used for client-credentials token requests |
+| `PROVIDER_SDX_API_TOKEN_SCOPE` | No | | Optional scopes requested on the client-credentials token |
+| `PROVIDER_SDX_API_TOKEN_URL` | No | OIDC discovery `token_endpoint` | Explicit token endpoint for service-token requests |
+| `PROVIDER_API_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api` for `provider-api` |
+| `PROVIDER_SDX_API_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api` for `provider-sdx-api`, for example `/sdx` |
 
-- Callback: `<API origin>/api/docs/oauth2-redirect.html`
+Both provider APIs accept JWT validation flags:
+
+| Variable | `provider-api` default | `provider-sdx-api` default | Description |
+| --- | --- | --- | --- |
+| `JWT_VALIDATE_SIGNATURE` | `true` | `false` | Verify JWT signature using OIDC discovery `jwks_uri` |
+| `JWT_VALIDATE_EXPIRY` | `true` | `false` | Require a non-expired numeric JWT `exp` claim |
+| `JWT_ISSUER` | `PROVIDER_API_JWT_ISSUER`, generated from `OIDC_AUTHORITY` | unset | Expected issuer; when set, the JWT `iss` claim must match |
+
+Signing keys are resolved from the configured `OIDC_OPENID_CONNECT_URL`, or from
+the discovery document derived from `OIDC_AUTHORITY`. `JWT_ISSUER` only controls
+issuer comparison. The services do not trust the token's unvalidated `iss` claim
+to choose a JWKS URL.
+
+In Docker Compose, use `PROVIDER_API_JWT_VALIDATE_SIGNATURE`,
+`PROVIDER_API_JWT_VALIDATE_EXPIRY`, and `PROVIDER_API_JWT_ISSUER` to configure
+the provider API validation. Use `PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE`,
+`PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY`, and `PROVIDER_SDX_API_JWT_ISSUER` to
+configure the SDX-facing provider API validation.
+
+Provider Swagger UI can be configured with an OAuth public client for either
+provider API. Set `PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID` for `provider-api` and
+`PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID` for `provider-sdx-api`. Docker
+Compose requires the service-specific Swagger variables generated by the setup
+script. When a Swagger OAuth client is configured, the API uses
+`OIDC_OPENID_CONNECT_URL`, or derives
+`<authority>/.well-known/openid-configuration` from `OIDC_AUTHORITY`, to load
+authorization and token endpoints. Set the matching
+`*_SWAGGER_OAUTH_REDIRECT_URL` to the absolute callback URL registered with that
+public client. Do not configure a client secret. `*_SWAGGER_OAUTH_SCOPES`
+controls the space-delimited scopes requested by Swagger.
+
+If an API is mounted behind a preserved route path, set the matching
+`*_PUBLIC_BASE_PATH` so the service actually serves its API and Swagger routes
+under that prefix and publishes the right same-origin OpenAPI server URL. For
+example, when `provider-sdx-api` is exposed at
+`https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/sdx`, set
+`PROVIDER_SDX_API_PUBLIC_BASE_PATH=/sdx` and register the Swagger callback as
+`https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/sdx/api/docs/oauth2-redirect.html`.
+
+`provider-sdx-api` sends adapted requests to `provider-api` using
+`PROVIDER_API_BASE_URL`. Docker Compose defaults this to
+`http://provider-api:3000/api/v1`. For non-Docker local runs, set it to the
+provider API origin, for example `http://localhost:3002/api/v1`.
+`provider-sdx-api` authenticates to `provider-api` by obtaining a real
+client-credentials access token for the service client. There is no static
+bearer-token override and no unsigned local development token fallback. It also
+sends `x-on-behalf-of-sub` and `x-on-behalf-of-username` headers for the
+original user. `provider-api` accepts client tokens only from
+`PROVIDER_API_ALLOWED_CLIENT_IDS` and requires those on-behalf-of headers for
+client-token requests. For direct user-token requests, `provider-api` uses the
+signed JWT `sub` claim and rejects on-behalf-of headers so that a user cannot
+override their identity.
+
+`provider-api` establishes one effective subject for each request:
+
+- user token: the signed JWT `sub` claim;
+- authorized client token: `x-on-behalf-of-sub`, after validating the client ID
+  against `PROVIDER_API_ALLOWED_CLIENT_IDS`.
+
+All Widget list, create, read, replace, patch, delete, and event queries are
+scoped to that effective subject. Subject path values must match the effective
+subject, and a Widget owned by another subject is returned as `404`. The
+provider PUT and PATCH implementation retains a transfer-permission decision
+point for a future provider permissions table. The reference implementation
+does not grant that permission, so a supplied Widget subject is overwritten
+with the caller's effective subject.
+
+The internal provider API records Widget access events in
+`widgets.widget_access_events` with the owner subject, actor subject, actor
+username, event type, human-readable description, relative resource URL, and
+timestamp.
+
+Widget list endpoints return `WidgetSummary` items with only identifier, owner,
+name, status, and updated timestamp. Fetching `/widgets/{widgetId}` returns the
+full Widget resource, including description and additional data, and records a
+`widget.get` viewed event.
+
+Provider API callers can list audit events for the effective subject with
+`GET /api/v1/subjects/{subject}/events`, where the path subject must match the
+effective subject. The `x-on-behalf-of-sub` and
+`x-on-behalf-of-username` headers are required for client tokens and prohibited
+for user tokens. Swagger users authenticated with an Authorization Code token
+omit those headers.
+
+Register the Swagger callback and API origin with each public OIDC client you
+configure:
+
+- Provider API callback: `http://localhost:3002/api/docs/oauth2-redirect.html`
+- Provider SDX API callback: `http://localhost:3003/api/docs/oauth2-redirect.html`
 - Web origin: `<API origin>`
 
-The Caddy image serves these values from `/config.json`, so one image can be
-configured differently in each environment. Vite development reads
-`API_BASE_URL` and the same `OIDC_*` variables. `VITE_API_BASE_URL` and
-corresponding `VITE_OIDC_*` variables are also supported as local fallbacks.
+For a DEV deployment where both provider APIs share a host and the SDX-facing
+API is mounted below `/sdx`, use:
 
-The browser sends API requests directly to `API_BASE_URL`; the frontend does not
-proxy backend paths. The API origin must allow the UI origin through CORS.
+- Provider API callback: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/docs/oauth2-redirect.html`
+- Provider SDX API callback: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/sdx/api/docs/oauth2-redirect.html`
+- Web origin for both Swagger clients: `https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca`
 
-The provider must issue a JWT access token containing a `sub` claim because the
-reference backend derives Widget ownership directly from that claim. The access
-token is sent as a bearer token on every API request. During this reference
-implementation phase, every authenticated user can access the admin screens and
-the frontend does not require a role claim.
+The Caddy image serves `/api/v1` from `/config.json` as the same-origin browser
+API path and proxies `/api` to `BFF_BASE_URL`. Vite development uses the same
+browser path and proxies `/api` to `BFF_BASE_URL`.
 
-The backend derives the authenticated subject from the bearer token's JWT `sub`
-claim. The current backend guard assumes that a trusted gateway has already
-validated the token. Do not expose it through the frontend proxy without either
-that gateway or backend JWT signature and issuer validation.
+The browser does not store access tokens or send bearer tokens. It sends the BFF
+session cookie on same-origin API requests. The BFF forwards the session access
+token to `provider-sdx-api`, which derives Widget ownership from the JWT `sub`
+claim. The frontend currently supports owner access only through the signed-in
+subject and calls only the BFF Widget API.
+
+The internal provider API validates JWT signature, issuer, and expiry by
+default. The SDX-facing provider API defaults to decoding JWTs without
+validation so it can sit behind an SDX gateway during development, but the same
+validation flags can be enabled when it is exposed without a validating gateway.
+Do not expose the non-SDX provider API directly to browser clients.
 
 Example request:
 
 ```sh
 curl \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  http://localhost:3001/api/v1/widgets
+  --cookie "bff_session=${BFF_SESSION_COOKIE}" \
+  http://localhost:3000/api/v1/widgets
 ```
 
-Run backend tests with Node 22 or newer:
+Run API tests with Node 22 or newer:
 
 ```sh
-cd backend
+cd provider-sdx-api
+npm run test
+
+cd ../provider-api
 npm run test
 ```
+
+API unit and component tests are colocated with the source files they exercise
+and use the `.spec.ts` suffix, for example `src/auth/jwt-auth.guard.spec.ts`.
+End-to-end tests use the `.e2e-spec.ts` suffix and live under each module's
+`test` directory. The API package scripts reflect that split: `npm run test`
+runs `src` specs, while `npm run test:e2e` runs `test` specs.
 
 Future SDX examples intentionally left as TODOs:
 
@@ -297,7 +457,7 @@ If SonarCloud is being used each application will have its own token.  Single-ap
 * Reference (standalone): `${{ secrets.SONAR_TOKEN }}`
 * Reference (monorepo): `${{ secrets.SONAR_TOKEN_BACKEND }}`, `${{ secrets.SONAR_TOKEN_FRONTEND }}`, etc
 
-BC Government employees can request SonarCloud projects by creating an [issue](https://github.com/bcgov/devops-requests/issues/new/choose) with the platform team.  Please make sure to request a monorepo with component names (e.g. backend, frontend), which may not be explained in their directions.
+BC Government employees can request SonarCloud projects by creating an [issue](https://github.com/bcgov/devops-requests/issues/new/choose) with the platform team.  Please make sure to request a monorepo with component names (e.g. bff, frontend), which may not be explained in their directions.
 
 ### 📊 Variable Values
 
@@ -661,7 +821,7 @@ Please note that the label must be manually created using GitHub's web interface
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=quickstart-openshift_frontend&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=quickstart-openshift_frontend)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=quickstart-openshift_frontend&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=quickstart-openshift_frontend)
 
-**Backend (JavaScript/TypeScript)** ⚙️
+**BFF (JavaScript/TypeScript)** ⚙️
 
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=quickstart-openshift_backend&metric=bugs)](https://sonarcloud.io/summary/new_code?id=quickstart-openshift_backend)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=quickstart-openshift_backend&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=quickstart-openshift_backend)
@@ -675,11 +835,11 @@ Please note that the label must be manually created using GitHub's web interface
 
 ## 🚀 Starter
 
-The starter stack includes a frontend (React, Bootstrap, Vite, Caddy), backend (Nest/Node) and Postgres or PostGIS database.  See subfolder for source, including Dockerfiles and OpenShift templates.  Alternative backends are available.
+The starter stack includes a frontend (React, Bootstrap, Vite, Caddy), BFF (Nest/Node) and Postgres or PostGIS database.  See subfolder for source, including Dockerfiles and OpenShift templates.  Alternative backends are available.
 
 **Features:**
 * 💪 [TypeScript](https://www.typescriptlang.org/) strong-typing for JavaScript
-* 🏗️ [NestJS](https://docs.nestjs.com) Nest/Node backend and frontend
+* 🏗️ [NestJS](https://docs.nestjs.com) Nest/Node BFF and frontend
 * 🔄 [Flyway](https://flywaydb.org/) database migrations
 * 🐘 [Postgres](https://www.postgresql.org/) Database
 * 🛡️ [OWASP Coraza WAF](https://github.com/corazawaf/coraza-caddy) Web Application Firewall integrated with Caddy
@@ -772,7 +932,7 @@ After a full workflow run and merge has been completed, please do the following:
 2. 🔧 [Prisma is used as ORM layer](https://www.prisma.io/)
 3. 💡 The rationale behind using flyway to have schema first approach and let prisma generate ORM schema from the database, which would avoid pitfalls like lazy loading, cascading, etc. when defining entities in ORM manually.
 4. 🐳 Run flyway in the docker compose to apply latest changes to Postgres database.
-5. 🔄 Run npx prisma db pull from backend folder to sync the prisma schema.
+5. 🔄 Run npx prisma db pull from the provider API folder to sync the prisma schema.
 6. ⚙️ Run npx prisma generate to generate the prisma client which will have all the entities populated based on fresh prisma schema.
 7. 💻 If using VS Code, be aware of [this issue](https://stackoverflow.com/questions/65663292/prisma-schema-not-updating-properly-after-adding-new-fields)
 
@@ -780,7 +940,7 @@ After a full workflow run and merge has been completed, please do the following:
 
 ## 🏗️ Architecture
 
-The architecture diagram provides an overview of the system's components, their interactions, and the deployment structure. It illustrates the relationships between the frontend, backend, database, and other infrastructure elements within the OpenShift environment.
+The architecture diagram provides an overview of the system's components, their interactions, and the deployment structure. It illustrates the relationships between the frontend, BFF, database, and other infrastructure elements within the OpenShift environment.
 
 ![Architecture](./.diagrams/architecture/arch.drawio.svg)
 

@@ -23,24 +23,15 @@
 	header @runtime_config Content-Type application/json
 	respond @runtime_config `{
 		"api": {
-			"baseUrl": "{$API_BASE_URL}"
-		},
-		"oidc": {
-			"authority": "{$OIDC_AUTHORITY}",
-			"clientId": "{$OIDC_CLIENT_ID:widget-ui-sdx-reference-implementation-21920}",
-			"scope": "{$OIDC_SCOPE:openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete nrs:widgets:admin}",
-			"displayNameClaim": "{$OIDC_DISPLAY_NAME_CLAIM:name}",
-			"redirectUri": "{$OIDC_REDIRECT_URI}",
-			"silentRedirectUri": "{$OIDC_SILENT_REDIRECT_URI}",
-			"postLogoutRedirectUri": "{$OIDC_POST_LOGOUT_REDIRECT_URI}"
+			"baseUrl": "/api/v1"
 		}
 	}` 200
 
 	root * /srv
 	encode zstd gzip
-	file_server
 	@api path /api*
-	respond @api 404
+	reverse_proxy @api {$BFF_BASE_URL:http://bff:3000}
+	file_server
 	@spa_router {
 		not path /api* /config.json
 		file {
@@ -61,10 +52,10 @@
 			font-src 'self' https://fonts.gstatic.com; 
 			img-src 'self' data: https://fonts.googleapis.com https://www.w3.org https://*.gov.bc.ca https://*.tile.openstreetmap.org;
 			frame-ancestors 'self';
-			frame-src 'self' {$OIDC_AUTHORITY};
+			frame-src 'self';
 			form-action 'self';
 			block-all-mixed-content;
-			connect-src 'self' {$API_BASE_URL} {$API_BASE_URL}/ {$OIDC_AUTHORITY} https://*.gov.bc.ca wss://*.gov.bc.ca;"
+			connect-src 'self' https://*.gov.bc.ca wss://*.gov.bc.ca;"
 		Referrer-Policy "same-origin"
 		Permissions-Policy "fullscreen=(self), camera=(), microphone=()"
 		Cross-Origin-Resource-Policy "cross-origin"

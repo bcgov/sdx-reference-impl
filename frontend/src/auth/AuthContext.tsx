@@ -1,5 +1,5 @@
 import { createContext, use, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { beginLogin, beginLogout, getAppUser, getUserManager, type AppUser } from './oidc'
+import { beginLogin, beginLogout, getAppUser, type AppUser } from './oidc'
 
 type AuthContextValue = {
   loading: boolean
@@ -16,24 +16,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const manager = getUserManager()
-    const refresh = () => {
-      void getAppUser().then(setUser)
-    }
-    const clear = () => setUser(null)
-
-    manager.events.addUserLoaded(refresh)
-    manager.events.addUserUnloaded(clear)
-    manager.events.addAccessTokenExpired(clear)
     void getAppUser()
       .then(setUser)
       .finally(() => setLoading(false))
-
-    return () => {
-      manager.events.removeUserLoaded(refresh)
-      manager.events.removeUserUnloaded(clear)
-      manager.events.removeAccessTokenExpired(clear)
-    }
   }, [])
 
   const value = useMemo<AuthContextValue>(

@@ -34,7 +34,7 @@ function LoginPage() {
       <Card className="login-card">
         <Card.Body>
           <p className="eyebrow">Secure sign in</p>
-          <h1>NRS Widget Application</h1>
+          <h1>Widget Application</h1>
           <p className="login-subtitle">SDX Reference Implementation</p>
           <p className="text-secondary">
             Sign in with the configured OpenID Connect identity provider.

@@ -12,13 +12,8 @@ describe('API service', () => {
     expect(() => new APIService().initialize()).toThrow('Runtime configuration has not been loaded')
   })
 
-  test('adds the bearer token to cross-origin API requests', async () => {
+  test('uses the configured BFF base URL with credentials', async () => {
     vi.doMock('@/auth/oidc', () => ({
-      getAppUser: vi.fn().mockResolvedValue({
-        accessToken: 'cross-origin-token',
-        displayName: 'Test User',
-        subjectId: 'test-subject',
-      }),
       removeLocalUser: vi.fn(),
     }))
     vi.stubGlobal(
@@ -41,9 +36,11 @@ describe('API service', () => {
     const client = service.getAxiosInstance()
     let authorization: unknown
     let baseUrl: unknown
+    let withCredentials: unknown
     client.defaults.adapter = async (request) => {
       authorization = request.headers.get('Authorization')
       baseUrl = request.baseURL
+      withCredentials = request.withCredentials
       return {
         config: request,
         data: {},
@@ -56,6 +53,7 @@ describe('API service', () => {
     await client.get('/widgets')
 
     expect(baseUrl).toBe(absoluteApiUrl)
-    expect(authorization).toBe('Bearer cross-origin-token')
+    expect(withCredentials).toBe(true)
+    expect(authorization).toBeUndefined()
   })
 })

@@ -4,24 +4,26 @@ export type WidgetStatus = (typeof WIDGET_STATUSES)[number]
 
 export type Widget = {
   createdAt: string
+  additionalData: Record<string, unknown>
   description: string | null
   id: string
-  metadata: Record<string, unknown>
   name: string
   status: WidgetStatus
   subject: string
   updatedAt: string
 }
 
+export type WidgetSummary = Pick<Widget, 'id' | 'name' | 'status' | 'subject' | 'updatedAt'>
+
 export type WidgetInput = {
+  additionalData?: Record<string, unknown>
   description?: string | null
-  metadata?: Record<string, unknown>
   name: string
   status: WidgetStatus
   subject?: string
 }
 
 export type WidgetListResponse = {
-  items: Widget[]
+  items: WidgetSummary[]
   nextCursor: string | null
 }

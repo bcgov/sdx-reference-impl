@@ -1,0 +1,183 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+  - name: NAME
+    description: Module name
+    required: true
+  - name: COMPONENT
+    description: Component name
+    value: provider-sdx-api
+  - name: ZONE
+    description: Deployment zone, e.g. pr-### or prod
+    required: true
+  - name: IMAGE_TAG
+    description: Image tag to use
+    required: true
+  - name: REGISTRY
+    description: Container registry to import from
+    value: ghcr.io
+  - name: ORG_NAME
+    description: Organization name
+    value: bcgov
+  - name: DOMAIN
+    value: apps.silver.devops.gov.bc.ca
+  - name: MIN_REPLICAS
+    description: The minimum amount of replicas for the horizontal pod autoscaler.
+    value: "3"
+  - name: MAX_REPLICAS
+    description: The maximum amount of replicas for the horizontal pod autoscaler.
+    value: "5"
+  - name: CPU_REQUEST
+    value: "25m"
+  - name: MEMORY_REQUEST
+    value: "100Mi"
+  - name: LOG_LEVEL
+    description: Application log level (debug|info|warn|error)
+    value: "info"
+  - name: OIDC_AUTHORITY
+    description: OIDC issuer URL used to derive the OpenID Connect discovery document
+    required: true
+  - name: OIDC_OPENID_CONNECT_URL
+    description: Optional explicit OpenID Connect discovery URL
+    value: ""
+  - name: PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID
+    description: Public OIDC client ID used by Swagger UI with authorization code and PKCE
+    value: local-provider-sdx-api-swagger
+  - name: PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL
+    description: Absolute Swagger UI OAuth callback URL registered with the OIDC client
+    required: true
+  - name: PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES
+    description: Space-delimited OIDC scopes requested by Swagger UI
+    value: openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete
+  - name: PROVIDER_API_BASE_URL
+    description: Base URL for the non-SDX-facing provider API
+    required: true
+  - name: PROVIDER_SDX_API_CLIENT_ID
+    description: Confidential service client ID used to call provider-api
+    required: true
+  - name: PROVIDER_SDX_API_CLIENT_SECRET
+    description: Confidential service client secret used to call provider-api
+    required: true
+  - name: PROVIDER_SDX_API_TOKEN_SCOPE
+    description: Optional client-credentials token scope requested for provider-api calls
+    value: ""
+  - name: PROVIDER_SDX_API_TOKEN_URL
+    description: Optional explicit token endpoint for provider-api service tokens
+    value: ""
+  - name: PROVIDER_SDX_API_JWT_ISSUER
+    description: Expected JWT issuer when issuer validation is enabled
+    value: ""
+  - name: PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE
+    description: Whether provider-sdx-api validates inbound JWT signatures
+    value: "false"
+  - name: PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY
+    description: Whether provider-sdx-api validates inbound JWT expiry
+    value: "false"
+  - name: PROVIDER_SDX_API_PUBLIC_BASE_PATH
+    description: Optional preserved public path prefix used before /api, for example /sdx
+    value: ""
+objects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          deployment: ${NAME}-${ZONE}-${COMPONENT}
+      strategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          labels:
+            app: ${NAME}-${ZONE}
+            deployment: ${NAME}-${ZONE}-${COMPONENT}
+        spec:
+          containers:
+            - name: ${NAME}
+              image: ${REGISTRY}/${ORG_NAME}/${NAME}/${COMPONENT}:${IMAGE_TAG}
+              imagePullPolicy: Always
+              ports:
+                - name: http
+                  containerPort: 3000
+              env:
+                - name: NODE_ENV
+                  value: production
+                - name: LOG_LEVEL
+                  value: ${LOG_LEVEL}
+                - name: OIDC_AUTHORITY
+                  value: ${OIDC_AUTHORITY}
+                - name: OIDC_OPENID_CONNECT_URL
+                  value: ${OIDC_OPENID_CONNECT_URL}
+                - name: SWAGGER_OAUTH_CLIENT_ID
+                  value: ${PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID}
+                - name: SWAGGER_OAUTH_REDIRECT_URL
+                  value: ${PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL}
+                - name: SWAGGER_OAUTH_SCOPES
+                  value: ${PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES}
+                - name: PROVIDER_API_BASE_URL
+                  value: ${PROVIDER_API_BASE_URL}
+                - name: PROVIDER_SDX_API_CLIENT_ID
+                  value: ${PROVIDER_SDX_API_CLIENT_ID}
+                - name: PROVIDER_SDX_API_CLIENT_SECRET
+                  value: ${PROVIDER_SDX_API_CLIENT_SECRET}
+                - name: PROVIDER_SDX_API_TOKEN_SCOPE
+                  value: ${PROVIDER_SDX_API_TOKEN_SCOPE}
+                - name: PROVIDER_SDX_API_TOKEN_URL
+                  value: ${PROVIDER_SDX_API_TOKEN_URL}
+                - name: JWT_ISSUER
+                  value: ${PROVIDER_SDX_API_JWT_ISSUER}
+                - name: JWT_VALIDATE_SIGNATURE
+                  value: ${PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE}
+                - name: JWT_VALIDATE_EXPIRY
+                  value: ${PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY}
+                - name: PUBLIC_BASE_PATH
+                  value: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+              readinessProbe:
+                httpGet:
+                  path: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}/api/health
+                  port: http
+              livenessProbe:
+                httpGet:
+                  path: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}/api/health
+                  port: http
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}
+    spec:
+      ports:
+        - name: http
+          port: 80
+          targetPort: 3000
+      selector:
+        deployment: ${NAME}-${ZONE}-${COMPONENT}
+  - apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: ${NAME}-${ZONE}-${COMPONENT}
+      minReplicas: ${MIN_REPLICAS}
+      maxReplicas: ${MAX_REPLICAS}
+      metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 80

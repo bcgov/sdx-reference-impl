@@ -8,44 +8,35 @@ import {
 } from '@/interfaces/Widget'
 
 type Props = {
-  allowSubjectChange?: boolean
   busy: boolean
   onHide: () => void
   onSubmit: (input: WidgetInput) => Promise<void>
   show: boolean
-  subject?: string
   widget?: Widget | null
 }
 
-export default function WidgetFormModal({
-  allowSubjectChange = false,
-  busy,
-  onHide,
-  onSubmit,
-  show,
-  subject = '',
-  widget,
-}: Props) {
+export default function WidgetFormModal({ busy, onHide, onSubmit, show, widget }: Props) {
   const [name, setName] = useState(widget?.name ?? '')
   const [description, setDescription] = useState(widget?.description ?? '')
   const [status, setStatus] = useState<WidgetStatus>(widget?.status ?? 'active')
-  const [metadata, setMetadata] = useState(JSON.stringify(widget?.metadata ?? {}, null, 2))
-  const [widgetSubject, setWidgetSubject] = useState(widget?.subject ?? subject)
+  const [additionalData, setAdditionalData] = useState(
+    JSON.stringify(widget?.additionalData ?? {}, null, 2),
+  )
   const [error, setError] = useState('')
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
 
-    let parsedMetadata: Record<string, unknown>
+    let parsedAdditionalData: Record<string, unknown>
     try {
-      const parsed = JSON.parse(metadata)
+      const parsed = JSON.parse(additionalData)
       if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
         throw new Error()
       }
-      parsedMetadata = parsed
+      parsedAdditionalData = parsed
     } catch {
-      setError('Metadata must be a valid JSON object.')
+      setError('Additional data must be a valid JSON object.')
       return
     }
 
@@ -53,8 +44,7 @@ export default function WidgetFormModal({
       name,
       description: description || null,
       status,
-      metadata: parsedMetadata,
-      ...(allowSubjectChange ? { subject: widgetSubject } : {}),
+      additionalData: parsedAdditionalData,
     })
   }
 
@@ -66,17 +56,6 @@ export default function WidgetFormModal({
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          {allowSubjectChange && (
-            <Form.Group className="mb-3" controlId="widget-subject">
-              <Form.Label>Subject ID</Form.Label>
-              <Form.Control
-                required
-                maxLength={255}
-                value={widgetSubject}
-                onChange={(event) => setWidgetSubject(event.target.value)}
-              />
-            </Form.Group>
-          )}
           <Form.Group className="mb-3" controlId="widget-name">
             <Form.Label>Name</Form.Label>
             <Form.Control
@@ -109,14 +88,14 @@ export default function WidgetFormModal({
               ))}
             </Form.Select>
           </Form.Group>
-          <Form.Group controlId="widget-metadata">
-            <Form.Label>Metadata (JSON object)</Form.Label>
+          <Form.Group controlId="widget-additional-data">
+            <Form.Label>Additional data (JSON object)</Form.Label>
             <Form.Control
               as="textarea"
               rows={5}
               className="font-monospace"
-              value={metadata}
-              onChange={(event) => setMetadata(event.target.value)}
+              value={additionalData}
+              onChange={(event) => setAdditionalData(event.target.value)}
             />
           </Form.Group>
         </Modal.Body>

@@ -1,0 +1,1096 @@
+openapi: 3.0.0
+info:
+  title: Provider SDX API - Widgets
+  description: >-
+    SDX-facing provider API for managing fictional widgets.
+
+
+    This API derives widget ownership from the authenticated subject in the JWT
+    `sub` claim. Callers cannot set or change the subject through paths or
+    request bodies.
+
+
+    Requests are adapted and proxied to the non-SDX-facing provider API, which
+    receives the owner subject through path or body parameters.
+
+
+    The Widget scopes are `nrs:widgets:read`, `nrs:widgets:create`,
+    `nrs:widgets:update`, and `nrs:widgets:delete`.
+  version: 0.1.0
+  contact:
+    name: SDX Reference Implementation Maintainers
+  license:
+    name: Apache-2.0
+servers:
+  - url: /api/v1
+    description: Provider SDX API on the same origin as this documentation
+tags:
+  - name: Widgets
+    description: >-
+      Widget operations that act on resources owned by the authenticated
+      subject.
+paths:
+  /widgets:
+    summary: Manage widgets for the authenticated subject.
+    get:
+      description: >-
+        Returns the Widgets owned by the authenticated subject identified by the
+        JWT sub claim.
+      operationId: listWidgets
+      parameters:
+        - name: status
+          required: false
+          in: query
+          description: Filter widgets by lifecycle status.
+          schema:
+            $ref: '#/components/schemas/WidgetStatus'
+        - name: name
+          required: false
+          in: query
+          description: Case-insensitive partial name match.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+            example: intake
+        - name: limit
+          required: false
+          in: query
+          description: Maximum number of widgets to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+            example: 25
+        - name: cursor
+          required: false
+          in: query
+          description: Opaque pagination cursor from the previous response.
+          schema:
+            type: string
+            example: eyJvZmZzZXQiOjI1fQ
+        - name: sortBy
+          required: false
+          in: query
+          description: Field used to sort results.
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - updatedAt
+              - name
+              - status
+            default: createdAt
+            example: createdAt
+        - name: sortOrder
+          required: false
+          in: query
+          description: Sort direction for the selected sort field.
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+            example: desc
+      responses:
+        '200':
+          description: The list of Widgets owned by the authenticated subject.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetListResponse'
+              examples:
+                listWidgets:
+                  summary: List widgets
+                  value:
+                    items:
+                      - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                        subject: user-123
+                        name: Intake form
+                        status: active
+                        updatedAt: '2026-05-13T18:00:00Z'
+                    nextCursor: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - openId:
+            - 'nrs:widgets:read'
+      summary: List Widgets owned by the authenticated subject.
+      tags:
+        - Widgets
+    post:
+      description: >-
+        Creates a new Widget for the authenticated subject. The service
+        identifies the subject from the JWT sub claim rather than from the
+        request body.
+      operationId: createWidget
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: >-
+            Optional client-generated key used to make create requests safely
+            retryable. Reusing the same key with the same request body returns
+            the original result.
+          required: false
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 255
+            example: req-12345678
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWidgetRequest'
+            examples:
+              createActiveWidget:
+                summary: Create an active widget
+                value:
+                  name: Intake form
+                  description: Widget used for intake workflow testing.
+                  status: active
+                  additionalData:
+                    source: local-dev
+      responses:
+        '201':
+          description: The created Widget for the authenticated subject.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              examples:
+                createdWidget:
+                  summary: Created widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: active
+                    additionalData:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - openId:
+            - 'nrs:widgets:create'
+      summary: Create a Widget for the authenticated subject.
+      tags:
+        - Widgets
+  '/widgets/{widgetId}':
+    summary: Manage one widget for the authenticated subject.
+    get:
+      description: >-
+        Returns the Widget when it is owned by the authenticated subject.
+        Responds with 404 when the widget does not exist or is owned by another
+        subject.
+      operationId: getWidget
+      parameters:
+        - name: widgetId
+          required: true
+          in: path
+          description: Unique widget identifier as a UUID.
+          schema:
+            type: string
+            format: uuid
+            example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+      responses:
+        '200':
+          description: The requested Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              examples:
+                requestedWidget:
+                  summary: Requested widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: active
+                    additionalData:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - openId:
+            - 'nrs:widgets:read'
+      summary: Get a Widget owned by the authenticated subject.
+      tags:
+        - Widgets
+    put:
+      description: >-
+        Replaces the Widget when it is owned by the authenticated subject. The
+        service identifies the subject from the JWT sub claim rather than from
+        the request body.
+      operationId: replaceWidget
+      parameters:
+        - name: widgetId
+          required: true
+          in: path
+          description: Unique widget identifier as a UUID.
+          schema:
+            type: string
+            format: uuid
+            example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+        - name: If-Match
+          in: header
+          description: >-
+            Optional entity tag from a previous GET response. When supplied, the
+            update or delete only succeeds if the widget has not changed.
+          required: false
+          schema:
+            type: string
+            example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWidgetRequest'
+            examples:
+              replaceWidget:
+                summary: Replace a widget
+                value:
+                  name: Intake form v2
+                  description: Updated widget used for intake workflow testing.
+                  status: inactive
+                  additionalData:
+                    source: local-dev
+      responses:
+        '200':
+          description: The replaced Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              examples:
+                replacedWidget:
+                  summary: Replaced widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form v2
+                    description: Updated widget used for intake workflow testing.
+                    status: inactive
+                    additionalData:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:30:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - openId:
+            - 'nrs:widgets:update'
+      summary: Replace a Widget for the authenticated subject.
+      tags:
+        - Widgets
+    patch:
+      description: >-
+        Applies a partial update to the Widget when it is owned by the
+        authenticated subject. The service identifies the subject from the JWT
+        sub claim rather than from the request body.
+      operationId: updateWidget
+      parameters:
+        - name: widgetId
+          required: true
+          in: path
+          description: Unique widget identifier as a UUID.
+          schema:
+            type: string
+            format: uuid
+            example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+        - name: If-Match
+          in: header
+          description: >-
+            Optional entity tag from a previous GET response. When supplied, the
+            update or delete only succeeds if the widget has not changed.
+          required: false
+          schema:
+            type: string
+            example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchWidgetRequest'
+            examples:
+              archiveWidget:
+                summary: Archive a widget
+                value:
+                  status: archived
+      responses:
+        '200':
+          description: The partially updated Widget.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              examples:
+                updatedWidget:
+                  summary: Updated widget
+                  value:
+                    id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+                    subject: user-123
+                    name: Intake form
+                    description: Widget used for intake workflow testing.
+                    status: archived
+                    additionalData:
+                      source: local-dev
+                    createdAt: '2026-05-13T18:00:00Z'
+                    updatedAt: '2026-05-13T18:30:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - openId:
+            - 'nrs:widgets:update'
+      summary: Partially update a Widget for the authenticated subject.
+      tags:
+        - Widgets
+    delete:
+      description: >-
+        Deletes the Widget when it is owned by the authenticated subject.
+        Responds with 404 when the widget does not exist or is owned by another
+        subject.
+      operationId: deleteWidget
+      parameters:
+        - name: widgetId
+          required: true
+          in: path
+          description: Unique widget identifier as a UUID.
+          schema:
+            type: string
+            format: uuid
+            example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+        - name: If-Match
+          in: header
+          description: >-
+            Optional entity tag from a previous GET response. When supplied, the
+            update or delete only succeeds if the widget has not changed.
+          required: false
+          schema:
+            type: string
+            example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
+      responses:
+        '204':
+          description: The Widget was deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - openId:
+            - 'nrs:widgets:delete'
+      summary: Delete a Widget owned by the authenticated subject.
+      tags:
+        - Widgets
+components:
+  securitySchemes:
+    openId:
+      type: oauth2
+      description: Access token with the scope specified by each operation.
+      flows:
+        authorizationCode:
+          authorizationUrl: 'https://identity.example.com/realms/sdx/protocol/openid-connect/auth'
+          tokenUrl: >-
+            https://identity.example.com/realms/sdx/protocol/openid-connect/token
+          scopes:
+            openid: Authenticate the user with OpenID Connect.
+            profile: Read the user's basic profile claims.
+            'nrs:widgets:read': Read widgets.
+            'nrs:widgets:create': Create widgets.
+            'nrs:widgets:update': Update widgets.
+            'nrs:widgets:delete': Delete widgets.
+  headers:
+    ETag:
+      required: true
+      description: Entity tag representing the returned widget version.
+      schema:
+        type: string
+        example: '"u6I3AI8rSnvR3uOSYVQbPiZF7cP8fIQ77U1zba2tI8A"'
+  responses:
+    BadRequest:
+      description: >-
+        Malformed request syntax, invalid JSON, or invalid path/query parameter
+        format.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          examples:
+            invalidWidgetId:
+              summary: Invalid path parameter
+              value:
+                detail: widgetId must be a valid UUID
+                errors:
+                  - code: INVALID_REQUEST
+                    location: path
+                    message: widgetId must be a valid UUID
+                    pointer: '#/widgetId'
+                    received: not-a-uuid
+                    type: 'tag:request-error'
+                status: 400
+                title: Bad Request
+                type: 'tag:request-errors'
+    Unauthorized:
+      description: Missing or invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingAuthentication:
+              summary: Missing or invalid authentication
+              value:
+                error: unauthorized
+                message: Missing or invalid authentication
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+    Forbidden:
+      description: The authenticated caller does not have the required authorization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingScope:
+              summary: Required scope is missing
+              value:
+                error: forbidden
+                message: Required scope is missing
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+    TooManyRequests:
+      description: >-
+        Too many requests. Retry after the interval indicated by the Retry-After
+        header.
+      headers:
+        Retry-After:
+          description: Number of seconds to wait before retrying the request.
+          schema:
+            type: integer
+            minimum: 1
+            example: 60
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rateLimited:
+              summary: Request rate limited
+              value:
+                error: too_many_requests
+                message: Too many requests
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  retryAfter: 60
+    InternalServerError:
+      description: >-
+        Unexpected server error. The correlation ID can be used for support and
+        tracing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unexpectedError:
+              summary: Unexpected server error
+              value:
+                error: internal_server_error
+                message: Internal server error
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+                  timestamp: '2026-05-13T18:00:00Z'
+    Conflict:
+      description: >-
+        Request conflicts with the current resource state, such as duplicate
+        names, state conflicts, optimistic locking failures, or idempotency key
+        reuse with a different request body.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            widgetConflict:
+              summary: Request conflicts with widget state
+              value:
+                error: conflict
+                message: Request conflicts with the current Widget state
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+    UnprocessableEntity:
+      description: >-
+        Syntactically valid request failed Widget validation or database limit
+        rules.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponse'
+          examples:
+            invalidWidgetName:
+              summary: Request body fails validation
+              value:
+                detail: name must be a non-empty string up to 200 characters
+                errors:
+                  - code: VALIDATION_FAILED
+                    location: body
+                    message: name must be a non-empty string up to 200 characters
+                    pointer: '#/name'
+                    received: ''
+                    type: 'tag:semantic-validation-error'
+                status: 422
+                title: Unprocessable Entity
+                type: 'tag:semantic-validation-errors'
+    NotFound:
+      description: Widget was not found for the current request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            widgetNotFound:
+              summary: Widget not found
+              value:
+                error: not_found
+                message: Widget not found
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+    PreconditionFailed:
+      description: The supplied If-Match value does not match the current widget version.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            staleEntityTag:
+              summary: If-Match does not match
+              value:
+                error: precondition_failed
+                message: >-
+                  The supplied If-Match value does not match the current widget
+                  version
+                details:
+                  correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          title: Error
+          description: >-
+            A short, machine-readable error code or identifier that categorizes
+            the type of error. This field is stable and intended for
+            programmatic handling by clients.
+          example: forbidden
+        message:
+          type: string
+          title: Message
+          description: >-
+            A human-readable summary of the error, suitable for display to
+            end-users or logging.
+          example: You are not authorized to access this resource
+        details:
+          type: object
+          title: Details
+          nullable: true
+          additionalProperties: true
+          description: >-
+            Optional additional context or structured details about the error.
+            Use sparingly and avoid including sensitive data. For generated
+            error responses, this object includes a `correlationId`. Values
+            generated by this API use the `widget-<uuid>` format; values
+            supplied by upstream callers are preserved as received.
+          example:
+            correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+            timestamp: '2026-01-16T19:22:00Z'
+      description: >-
+        Standard error response format for unexpected or server-side errors
+        (e.g., 500 Internal Server Error, 403 Forbidden, 401 Unauthorized,
+        etc.). This is used when a more structured Problem Details response (RFC
+        9457) is not appropriate or when the error is general rather than
+        validation-specific. The `details.correlationId` value is used for
+        support and log tracing. When an inbound `x-request-id` or
+        `x-correlation-id` header is present, the API preserves that upstream
+        value. When this API generates the value, it uses the `widget-<uuid>`
+        format so logs show that Widgets created the correlation ID.
+      required:
+        - error
+        - message
+      title: ErrorResponse
+      example:
+        error: forbidden
+        message: You are not authorized to access this resource
+        details:
+          correlationId: widget-2f7b8d43-7b0d-4b5f-8a6c-1a2b3c4d5e6f
+    WidgetStatus:
+      description: Lifecycle status for a widget.
+      type: string
+      example: active
+      enum:
+        - active
+        - inactive
+        - archived
+    WidgetSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+          readOnly: true
+        subject:
+          type: string
+          description: Owner subject from the JWT sub claim or provider operation.
+          example: user-123
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        status:
+          example: active
+          allOf:
+            - $ref: '#/components/schemas/WidgetStatus'
+        updatedAt:
+          format: date-time
+          type: string
+          example: '2026-05-13T18:00:00Z'
+          readOnly: true
+      description: Summary representation used in widget list responses.
+      required:
+        - id
+        - subject
+        - name
+        - status
+        - updatedAt
+      example:
+        id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+        subject: user-123
+        name: Intake form
+        status: active
+        updatedAt: '2026-05-13T18:00:00Z'
+    WidgetListResponse:
+      type: object
+      properties:
+        items:
+          example:
+            - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+              subject: user-123
+              name: Intake form
+              status: active
+              updatedAt: '2026-05-13T18:00:00Z'
+          type: array
+          items:
+            $ref: '#/components/schemas/WidgetSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: >-
+            Cursor to retrieve the next page, or null when there are no more
+            results.
+          example: eyJvZmZzZXQiOjI1fQ==
+      description: >-
+        A paginated list of widget summaries with an optional cursor for the
+        next page.
+      required:
+        - items
+      example:
+        items:
+          - id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+            subject: user-123
+            name: Intake form
+            status: active
+            updatedAt: '2026-05-13T18:00:00Z'
+        nextCursor: eyJvZmZzZXQiOjI1fQ
+    ProblemDetailErrorLocation:
+      title: ProblemDetailErrorLocation
+      description: The location on the HTTP request for which a problem has been detected.
+      type: string
+      enum:
+        - body
+        - query
+        - header
+        - path
+        - cookie
+      example: body
+    ProblemDetailErrorItem:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/ProblemDetailErrorLocation'
+        code:
+          type: string
+          title: Code
+          description: >-
+            A machine-readable error code that identifies the specific type of
+            error.
+          example: INVALID_REQUEST
+        message:
+          type: string
+          title: Message
+          description: 'A short, human-readable summary of the error.'
+          example: Invalid request body or parameter
+        type:
+          type: string
+          title: Type
+          description: A URI reference or tag that identifies the problem type.
+          example: 'tag:validation-error'
+        field:
+          type: string
+          title: Field
+          description: >-
+            The name of the specific field/property in the request that caused
+            the error.
+          nullable: true
+          example: name
+        detail:
+          type: string
+          title: Detail
+          description: A more detailed human-readable explanation of the error.
+          nullable: true
+          example: name must be a non-empty string up to 200 characters
+        received:
+          type: string
+          title: Received
+          description: The actual value received by the server that caused the error.
+          nullable: true
+          example: ''
+        pointer:
+          type: string
+          title: Pointer
+          description: >-
+            JSON Pointer (RFC 6901) to the exact location of the error within
+            the request body.
+          nullable: true
+          example: '#/name'
+        constraints:
+          type: object
+          title: Constraints
+          description: Optional object containing validation constraint violations.
+          nullable: true
+          additionalProperties: true
+          example:
+            minLength: 1
+            maxLength: 200
+      description: >-
+        Represents a single detailed error within a Problem Details response
+        (RFC 9457). Provides granular information about what went wrong in the
+        request.
+      required:
+        - location
+        - code
+        - message
+        - type
+      title: ProblemDetailErrorItem
+      example:
+        code: REQUIRED_FIELD_MISSING
+        detail: Widget name is required
+        field: name
+        location: body
+        message: Missing required widget name
+        pointer: '#/name'
+        received: ''
+        type: 'tag:validation-error'
+    ProblemDetailResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          title: Type
+          description: A URI reference that identifies the problem type.
+          example: 'tag:validation-errors'
+        title:
+          type: string
+          title: Title
+          description: 'A short, human-readable summary of the problem type.'
+          example: Bad Request
+        status:
+          type: integer
+          title: Status
+          description: >-
+            A number indicating the HTTP status code generated for this
+            occurrence.
+          example: 400
+        detail:
+          type: string
+          title: Detail
+          description: >-
+            A human-readable explanation specific to this occurrence of the
+            problem.
+          nullable: true
+          example: One or more validation errors occurred
+        errors:
+          minItems: 1
+          title: Errors
+          description: A list of individual error occurrences with details and locations.
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemDetailErrorItem'
+      description: Canonical model for problem details as defined by RFC 9457.
+      required:
+        - type
+        - title
+        - status
+        - errors
+      title: ProblemDetailResponse
+      example:
+        detail: One or more validation errors occurred
+        errors:
+          - code: INVALID_REQUEST
+            location: body
+            message: Invalid request body or parameter
+            pointer: '#/name'
+            received: ''
+            type: 'tag:validation-error'
+        status: 400
+        title: Bad Request
+        type: 'tag:validation-errors'
+    CreateWidgetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Widget used for intake workflow testing.
+        status:
+          $ref: '#/components/schemas/WidgetStatus'
+        additionalData:
+          type: object
+          additionalProperties: true
+          example:
+            source: local-dev
+      description: >-
+        Request body for creating a widget. Subject is never accepted here. If
+        status is omitted, the service creates the widget with status `active`.
+        If additionalData is omitted, the service stores an empty additional
+        data object.
+      required:
+        - name
+      additionalProperties: false
+      example:
+        name: Intake form
+        description: Widget used for intake workflow testing.
+        status: active
+        additionalData:
+          source: local-dev
+    Widget:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+          readOnly: true
+        subject:
+          type: string
+          description: Owner subject from the JWT sub claim.
+          example: user-123
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Widget used for intake workflow testing.
+        status:
+          $ref: '#/components/schemas/WidgetStatus'
+        additionalData:
+          type: object
+          additionalProperties: true
+          example:
+            source: local-dev
+        createdAt:
+          format: date-time
+          type: string
+          example: '2026-05-13T18:00:00Z'
+          readOnly: true
+        updatedAt:
+          format: date-time
+          type: string
+          example: '2026-05-13T18:00:00Z'
+          readOnly: true
+      description: Widget resource owned by a subject.
+      required:
+        - id
+        - subject
+        - name
+        - description
+        - status
+        - additionalData
+        - createdAt
+        - updatedAt
+      example:
+        id: 4f3066e8-5a59-4fc5-8e7b-fcd7f4d01c4f
+        subject: user-123
+        name: Intake form
+        description: Widget used for intake workflow testing.
+        status: active
+        additionalData:
+          source: local-dev
+        createdAt: '2026-05-13T18:00:00Z'
+        updatedAt: '2026-05-13T18:00:00Z'
+    UpdateWidgetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Widget used for intake workflow testing.
+        status:
+          $ref: '#/components/schemas/WidgetStatus'
+        additionalData:
+          type: object
+          additionalProperties: true
+          example:
+            source: local-dev
+      description: >-
+        Request body for replacing a widget. Subject is never accepted here.
+        This is a full replacement. Omitted optional fields are reset to their
+        default values: description is set to null, status is set to active, and
+        additionalData is set to an empty object.
+      required:
+        - name
+      additionalProperties: false
+      example:
+        name: Intake form v2
+        description: Updated widget used for intake workflow testing.
+        status: inactive
+        additionalData:
+          source: local-dev
+    PatchWidgetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Intake form
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Widget used for intake workflow testing.
+        status:
+          $ref: '#/components/schemas/WidgetStatus'
+        additionalData:
+          type: object
+          additionalProperties: true
+          example:
+            source: local-dev
+      description: >-
+        Request body for partially updating a widget. Subject is never accepted
+        here. Omitted fields preserve their existing values.
+      additionalProperties: false
+      minProperties: 1
+      example:
+        status: archived
