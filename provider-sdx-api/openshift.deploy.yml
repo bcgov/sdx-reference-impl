@@ -73,6 +73,15 @@ parameters:
   - name: PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY
     description: Whether provider-sdx-api validates inbound JWT expiry
     value: "false"
+  - name: PROVIDER_SDX_API_JWT_VALIDATE_SCOPES
+    description: Whether provider-sdx-api enforces the scopes required by each operation
+    value: "true"
+  - name: PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES
+    description: Optional comma- or space-delimited JWT audiences that must all be present
+    value: ""
+  - name: PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID
+    description: Optional expected X-SDX-Client-Subsystem-Id request header value
+    value: ""
   - name: PROVIDER_SDX_API_PUBLIC_BASE_PATH
     description: Optional preserved public path prefix used before /api, for example /sdx
     value: ""
@@ -134,6 +143,12 @@ objects:
                   value: ${PROVIDER_SDX_API_JWT_VALIDATE_SIGNATURE}
                 - name: JWT_VALIDATE_EXPIRY
                   value: ${PROVIDER_SDX_API_JWT_VALIDATE_EXPIRY}
+                - name: JWT_VALIDATE_SCOPES
+                  value: ${PROVIDER_SDX_API_JWT_VALIDATE_SCOPES}
+                - name: JWT_REQUIRED_AUDIENCES
+                  value: ${PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES}
+                - name: SDX_CLIENT_SUBSYSTEM_ID
+                  value: ${PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID}
                 - name: PUBLIC_BASE_PATH
                   value: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}
               resources:

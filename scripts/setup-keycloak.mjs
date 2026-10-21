@@ -38,6 +38,10 @@ Options:
                                Explicit provider-api Swagger public client ID
   --provider-sdx-api-swagger-client-id <client-id>
                                Explicit provider-sdx-api Swagger public client ID
+  --required-audiences <audiences>
+                               Optional comma- or space-delimited access-token audiences
+  --audience-scope <scope>     Scope that adds the required audiences. Defaults to
+                               <environment>-required-audiences when audiences are set
   --env-file <path>            Env file to update. Default: .env.<environment>
   --frontend-origin <url>      Frontend origin. Default: http://localhost:3000
   --provider-api-public-url <url>
@@ -58,6 +62,7 @@ Environment variable fallbacks:
   KEYCLOAK_BFF_CLIENT_ID, KEYCLOAK_PROVIDER_SERVICE_CLIENT_ID,
   KEYCLOAK_PROVIDER_API_SWAGGER_CLIENT_ID,
   KEYCLOAK_PROVIDER_SDX_API_SWAGGER_CLIENT_ID,
+  KEYCLOAK_AUDIENCE_SCOPE, PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES,
   PROVIDER_API_PUBLIC_URL, PROVIDER_SDX_API_PUBLIC_URL
 `)
 }
@@ -95,6 +100,13 @@ function requireValue(name, value) {
     throw new Error(`Missing required value: ${name}`)
   }
   return value
+}
+
+function splitConfiguredValues(value) {
+  return (value ?? '')
+    .split(/[\s,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function trimTrailingSlash(value) {
@@ -311,6 +323,58 @@ async function ensureClientScope(context, name) {
   return { ...existing, ...representation }
 }
 
+async function ensureAudienceMapper(context, scope, audience) {
+  const mapperPath = `/admin/realms/${encodePathPart(context.realm)}/client-scopes/${encodePathPart(scope.id)}/protocol-mappers/models`
+  const response = await keycloakRequest({
+    ...context,
+    path: mapperPath,
+  })
+  const mapperName = `audience-${audience}`
+  const existing = response.body.find(
+    (mapper) => mapper.name === mapperName && mapper.protocolMapper === 'oidc-audience-mapper',
+  )
+  const representation = {
+    name: mapperName,
+    protocol: 'openid-connect',
+    protocolMapper: 'oidc-audience-mapper',
+    consentRequired: false,
+    config: {
+      'access.token.claim': 'true',
+      'id.token.claim': 'false',
+      'included.custom.audience': audience,
+      'userinfo.token.claim': 'false',
+    },
+  }
+
+  if (!existing) {
+    await keycloakRequest({
+      ...context,
+      path: mapperPath,
+      method: 'POST',
+      ok: [201],
+      body: representation,
+    })
+    console.log(`Created audience mapper ${audience} on scope ${scope.name}`)
+    return
+  }
+
+  await keycloakRequest({
+    ...context,
+    path: `${mapperPath}/${encodePathPart(existing.id)}`,
+    method: 'PUT',
+    ok: [204],
+    body: {
+      ...existing,
+      ...representation,
+      config: {
+        ...existing.config,
+        ...representation.config,
+      },
+    },
+  })
+  console.log(`Updated audience mapper ${audience} on scope ${scope.name}`)
+}
+
 async function findClient(context, clientId) {
   const response = await keycloakRequest({
     ...context,
@@ -475,17 +539,42 @@ async function main() {
     'api/docs/oauth2-redirect.html',
   )
   const clients = clientIdsFromConfig(args, environment)
+  const requiredAudiences = splitConfiguredValues(
+    envOrArg(args, 'required-audiences', 'PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES', ''),
+  )
+  const audienceScopeName =
+    requiredAudiences.length > 0
+      ? envOrArg(
+          args,
+          'audience-scope',
+          'KEYCLOAK_AUDIENCE_SCOPE',
+          `${environment}-required-audiences`,
+        )
+      : undefined
 
   const token = await getAdminToken({ baseUrl, adminRealm, username, password })
   const context = { baseUrl, realm, token }
   const authority = `${baseUrl}/realms/${realm}`
-  const scopeValue = `openid profile ${WIDGET_SCOPES.join(' ')}`
 
   await ensureRealm(context)
   const widgetScopes = []
   for (const scopeName of WIDGET_SCOPES) {
     widgetScopes.push(await ensureClientScope(context, scopeName))
   }
+  let audienceScope
+  if (audienceScopeName) {
+    audienceScope = await ensureClientScope(context, audienceScopeName)
+    for (const audience of requiredAudiences) {
+      await ensureAudienceMapper(context, audienceScope, audience)
+    }
+  }
+  const requestedScopeNames = [
+    'openid',
+    'profile',
+    ...WIDGET_SCOPES,
+    ...(audienceScopeName ? [audienceScopeName] : []),
+  ]
+  const scopeValue = requestedScopeNames.join(' ')
 
   const bffClient = await ensureClient(context, {
     clientId: clients.bff,
@@ -538,6 +627,11 @@ async function main() {
       await assignOptionalClientScope(context, client, scope)
     }
   }
+  if (audienceScope) {
+    for (const client of [bffClient, providerSdxApiSwaggerClient]) {
+      await assignOptionalClientScope(context, client, audienceScope)
+    }
+  }
 
   const bffSecret = await getClientSecret(context, bffClient)
   const providerServiceSecret = await getClientSecret(context, providerServiceClient)
@@ -554,6 +648,9 @@ async function main() {
     PROVIDER_SDX_API_CLIENT_SECRET: providerServiceSecret,
     PROVIDER_SDX_API_TOKEN_SCOPE: '',
     PROVIDER_SDX_API_TOKEN_URL: '',
+    PROVIDER_SDX_API_JWT_VALIDATE_SCOPES: 'true',
+    PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES: requiredAudiences.join(','),
+    PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID: '',
     PROVIDER_API_PUBLIC_BASE_PATH: providerApiPublicBasePath,
     PROVIDER_SDX_API_PUBLIC_BASE_PATH: providerSdxApiPublicBasePath,
     PROVIDER_API_JWT_ISSUER: authority,
