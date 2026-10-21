@@ -8,11 +8,10 @@ import {
 import { createHash, randomBytes } from 'crypto'
 import type { Request, Response } from 'express'
 import type { BffSession, BffSessionUser } from './auth.types'
+import { bffOidcClientId, bffOidcScope } from './oidc.config'
 
 const SESSION_COOKIE = 'bff_session'
 const LOGIN_COOKIE = 'bff_login'
-const DEFAULT_SCOPE =
-  'openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete'
 const LOGIN_TTL_MS = 10 * 60 * 1000
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60
 
@@ -63,12 +62,12 @@ export class BffSessionService {
     )
 
     const authorizationUrl = new URL(discovery.authorization_endpoint)
-    authorizationUrl.searchParams.set('client_id', this.clientId())
+    authorizationUrl.searchParams.set('client_id', bffOidcClientId())
     authorizationUrl.searchParams.set('code_challenge', codeChallenge)
     authorizationUrl.searchParams.set('code_challenge_method', 'S256')
     authorizationUrl.searchParams.set('redirect_uri', redirectUri)
     authorizationUrl.searchParams.set('response_type', 'code')
-    authorizationUrl.searchParams.set('scope', process.env.OIDC_SCOPE || DEFAULT_SCOPE)
+    authorizationUrl.searchParams.set('scope', bffOidcScope())
     authorizationUrl.searchParams.set('state', state)
 
     response.redirect(authorizationUrl.toString())
@@ -138,7 +137,7 @@ export class BffSessionService {
   private async exchangeCode(code: string, login: LoginTransaction): Promise<TokenResponse> {
     const discovery = await this.getDiscovery()
     const params = new URLSearchParams({
-      client_id: this.clientId(),
+      client_id: bffOidcClientId(),
       client_secret: this.clientSecret(),
       code,
       code_verifier: login.codeVerifier,
@@ -246,10 +245,6 @@ export class BffSessionService {
       throw new BadRequestException('Host header is required')
     }
     return `${proto}://${host}`
-  }
-
-  private clientId(): string {
-    return process.env.OIDC_CLIENT_ID?.trim() || 'local-widget-bff'
   }
 
   private clientSecret(): string {
