@@ -1,5 +1,6 @@
 import { BadGatewayException, Injectable } from '@nestjs/common'
 import type { BffSession } from '../auth/auth.types'
+import { bffOidcClientId } from '../auth/oidc.config'
 
 type ProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 
@@ -82,6 +83,7 @@ export class WidgetsService {
     const headers: Record<string, string> = {
       Accept: 'application/json',
       Authorization: `Bearer ${session.accessToken}`,
+      'X-Client-Id': bffOidcClientId(),
       ...options.headers,
     }
     const init: RequestInit = {

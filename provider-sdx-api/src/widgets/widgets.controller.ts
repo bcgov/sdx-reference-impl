@@ -28,7 +28,6 @@ import {
   ApiParam,
   ApiPreconditionFailedResponse,
   ApiQuery,
-  ApiSecurity,
   ApiTags,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
@@ -37,6 +36,7 @@ import {
 import type { Response } from 'express'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RequiredScopes } from '../auth/required-scopes.decorator'
 import type { AuthenticatedUser } from '../auth/auth.types'
 import { CreateWidgetDto } from './dto/create-widget.dto'
 import {
@@ -291,7 +291,7 @@ export class WidgetsController {
   }
 
   @Get()
-  @ApiSecurity('openId', ['nrs:widgets:read'])
+  @RequiredScopes('nrs:widgets:read')
   @ApiOperation({
     operationId: 'listWidgets',
     summary: 'List Widgets owned by the authenticated subject.',
@@ -382,7 +382,7 @@ export class WidgetsController {
   }
 
   @Post()
-  @ApiSecurity('openId', ['nrs:widgets:create'])
+  @RequiredScopes('nrs:widgets:create')
   @ApiOperation({
     operationId: 'createWidget',
     summary: 'Create a Widget for the authenticated subject.',
@@ -438,7 +438,7 @@ export class WidgetsController {
   }
 
   @Get(':widgetId')
-  @ApiSecurity('openId', ['nrs:widgets:read'])
+  @RequiredScopes('nrs:widgets:read')
   @ApiOperation({
     operationId: 'getWidget',
     summary: 'Get a Widget owned by the authenticated subject.',
@@ -478,7 +478,7 @@ export class WidgetsController {
   }
 
   @Put(':widgetId')
-  @ApiSecurity('openId', ['nrs:widgets:update'])
+  @RequiredScopes('nrs:widgets:update')
   @ApiOperation({
     operationId: 'replaceWidget',
     summary: 'Replace a Widget for the authenticated subject.',
@@ -536,7 +536,7 @@ export class WidgetsController {
   }
 
   @Patch(':widgetId')
-  @ApiSecurity('openId', ['nrs:widgets:update'])
+  @RequiredScopes('nrs:widgets:update')
   @ApiOperation({
     operationId: 'updateWidget',
     summary: 'Partially update a Widget for the authenticated subject.',
@@ -595,7 +595,7 @@ export class WidgetsController {
 
   @Delete(':widgetId')
   @HttpCode(204)
-  @ApiSecurity('openId', ['nrs:widgets:delete'])
+  @RequiredScopes('nrs:widgets:delete')
   @ApiOperation({
     operationId: 'deleteWidget',
     summary: 'Delete a Widget owned by the authenticated subject.',

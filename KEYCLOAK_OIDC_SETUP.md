@@ -29,7 +29,9 @@ access token server-side to `provider-sdx-api`.
 `provider-api` validates JWT signature, issuer, and expiry by default.
 `provider-sdx-api` defaults to decoding JWTs without validation so it can sit
 behind an SDX gateway during development. The same validation flags can be
-enabled on either provider API. An API gateway should still:
+enabled on either provider API. `provider-sdx-api` enforces its declared
+operation scopes by default and can also validate configured audiences and the
+SDX client subsystem header. An API gateway should still:
 
 1. Validate the JWT against Keycloak.
 2. Verify the issuer and token lifetime.
@@ -92,7 +94,9 @@ node scripts/setup-keycloak.mjs \
   --bff-client-id "<bff-client-id>" \
   --provider-service-client-id "<service-client-id>" \
   --provider-api-swagger-client-id "<provider-api-swagger-client-id>" \
-  --provider-sdx-api-swagger-client-id "<provider-sdx-api-swagger-client-id>"
+  --provider-sdx-api-swagger-client-id "<provider-sdx-api-swagger-client-id>" \
+  --required-audiences "<sdx-pz-client-id>,<provider-audience>" \
+  --audience-scope "<audience-producing-scope>"
 ```
 
 The resulting OIDC authority URL is:
@@ -196,6 +200,26 @@ The current bff still assumes the gateway has authorized requests and does
 not enforce operation scopes itself. The scopes are requested now so access
 tokens are ready for gateway enforcement.
 
+`provider-sdx-api` also enforces these operation scopes by default. Set
+`PROVIDER_SDX_API_JWT_VALIDATE_SCOPES=false` only when scope enforcement must be
+temporarily delegated entirely to SDX.
+
+### Optional audience-producing scope
+
+When `--required-audiences` is supplied, the setup script creates or updates an
+optional client scope containing an audience mapper for every configured value.
+It assigns that scope to the BFF and Provider SDX API Swagger clients and adds
+the scope to their generated scope configuration. The scope name defaults to
+`<environment>-required-audiences` and can be overridden with
+`--audience-scope`.
+
+For a deployed SDX flow, configure the required audiences with the SDX PZ client
+ID first and any provider audience values after it. OSS must make the same
+audience-producing scope requestable by the SI login client and preserve or
+request those audiences for the SDX PZ token-exchange client. The provider
+client IDs are Provider SDX API configuration; they are not stored on the SDX
+connection.
+
 ## 4. Create Users
 
 Create the users required for local testing. No application roles are required.
@@ -231,6 +255,9 @@ BFF_OIDC_REDIRECT_URI=http://localhost:3000/api/auth/callback
 
 The browser sends same-origin API requests to the BFF. The browser does not
 store access tokens or call `provider-sdx-api` or `provider-api` directly.
+The BFF sets `X-Client-Id` to `BFF_OIDC_CLIENT_ID` when calling SDX. SDX uses it
+for connection routing and supplies the provider-facing subsystem identity in
+`X-SDX-Client-Subsystem-Id`.
 
 ## 6. Configure Token Validation for the BFF
 
@@ -261,7 +288,14 @@ JWT validation can be controlled per provider API:
 | --- | --- | --- |
 | `JWT_VALIDATE_SIGNATURE` | `true` | `false` |
 | `JWT_VALIDATE_EXPIRY` | `true` | `false` |
+| `JWT_VALIDATE_SCOPES` | unset | `true` |
 | `JWT_ISSUER` | `PROVIDER_API_JWT_ISSUER`, generated from `OIDC_AUTHORITY` | unset |
+
+Set `PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES` to a comma- or space-delimited
+list of audiences that must all appear in `aud`. Set
+`PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID` to require an exact
+`X-SDX-Client-Subsystem-Id` match. Audience validation and subsystem validation
+are skipped independently when their corresponding settings are empty.
 
 Use `JWT_ISSUER` to set the expected issuer. When `JWT_ISSUER` is set, the
 services validate the token's `iss` claim against it. Signing keys are resolved
@@ -285,6 +319,7 @@ bff.
 {
   "iss": "https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx",
   "sub": "<stable-keycloak-subject>",
+  "aud": ["<sdx-pz-client-id>", "<optional-provider-audience>"],
   "scope": "openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete"
 }
 ```
@@ -294,6 +329,7 @@ bff.
 ```sh
 curl \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "X-Client-Id: ${BFF_OIDC_CLIENT_ID}" \
   https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1/widgets
 ```
 
