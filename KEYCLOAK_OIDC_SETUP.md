@@ -248,6 +248,7 @@ The BFF container uses:
 ```text
 OIDC_AUTHORITY=https://authz-b8840c-dev.apps.gold.devops.gov.bc.ca/auth/realms/sdx
 BFF_OIDC_CLIENT_ID=local-widget-bff
+BFF_SDX_CLIENT_SUBSYSTEM_ID=MIN.CITZ.WIDGETS-RI-UI
 BFF_OIDC_CLIENT_SECRET=<bff-confidential-client-secret>
 BFF_OIDC_SCOPE=openid profile nrs:widgets:read nrs:widgets:create nrs:widgets:update nrs:widgets:delete
 BFF_OIDC_REDIRECT_URI=http://localhost:3000/api/auth/callback
@@ -255,9 +256,11 @@ BFF_OIDC_REDIRECT_URI=http://localhost:3000/api/auth/callback
 
 The browser sends same-origin API requests to the BFF. The browser does not
 store access tokens or call `provider-sdx-api` or `provider-api` directly.
-The BFF sets `X-Client-Id` to `BFF_OIDC_CLIENT_ID` when calling SDX. SDX uses it
-for connection routing and supplies the provider-facing subsystem identity in
-`X-SDX-Client-Subsystem-Id`.
+The BFF sets `X-Client-Id` to `BFF_SDX_CLIENT_SUBSYSTEM_ID` when calling SDX.
+SDX uses the subsystem identifier for connection routing and supplies the
+authoritative provider-facing subsystem identity in
+`X-SDX-Client-Subsystem-Id`. The verified token's `azp` claim identifies the
+OAuth client independently.
 
 ## 6. Configure Token Validation for the BFF
 
@@ -329,7 +332,7 @@ bff.
 ```sh
 curl \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-  -H "X-Client-Id: ${BFF_OIDC_CLIENT_ID}" \
+  -H "X-Client-Id: ${BFF_SDX_CLIENT_SUBSYSTEM_ID}" \
   https://widgets-api-gov-bc-ca.dev.api.gov.bc.ca/api/v1/widgets
 ```
 

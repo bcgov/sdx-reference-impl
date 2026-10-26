@@ -35,6 +35,9 @@ parameters:
   - name: PROVIDER_SDX_API_BASE_URL
     description: Internal Provider SDX API base URL used by the BFF
     required: true
+  - name: BFF_SDX_CLIENT_SUBSYSTEM_ID
+    description: SDX client subsystem identifier sent by the BFF for connection routing
+    required: true
   - name: OIDC_AUTHORITY
     description: OIDC issuer URL used to derive the OpenID Connect discovery document
     required: true
@@ -93,6 +96,8 @@ objects:
                   value: ${LOG_LEVEL}
                 - name: PROVIDER_SDX_API_BASE_URL
                   value: ${PROVIDER_SDX_API_BASE_URL}
+                - name: SDX_CLIENT_SUBSYSTEM_ID
+                  value: ${BFF_SDX_CLIENT_SUBSYSTEM_ID}
                 - name: OIDC_AUTHORITY
                   value: ${OIDC_AUTHORITY}
                 - name: OIDC_OPENID_CONNECT_URL

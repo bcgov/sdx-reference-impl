@@ -15,11 +15,13 @@ describe('WidgetsService', () => {
   afterEach(() => {
     delete process.env.OIDC_CLIENT_ID
     delete process.env.PROVIDER_SDX_API_BASE_URL
+    delete process.env.SDX_CLIENT_SUBSYSTEM_ID
     vi.unstubAllGlobals()
   })
 
-  it('uses the BFF OAuth client ID as the SDX routing header', async () => {
+  it('uses the client subsystem ID as the SDX routing header', async () => {
     process.env.OIDC_CLIENT_ID = 'widget-bff-client'
+    process.env.SDX_CLIENT_SUBSYSTEM_ID = 'MIN.CITZ.WIDGETS-RI-UI'
     process.env.PROVIDER_SDX_API_BASE_URL = 'https://sdx.test/api/v1'
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ items: [], nextCursor: null }), {
@@ -34,6 +36,15 @@ describe('WidgetsService', () => {
     const request = fetchMock.mock.calls[0]
     const headers = new Headers(request[1]?.headers)
     expect(headers.get('Authorization')).toBe('Bearer user-access-token')
-    expect(headers.get('X-Client-Id')).toBe('widget-bff-client')
+    expect(headers.get('X-Client-Id')).toBe('MIN.CITZ.WIDGETS-RI-UI')
+    expect(headers.get('X-Client-Id')).not.toBe(process.env.OIDC_CLIENT_ID)
+  })
+
+  it('requires the SDX client subsystem ID', async () => {
+    process.env.PROVIDER_SDX_API_BASE_URL = 'https://sdx.test/api/v1'
+
+    await expect(new WidgetsService().list(session, {})).rejects.toThrow(
+      'SDX_CLIENT_SUBSYSTEM_ID is required',
+    )
   })
 })

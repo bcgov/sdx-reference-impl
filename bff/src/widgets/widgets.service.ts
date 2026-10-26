@@ -1,6 +1,5 @@
 import { BadGatewayException, Injectable } from '@nestjs/common'
 import type { BffSession } from '../auth/auth.types'
-import { bffOidcClientId } from '../auth/oidc.config'
 
 type ProxyMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 
@@ -8,6 +7,14 @@ export type WidgetProxyResult = {
   body: unknown
   etag?: string
   status: number
+}
+
+function sdxClientSubsystemId(): string {
+  const clientSubsystemId = process.env.SDX_CLIENT_SUBSYSTEM_ID?.trim()
+  if (!clientSubsystemId) {
+    throw new Error('SDX_CLIENT_SUBSYSTEM_ID is required')
+  }
+  return clientSubsystemId
 }
 
 @Injectable()
@@ -83,7 +90,7 @@ export class WidgetsService {
     const headers: Record<string, string> = {
       Accept: 'application/json',
       Authorization: `Bearer ${session.accessToken}`,
-      'X-Client-Id': bffOidcClientId(),
+      'X-Client-Id': sdxClientSubsystemId(),
       ...options.headers,
     }
     const init: RequestInit = {
