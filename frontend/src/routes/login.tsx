@@ -4,7 +4,14 @@ import { Alert, Button, Card } from 'react-bootstrap'
 import { useAuth } from '@/auth/AuthContext'
 import { getAppUser } from '@/auth/oidc'
 
+type LoginSearch = {
+  reason?: 'oidc-session-expired'
+}
+
 export const Route = createFileRoute('/login')({
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    reason: search.reason === 'oidc-session-expired' ? search.reason : undefined,
+  }),
   beforeLoad: async () => {
     if (await getAppUser()) {
       throw redirect({ to: '/widgets' })
@@ -13,8 +20,9 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 })
 
-function LoginPage() {
+export function LoginPage() {
   const auth = useAuth()
+  const { reason } = Route.useSearch()
   const [error, setError] = useState('')
   const [redirecting, setRedirecting] = useState(false)
 
@@ -39,6 +47,9 @@ function LoginPage() {
           <p className="text-secondary">
             Sign in with the configured OpenID Connect identity provider.
           </p>
+          {reason === 'oidc-session-expired' && (
+            <Alert variant="warning">Your sign-in session expired. Please sign in again.</Alert>
+          )}
           {error && <Alert variant="danger">{error}</Alert>}
           <Button
             type="button"

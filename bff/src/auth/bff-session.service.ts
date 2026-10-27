@@ -13,6 +13,7 @@ import { bffOidcClientId, bffOidcScope } from './oidc.config'
 const SESSION_COOKIE = 'bff_session'
 const LOGIN_COOKIE = 'bff_login'
 const LOGIN_TTL_MS = 10 * 60 * 1000
+const LOGIN_RECOVERY_LOCATION = '/login?reason=oidc-session-expired'
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60
 
 type OpenIdConfiguration = {
@@ -78,13 +79,15 @@ export class BffSessionService {
     const state = this.readQueryString(request.query.state)
     const loginCookieState = this.readCookie(request, LOGIN_COOKIE)
     if (!code || !state || state !== loginCookieState) {
-      throw new BadRequestException('Invalid OIDC callback state')
+      this.recoverExpiredLogin(response)
+      return
     }
 
     const login = this.logins.get(state)
     this.logins.delete(state)
     if (!login || login.expiresAt <= Date.now()) {
-      throw new BadRequestException('OIDC login request expired')
+      this.recoverExpiredLogin(response)
+      return
     }
 
     const tokenResponse = await this.exchangeCode(code, login)
@@ -321,6 +324,11 @@ export class BffSessionService {
   private clearCookie(name: string): string {
     const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
     return `${name}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure}`
+  }
+
+  private recoverExpiredLogin(response: Response): void {
+    response.setHeader('Set-Cookie', this.clearCookie(LOGIN_COOKIE))
+    response.redirect(LOGIN_RECOVERY_LOCATION)
   }
 
   private randomToken(): string {

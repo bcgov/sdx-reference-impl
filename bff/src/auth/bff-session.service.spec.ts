@@ -56,4 +56,26 @@ describe('BffSessionService login scopes', () => {
 
     expect(authorizationUrl.searchParams.get('scope')).toBe(DEFAULT_OIDC_SCOPE)
   })
+
+  it('recovers from an invalid callback state by clearing the login cookie', async () => {
+    const response = {
+      redirect: vi.fn(),
+      setHeader: vi.fn(),
+    } as unknown as Response
+    const request = {
+      headers: { cookie: 'bff_login=expected-state' },
+      query: {
+        code: 'authorization-code',
+        state: 'different-state',
+      },
+    } as unknown as Request
+
+    await new BffSessionService().completeLogin(request, response)
+
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Set-Cookie',
+      expect.stringContaining('bff_login=; Max-Age=0'),
+    )
+    expect(response.redirect).toHaveBeenCalledWith('/login?reason=oidc-session-expired')
+  })
 })
