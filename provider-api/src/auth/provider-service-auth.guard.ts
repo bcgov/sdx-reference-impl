@@ -22,7 +22,7 @@ export class ProviderServiceAuthGuard implements CanActivate {
     const claims = await this.getClaims(request)
     const clientId = this.clientIdFromClaims(claims)
     const tokenSubject = this.readStringClaim(claims, 'sub') || clientId
-    const clientToken = this.isClientToken(claims)
+    const clientToken = this.isClientToken(claims, clientId)
 
     if (!tokenSubject) {
       throw new UnauthorizedException('JWT sub or client_id claim is required')
@@ -78,13 +78,22 @@ export class ProviderServiceAuthGuard implements CanActivate {
     return this.tokenValidator.validate(authorization.slice('Bearer '.length))
   }
 
-  private isClientToken(claims: Record<string, unknown>): boolean {
+  private isClientToken(claims: Record<string, unknown>, clientId: string | undefined): boolean {
     const grantType =
       this.readStringClaim(claims, 'grant_type') || this.readStringClaim(claims, 'gty')
     if (grantType === 'client_credentials' || grantType === 'client-credentials') {
       return true
     }
-    return Boolean(this.readStringClaim(claims, 'client_id'))
+    if (this.readStringClaim(claims, 'client_id')) {
+      return true
+    }
+
+    // Common SSO's automated client provisioning omits Keycloak's service-account
+    // mapper claims (including client_id). Its client-credentials tokens retain the
+    // authorized party and Keycloak service-account username, so support that token
+    // shape without treating every end-user token containing azp as a client token.
+    const username = this.readStringClaim(claims, 'preferred_username')
+    return Boolean(clientId && username === `service-account-${clientId}`)
   }
 
   private validateAllowedClient(clientId: string): void {
@@ -101,7 +110,12 @@ export class ProviderServiceAuthGuard implements CanActivate {
   }
 
   private clientIdFromClaims(claims: Record<string, unknown>): string | undefined {
-    return this.readStringClaim(claims, 'client_id') || this.readStringClaim(claims, 'azp')
+    const authorizedParty = this.readStringClaim(claims, 'azp')
+    const clientId = this.readStringClaim(claims, 'client_id')
+    if (authorizedParty && clientId && authorizedParty !== clientId) {
+      throw new UnauthorizedException('JWT azp and client_id claims do not match')
+    }
+    return authorizedParty || clientId
   }
 
   private usernameFromClaims(claims: Record<string, unknown>): string | undefined {
