@@ -76,6 +76,68 @@ describe('ProviderServiceAuthGuard', () => {
     })
   })
 
+  it('accepts Common SSO service-account tokens that identify the client with azp', async () => {
+    const claims = {
+      sub: 'service-account-user-id',
+      azp: 'local-provider-sdx-api',
+      preferred_username: 'service-account-local-provider-sdx-api',
+    }
+    const request: ProviderAuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor(claims)}`,
+        'x-on-behalf-of-sub': 'user-123',
+        'x-on-behalf-of-username': 'Alex Smith',
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true)
+    expect(request.providerCaller).toEqual({
+      tokenSubject: 'service-account-user-id',
+      claims,
+      clientToken: true,
+      clientId: 'local-provider-sdx-api',
+      effectiveSubject: 'user-123',
+      effectiveUsername: 'Alex Smith',
+    })
+  })
+
+  it('does not treat an end-user token containing azp as a client token', async () => {
+    const claims = {
+      sub: 'user-123',
+      azp: 'local-provider-sdx-api',
+      preferred_username: 'asmith',
+    }
+    const request: ProviderAuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor(claims)}`,
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true)
+    expect(request.providerCaller?.clientToken).toBe(false)
+    expect(request.providerCaller?.effectiveSubject).toBe('user-123')
+    expect(request.providerCaller?.effectiveUsername).toBe('asmith')
+  })
+
+  it('rejects tokens with conflicting azp and client_id claims', async () => {
+    const request: ProviderAuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor({
+          sub: 'service-account-user-id',
+          azp: 'local-provider-sdx-api',
+          client_id: 'other-provider-sdx-api',
+          preferred_username: 'service-account-local-provider-sdx-api',
+        })}`,
+        'x-on-behalf-of-sub': 'user-123',
+        'x-on-behalf-of-username': 'Alex Smith',
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).rejects.toEqual(
+      new UnauthorizedException('JWT azp and client_id claims do not match'),
+    )
+  })
+
   it('rejects unauthorized client tokens', async () => {
     process.env.PROVIDER_API_ALLOWED_CLIENT_IDS = 'local-provider-sdx-api'
     const request: ProviderAuthenticatedRequest = {
