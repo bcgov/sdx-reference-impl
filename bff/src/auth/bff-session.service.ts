@@ -78,13 +78,18 @@ export class BffSessionService {
     const code = this.readQueryString(request.query.code)
     const state = this.readQueryString(request.query.state)
     const loginCookieState = this.readCookie(request, LOGIN_COOKIE)
-    if (!code || !state) {
+    if (!state) {
       this.recoverExpiredLogin(response)
       return
     }
     if (state !== loginCookieState) {
       this.logins.delete(state)
       this.recoverExpiredLogin(response, false)
+      return
+    }
+    if (!code) {
+      this.logins.delete(state)
+      this.recoverExpiredLogin(response)
       return
     }
 
