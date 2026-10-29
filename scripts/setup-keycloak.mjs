@@ -568,13 +568,13 @@ async function main() {
       await ensureAudienceMapper(context, audienceScope, audience)
     }
   }
+  const providerApiRequestedScopeNames = ['openid', 'profile', ...WIDGET_SCOPES]
   const requestedScopeNames = [
-    'openid',
-    'profile',
-    ...WIDGET_SCOPES,
+    ...providerApiRequestedScopeNames,
     ...(audienceScopeName ? [audienceScopeName] : []),
   ]
   const scopeValue = requestedScopeNames.join(' ')
+  const providerApiScopeValue = providerApiRequestedScopeNames.join(' ')
 
   const bffClient = await ensureClient(context, {
     clientId: clients.bff,
@@ -657,7 +657,7 @@ async function main() {
     PROVIDER_SDX_API_JWT_ISSUER: '',
     PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID: clients.providerApiSwagger,
     PROVIDER_API_SWAGGER_OAUTH_REDIRECT_URL: providerApiSwaggerRedirectUrl,
-    PROVIDER_API_SWAGGER_OAUTH_SCOPES: scopeValue,
+    PROVIDER_API_SWAGGER_OAUTH_SCOPES: providerApiScopeValue,
     PROVIDER_SDX_API_SWAGGER_OAUTH_CLIENT_ID: clients.providerSdxApiSwagger,
     PROVIDER_SDX_API_SWAGGER_OAUTH_REDIRECT_URL: providerSdxApiSwaggerRedirectUrl,
     PROVIDER_SDX_API_SWAGGER_OAUTH_SCOPES: scopeValue,
