@@ -187,7 +187,7 @@ The provider API service-to-service connection accepts these runtime settings:
 | `PROVIDER_SDX_API_TOKEN_URL` | No | OIDC discovery `token_endpoint` | Explicit token endpoint for service-token requests |
 | `PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES` | No | | Comma- or space-delimited audiences that must all be present in inbound SDX tokens; deployed environments should include the SDX PZ client and may include provider audiences |
 | `PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID` | No | | When set, require `X-SDX-Client-Subsystem-Id` to match this value |
-| `PROVIDER_SDX_API_SDX_ORIGINAL_AZP` | No | Generated BFF client ID | When set, require `X-SDX-Original-AZP` to match this value |
+| `PROVIDER_SDX_API_SDX_ORIGINAL_AZP` | No | | When set, require `X-SDX-Original-AZP` to match this value |
 | `PROVIDER_API_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api` for `provider-api` |
 | `PROVIDER_SDX_API_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api` for `provider-sdx-api`, for example `/sdx` |
 
@@ -229,6 +229,10 @@ When `PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID` is configured, the incoming
 match or the API returns `401`. Each check is skipped independently when its
 setting is empty. The provider does not use the deprecated provider-side meaning
 of `X-Client-Id`.
+
+The setup script leaves original-AZP validation empty because the default local
+Compose path calls `provider-sdx-api` directly, without SDX to inject the trusted
+header. Configure the expected value only when requests pass through SDX.
 
 Provider Swagger UI can be configured with an OAuth public client for either
 provider API. Set `PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID` for `provider-api` and

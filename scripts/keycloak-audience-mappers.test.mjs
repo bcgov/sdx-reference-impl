@@ -25,6 +25,12 @@ test('returns script-managed audience mappers that are no longer required', () =
   assert.deepEqual(findObsoleteAudienceMappers([current, obsolete], ['new-provider']), [obsolete])
 })
 
+test('returns all script-managed audience mappers when audiences are disabled', () => {
+  const first = audienceMapper('first-provider')
+  const second = audienceMapper('second-provider')
+
+  assert.deepEqual(findObsoleteAudienceMappers([first, second], []), [first, second])
+})
 test('preserves unrelated and manually named protocol mappers', () => {
   const unrelated = {
     id: 'unrelated',
