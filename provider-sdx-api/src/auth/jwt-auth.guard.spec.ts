@@ -34,6 +34,7 @@ describe('JwtAuthGuard', () => {
     delete process.env.JWT_REQUIRED_AUDIENCES
     delete process.env.OIDC_AUTHORITY
     delete process.env.SDX_CLIENT_SUBSYSTEM_ID
+    delete process.env.SDX_ORIGINAL_AZP
   })
 
   it('sets the authenticated subject from the bearer token', async () => {
@@ -248,6 +249,44 @@ describe('JwtAuthGuard', () => {
 
     await expect(guard.canActivate(contextFor(request))).rejects.toEqual(
       new UnauthorizedException('SDX client subsystem is invalid'),
+    )
+  })
+  it('accepts the configured SDX original AZP header', async () => {
+    process.env.SDX_ORIGINAL_AZP = 'dev-widget-bff'
+    const request: AuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor({ sub: 'user-123' })}`,
+        'x-sdx-original-azp': 'dev-widget-bff',
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true)
+  })
+
+  it('rejects a missing SDX original AZP header when configured', async () => {
+    process.env.SDX_ORIGINAL_AZP = 'dev-widget-bff'
+    const request: AuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor({ sub: 'user-123' })}`,
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).rejects.toEqual(
+      new UnauthorizedException('SDX original AZP is invalid'),
+    )
+  })
+
+  it('rejects a mismatched SDX original AZP header when configured', async () => {
+    process.env.SDX_ORIGINAL_AZP = 'dev-widget-bff'
+    const request: AuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor({ sub: 'user-123' })}`,
+        'x-sdx-original-azp': 'other-client',
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request))).rejects.toEqual(
+      new UnauthorizedException('SDX original AZP is invalid'),
     )
   })
 })

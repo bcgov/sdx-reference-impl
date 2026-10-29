@@ -297,8 +297,10 @@ JWT validation can be controlled per provider API:
 Set `PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES` to a comma- or space-delimited
 list of audiences that must all appear in `aud`. Set
 `PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID` to require an exact
-`X-SDX-Client-Subsystem-Id` match. Audience validation and subsystem validation
-are skipped independently when their corresponding settings are empty.
+`X-SDX-Client-Subsystem-Id` match. Set
+`PROVIDER_SDX_API_SDX_ORIGINAL_AZP` to require an exact
+`X-SDX-Original-AZP` match. Audience, subsystem, and original-AZP validation are
+skipped independently when their corresponding settings are empty.
 
 Use `JWT_ISSUER` to set the expected issuer. When `JWT_ISSUER` is set, the
 services validate the token's `iss` claim against it. Signing keys are resolved

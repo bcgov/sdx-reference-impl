@@ -187,6 +187,7 @@ The provider API service-to-service connection accepts these runtime settings:
 | `PROVIDER_SDX_API_TOKEN_URL` | No | OIDC discovery `token_endpoint` | Explicit token endpoint for service-token requests |
 | `PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES` | No | | Comma- or space-delimited audiences that must all be present in inbound SDX tokens; deployed environments should include the SDX PZ client and may include provider audiences |
 | `PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID` | No | | When set, require `X-SDX-Client-Subsystem-Id` to match this value |
+| `PROVIDER_SDX_API_SDX_ORIGINAL_AZP` | No | Generated BFF client ID | When set, require `X-SDX-Original-AZP` to match this value |
 | `PROVIDER_API_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api` for `provider-api` |
 | `PROVIDER_SDX_API_PUBLIC_BASE_PATH` | No | | Preserved public path prefix before `/api` for `provider-sdx-api`, for example `/sdx` |
 
@@ -223,9 +224,11 @@ the SDX PZ token-exchange client. This validation does not perform another token
 exchange.
 
 When `PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID` is configured, the incoming
-`X-SDX-Client-Subsystem-Id` must match or the API returns `401`. When unset, the
-subsystem check is skipped. The provider does not use the deprecated
-provider-side meaning of `X-Client-Id`.
+`X-SDX-Client-Subsystem-Id` must match or the API returns `401`. When
+`PROVIDER_SDX_API_SDX_ORIGINAL_AZP` is configured, `X-SDX-Original-AZP` must
+match or the API returns `401`. Each check is skipped independently when its
+setting is empty. The provider does not use the deprecated provider-side meaning
+of `X-Client-Id`.
 
 Provider Swagger UI can be configured with an OAuth public client for either
 provider API. Set `PROVIDER_API_SWAGGER_OAUTH_CLIENT_ID` for `provider-api` and

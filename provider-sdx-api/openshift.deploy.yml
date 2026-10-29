@@ -82,6 +82,9 @@ parameters:
   - name: PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID
     description: Optional expected X-SDX-Client-Subsystem-Id request header value
     value: ""
+  - name: PROVIDER_SDX_API_SDX_ORIGINAL_AZP
+    description: Optional expected X-SDX-Original-AZP request header value
+    value: ""
   - name: PROVIDER_SDX_API_PUBLIC_BASE_PATH
     description: Optional preserved public path prefix used before /api, for example /sdx
     value: ""
@@ -149,6 +152,8 @@ objects:
                   value: ${PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES}
                 - name: SDX_CLIENT_SUBSYSTEM_ID
                   value: ${PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID}
+                - name: SDX_ORIGINAL_AZP
+                  value: ${PROVIDER_SDX_API_SDX_ORIGINAL_AZP}
                 - name: PUBLIC_BASE_PATH
                   value: ${PROVIDER_SDX_API_PUBLIC_BASE_PATH}
               resources:
