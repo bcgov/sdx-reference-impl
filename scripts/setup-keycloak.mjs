@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { writeFile } from 'node:fs/promises'
+import { findObsoleteAudienceMappers } from './keycloak-audience-mappers.mjs'
 
 const WIDGET_SCOPES = [
   'nrs:widgets:read',
@@ -375,6 +376,30 @@ async function ensureAudienceMapper(context, scope, audience) {
   console.log(`Updated audience mapper ${audience} on scope ${scope.name}`)
 }
 
+async function reconcileAudienceMappers(context, scope, audiences) {
+  const mapperPath = `/admin/realms/${encodePathPart(context.realm)}/client-scopes/${encodePathPart(scope.id)}/protocol-mappers/models`
+  const response = await keycloakRequest({
+    ...context,
+    path: mapperPath,
+  })
+
+  for (const mapper of findObsoleteAudienceMappers(response.body, audiences)) {
+    await keycloakRequest({
+      ...context,
+      path: `${mapperPath}/${encodePathPart(mapper.id)}`,
+      method: 'DELETE',
+      ok: [204],
+    })
+    console.log(
+      `Removed obsolete audience mapper ${mapper.config['included.custom.audience']} from scope ${scope.name}`,
+    )
+  }
+
+  for (const audience of new Set(audiences)) {
+    await ensureAudienceMapper(context, scope, audience)
+  }
+}
+
 async function findClient(context, clientId) {
   const response = await keycloakRequest({
     ...context,
@@ -564,9 +589,7 @@ async function main() {
   let audienceScope
   if (audienceScopeName) {
     audienceScope = await ensureClientScope(context, audienceScopeName)
-    for (const audience of requiredAudiences) {
-      await ensureAudienceMapper(context, audienceScope, audience)
-    }
+    await reconcileAudienceMappers(context, audienceScope, requiredAudiences)
   }
   const providerApiRequestedScopeNames = ['openid', 'profile', ...WIDGET_SCOPES]
   const requestedScopeNames = [
