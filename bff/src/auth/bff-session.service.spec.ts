@@ -86,7 +86,10 @@ describe('BffSessionService login scopes', () => {
     expect(response.redirect).toHaveBeenCalledWith('/login?reason=oidc-session-expired')
   })
 
-  it('preserves a newer login when an older callback arrives first', async () => {
+  it.each([
+    ['successful', (state: string) => ({ code: 'first-code', state })],
+    ['error', (state: string) => ({ error: 'access_denied', state })],
+  ])('preserves a newer login when an older %s callback arrives first', async (_kind, query) => {
     process.env.OIDC_AUTHORITY = 'https://identity.test'
     process.env.OIDC_CLIENT_SECRET = 'client-secret'
     const fetchMock = vi
@@ -138,7 +141,7 @@ describe('BffSessionService login scopes', () => {
     await service.completeLogin(
       {
         headers: { cookie: `bff_login=${secondState}` },
-        query: { code: 'first-code', state: firstState },
+        query: query(firstState),
       } as unknown as Request,
       staleCallbackResponse,
     )
