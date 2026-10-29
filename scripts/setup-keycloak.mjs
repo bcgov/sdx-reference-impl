@@ -651,6 +651,7 @@ async function main() {
     PROVIDER_SDX_API_JWT_VALIDATE_SCOPES: 'true',
     PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES: requiredAudiences.join(','),
     PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID: '',
+    PROVIDER_SDX_API_SDX_ORIGINAL_AZP: clients.bff,
     PROVIDER_API_PUBLIC_BASE_PATH: providerApiPublicBasePath,
     PROVIDER_SDX_API_PUBLIC_BASE_PATH: providerSdxApiPublicBasePath,
     PROVIDER_API_JWT_ISSUER: authority,

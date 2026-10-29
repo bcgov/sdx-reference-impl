@@ -31,6 +31,7 @@ export class JwtAuthGuard implements CanActivate {
     this.validateRequiredAudiences(claims)
     this.validateRequiredScopes(context, claims)
     this.validateClientSubsystem(request)
+    this.validateOriginalAzp(request)
 
     request.user = {
       subject,
@@ -97,6 +98,18 @@ export class JwtAuthGuard implements CanActivate {
     const actualSubsystem = this.readHeader(request, 'x-sdx-client-subsystem-id')?.trim()
     if (actualSubsystem !== expectedSubsystem) {
       throw new UnauthorizedException('SDX client subsystem is invalid')
+    }
+  }
+
+  private validateOriginalAzp(request: AuthenticatedRequest): void {
+    const expectedOriginalAzp = process.env.SDX_ORIGINAL_AZP?.trim()
+    if (!expectedOriginalAzp) {
+      return
+    }
+
+    const actualOriginalAzp = this.readHeader(request, 'x-sdx-original-azp')?.trim()
+    if (actualOriginalAzp !== expectedOriginalAzp) {
+      throw new UnauthorizedException('SDX original AZP is invalid')
     }
   }
 
