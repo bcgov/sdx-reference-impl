@@ -302,6 +302,11 @@ list of audiences that must all appear in `aud`. Set
 `X-SDX-Original-AZP` match. Audience, subsystem, and original-AZP validation are
 skipped independently when their corresponding settings are empty.
 
+The setup script leaves original-AZP validation empty for the default local
+Compose path because it calls `provider-sdx-api` directly. Set the expected value
+in deployments that route requests through SDX, where token exchange supplies the
+trusted header.
+
 Use `JWT_ISSUER` to set the expected issuer. When `JWT_ISSUER` is set, the
 services validate the token's `iss` claim against it. Signing keys are resolved
 from `OIDC_OPENID_CONNECT_URL`, or from the discovery document derived from

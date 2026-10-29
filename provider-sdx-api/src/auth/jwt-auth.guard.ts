@@ -139,7 +139,7 @@ export class JwtAuthGuard implements CanActivate {
     if (value === undefined || value === '') {
       return true
     }
-    return ['true', '1', 'yes', 'y', 'on'].includes(value)
+    return !['false', '0', 'no', 'n', 'off'].includes(value)
   }
 
   private readConfiguredValues(name: string): string[] {

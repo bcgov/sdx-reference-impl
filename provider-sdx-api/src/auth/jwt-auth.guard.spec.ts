@@ -175,6 +175,19 @@ describe('JwtAuthGuard', () => {
     await expect(guard.canActivate(contextFor(request, ['nrs:widgets:read']))).resolves.toBe(true)
   })
 
+  it('fails closed when scope-validation configuration is not recognized', async () => {
+    process.env.JWT_VALIDATE_SCOPES = 'treu'
+    const request: AuthenticatedRequest = {
+      headers: {
+        authorization: `Bearer ${tokenFor({ sub: 'user-123' })}`,
+      },
+    }
+
+    await expect(guard.canActivate(contextFor(request, ['nrs:widgets:read']))).rejects.toEqual(
+      new ForbiddenException('JWT is missing required scope: nrs:widgets:read'),
+    )
+  })
+
   it('accepts all configured required audiences from an array aud claim', async () => {
     process.env.JWT_REQUIRED_AUDIENCES = 'sdx-pz-client, provider-sdx-api'
     const request: AuthenticatedRequest = {

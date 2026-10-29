@@ -378,6 +378,10 @@ async function ensureAudienceMapper(context, scope, audience) {
 
 async function reconcileAudienceMappers(context, scope, audiences) {
   const mapperPath = `/admin/realms/${encodePathPart(context.realm)}/client-scopes/${encodePathPart(scope.id)}/protocol-mappers/models`
+
+  for (const audience of new Set(audiences)) {
+    await ensureAudienceMapper(context, scope, audience)
+  }
   const response = await keycloakRequest({
     ...context,
     path: mapperPath,
@@ -393,10 +397,6 @@ async function reconcileAudienceMappers(context, scope, audiences) {
     console.log(
       `Removed obsolete audience mapper ${mapper.config['included.custom.audience']} from scope ${scope.name}`,
     )
-  }
-
-  for (const audience of new Set(audiences)) {
-    await ensureAudienceMapper(context, scope, audience)
   }
 }
 
@@ -473,6 +473,15 @@ async function assignOptionalClientScope(context, client, scope) {
     path: `/admin/realms/${encodePathPart(context.realm)}/clients/${encodePathPart(client.id)}/optional-client-scopes/${encodePathPart(scope.id)}`,
     method: 'PUT',
     ok: [204, 409],
+  })
+}
+
+async function removeOptionalClientScope(context, client, scope) {
+  await keycloakRequest({
+    ...context,
+    path: `/admin/realms/${encodePathPart(context.realm)}/clients/${encodePathPart(client.id)}/optional-client-scopes/${encodePathPart(scope.id)}`,
+    method: 'DELETE',
+    ok: [204, 404],
   })
 }
 
@@ -567,15 +576,13 @@ async function main() {
   const requiredAudiences = splitConfiguredValues(
     envOrArg(args, 'required-audiences', 'PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES', ''),
   )
-  const audienceScopeName =
-    requiredAudiences.length > 0
-      ? envOrArg(
-          args,
-          'audience-scope',
-          'KEYCLOAK_AUDIENCE_SCOPE',
-          `${environment}-required-audiences`,
-        )
-      : undefined
+  const audienceScopeName = envOrArg(
+    args,
+    'audience-scope',
+    'KEYCLOAK_AUDIENCE_SCOPE',
+    `${environment}-required-audiences`,
+  )
+  const audienceScopeEnabled = requiredAudiences.length > 0
 
   const token = await getAdminToken({ baseUrl, adminRealm, username, password })
   const context = { baseUrl, realm, token }
@@ -587,14 +594,18 @@ async function main() {
     widgetScopes.push(await ensureClientScope(context, scopeName))
   }
   let audienceScope
-  if (audienceScopeName) {
+  if (audienceScopeEnabled) {
     audienceScope = await ensureClientScope(context, audienceScopeName)
+  } else {
+    audienceScope = await findClientScope(context, audienceScopeName)
+  }
+  if (audienceScope) {
     await reconcileAudienceMappers(context, audienceScope, requiredAudiences)
   }
   const providerApiRequestedScopeNames = ['openid', 'profile', ...WIDGET_SCOPES]
   const requestedScopeNames = [
     ...providerApiRequestedScopeNames,
-    ...(audienceScopeName ? [audienceScopeName] : []),
+    ...(audienceScopeEnabled ? [audienceScopeName] : []),
   ]
   const scopeValue = requestedScopeNames.join(' ')
   const providerApiScopeValue = providerApiRequestedScopeNames.join(' ')
@@ -652,7 +663,11 @@ async function main() {
   }
   if (audienceScope) {
     for (const client of [bffClient, providerSdxApiSwaggerClient]) {
-      await assignOptionalClientScope(context, client, audienceScope)
+      if (audienceScopeEnabled) {
+        await assignOptionalClientScope(context, client, audienceScope)
+      } else {
+        await removeOptionalClientScope(context, client, audienceScope)
+      }
     }
   }
 
@@ -674,7 +689,7 @@ async function main() {
     PROVIDER_SDX_API_JWT_VALIDATE_SCOPES: 'true',
     PROVIDER_SDX_API_JWT_REQUIRED_AUDIENCES: requiredAudiences.join(','),
     PROVIDER_SDX_API_SDX_CLIENT_SUBSYSTEM_ID: '',
-    PROVIDER_SDX_API_SDX_ORIGINAL_AZP: clients.bff,
+    PROVIDER_SDX_API_SDX_ORIGINAL_AZP: '',
     PROVIDER_API_PUBLIC_BASE_PATH: providerApiPublicBasePath,
     PROVIDER_SDX_API_PUBLIC_BASE_PATH: providerSdxApiPublicBasePath,
     PROVIDER_API_JWT_ISSUER: authority,

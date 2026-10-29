@@ -78,8 +78,13 @@ export class BffSessionService {
     const code = this.readQueryString(request.query.code)
     const state = this.readQueryString(request.query.state)
     const loginCookieState = this.readCookie(request, LOGIN_COOKIE)
-    if (!code || !state || state !== loginCookieState) {
+    if (!code || !state) {
       this.recoverExpiredLogin(response)
+      return
+    }
+    if (state !== loginCookieState) {
+      this.logins.delete(state)
+      this.recoverExpiredLogin(response, false)
       return
     }
 
@@ -326,8 +331,10 @@ export class BffSessionService {
     return `${name}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure}`
   }
 
-  private recoverExpiredLogin(response: Response): void {
-    response.setHeader('Set-Cookie', this.clearCookie(LOGIN_COOKIE))
+  private recoverExpiredLogin(response: Response, clearLoginCookie = true): void {
+    if (clearLoginCookie) {
+      response.setHeader('Set-Cookie', this.clearCookie(LOGIN_COOKIE))
+    }
     response.redirect(LOGIN_RECOVERY_LOCATION)
   }
 
